@@ -1,0 +1,2 @@
+ docker build -t ruoyi-ui -f Dockerfile-ui .
+ docker build -t ruoyi-admin -f Dockerfile-admin .

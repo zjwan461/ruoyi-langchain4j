@@ -1,0 +1,1 @@
+docker run -d --name ruoyi-admin -p 8000:8000 -v ${HOME}/ruoyi/uploadPath:/uploadPath --network ruoyi-network ruoyi-admin

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ai.mapper.ModelMapper">
+    
+    <resultMap type="Model" id="ModelResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="baseUrl"    column="base_url"    />
+        <result property="apiKey"    column="api_key"    />
+        <result property="temperature"    column="temperature"    />
+        <result property="maxOutputToken"    column="max_output_token"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="type"    column="type"    />
+        <result property="provider"    column="provider"    />
+    </resultMap>
+
+    <sql id="selectModelVo">
+        select id, name, base_url, api_key, temperature, max_output_token, create_by, create_time, update_by, update_time, type, provider from model
+    </sql>
+
+    <select id="selectModelList" parameterType="Model" resultMap="ModelResult">
+        <include refid="selectModelVo"/>
+        <where>  
+            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
+            <if test="baseUrl != null  and baseUrl != ''"> and base_url like concat('%', #{baseUrl}, '%')</if>
+            <if test="type != null "> and type = #{type}</if>
+            <if test="provider != null "> and provider = #{provider}</if>
+        </where>
+    </select>
+    
+    <select id="selectModelById" parameterType="Long" resultMap="ModelResult">
+        <include refid="selectModelVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertModel" parameterType="Model" useGeneratedKeys="true" keyProperty="id">
+        insert into model
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="baseUrl != null and baseUrl != ''">base_url,</if>
+            <if test="apiKey != null">api_key,</if>
+            <if test="temperature != null">temperature,</if>
+            <if test="maxOutputToken != null">max_output_token,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="type != null">type,</if>
+            <if test="provider != null">provider,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="baseUrl != null and baseUrl != ''">#{baseUrl},</if>
+            <if test="apiKey != null">#{apiKey},</if>
+            <if test="temperature != null">#{temperature},</if>
+            <if test="maxOutputToken != null">#{maxOutputToken},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="type != null">#{type},</if>
+            <if test="provider != null">#{provider},</if>
+         </trim>
+    </insert>
+
+    <update id="updateModel" parameterType="Model">
+        update model
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="baseUrl != null and baseUrl != ''">base_url = #{baseUrl},</if>
+            <if test="apiKey != null">api_key = #{apiKey},</if>
+            <if test="temperature != null">temperature = #{temperature},</if>
+            <if test="maxOutputToken != null">max_output_token = #{maxOutputToken},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="provider != null">provider = #{provider},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteModelById" parameterType="Long">
+        delete from model where id = #{id}
+    </delete>
+
+    <delete id="deleteModelByIds" parameterType="String">
+        delete from model where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

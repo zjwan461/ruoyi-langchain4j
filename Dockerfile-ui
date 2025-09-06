@@ -1,0 +1,4 @@
+FROM 10.100.217.7/library/nginx:latest as FE
+RUN rm /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/
+

@@ -1,0 +1,1 @@
+docker run -d --name ruoyi-ui -p 8101:80 -p 7788:8000 -p 11434:11434 -v /home/formssi/ruoyi/ui/:/ruoyi-ui --network ruoyi-network ruoyi-ui
