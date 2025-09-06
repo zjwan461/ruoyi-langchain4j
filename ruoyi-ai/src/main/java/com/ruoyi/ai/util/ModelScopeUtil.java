@@ -26,6 +26,15 @@ public class ModelScopeUtil {
 
     private static final int BUFFER_SIZE = 4096;
 
+    private static final String BLOB_FILE_TYPE = "blob";
+    private static final String TREE_FILE_TYPE = "tree";
+    private static final String DEFAULT_REVISION = "master";
+
+    private static final String urlTemp = "https://modelscope.cn/api/v1/models/%s/repo/files?Revision%s&Root=%s";
+
+    private static final String downloadUrlTemp = "https://modelscope.cn/models/%s/resolve/%s/%s";
+
+
     public static void downloadFile(String fileUrl, String savePath) throws IOException {
         URL url = new URL(fileUrl);
         HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
@@ -78,9 +87,6 @@ public class ModelScopeUtil {
         httpConn.disconnect();
     }
 
-    private static final String urlTemp = "https://modelscope.cn/api/v1/models/%s/repo/files?Revision%s&Root=%s";
-
-    private static final String downloadUrlTemp = "https://modelscope.cn/models/%s/resolve/%s/%s";
 
     public static List<ModelScopeFile> listModelFilesList(String repoId, String revision, String root, List<ModelScopeFile> list) {
         String url = String.format(urlTemp, repoId, revision, root);
@@ -94,7 +100,7 @@ public class ModelScopeUtil {
             file.setType(it.getStr("Type"));
             file.setPath(it.getStr("Path"));
             file.setSize(it.getLong("Size"));
-            if (file.getType().equals("blob")) {
+            if (file.getType().equals(BLOB_FILE_TYPE)) {
                 file.setDownloadUri(String.format(downloadUrlTemp, repoId, revision, file.getPath()));
                 list.add(file);
             } else {
@@ -117,7 +123,7 @@ public class ModelScopeUtil {
             file.setType(it.getStr("Type"));
             file.setPath(it.getStr("Path"));
             file.setSize(it.getLong("Size"));
-            if (file.getType().equals("blob")) {
+            if (file.getType().equals(BLOB_FILE_TYPE)) {
                 file.setDownloadUri(String.format(downloadUrlTemp, repoId, revision, file.getPath()));
             } else {
                 file.setChildren(listModelFilesTree(repoId, revision, file.getPath()));
@@ -132,12 +138,14 @@ public class ModelScopeUtil {
         if (!root.exists()) {
             root.mkdirs();
         }
-        List<ModelScopeFile> list = listModelFilesList(repoId, "master", "", new ArrayList<>());
+        List<ModelScopeFile> list = listModelFilesList(repoId, DEFAULT_REVISION, "", new ArrayList<>());
         list = list.stream()
                 .filter(item -> item.getName().matches(allowFilePattern))
                 .sorted((o1, o2) -> Math.toIntExact(o1.getSize() - o2.getSize()))
                 .collect(Collectors.toList());
-        ThreadPoolExecutor threadPool = ThreadUtil.newExecutor(Runtime.getRuntime().availableProcessors(), threadNum);
+        int coreSize = Runtime.getRuntime().availableProcessors();
+        threadNum = Math.max(threadNum, coreSize);
+        ThreadPoolExecutor threadPool = ThreadUtil.newExecutor(coreSize, threadNum);
         CountDownLatch countDownLatch = new CountDownLatch(list.size());
         for (ModelScopeFile file : list) {
             if (file.getPath().contains("/")) {
@@ -168,7 +176,7 @@ public class ModelScopeUtil {
     }
 
     public static String download(String repoId, String saveDir, String allowFilePattern) {
-        List<ModelScopeFile> list = listModelFilesTree(repoId, "master", "");
+        List<ModelScopeFile> list = listModelFilesTree(repoId, DEFAULT_REVISION, "");
         download(saveDir, allowFilePattern, list);
         return new File(saveDir).getAbsolutePath();
     }
@@ -179,7 +187,7 @@ public class ModelScopeUtil {
             saveDirRoot.mkdirs();
         }
         for (ModelScopeFile file : list) {
-            if (file.getType().equals("blob")) {
+            if (file.getType().equals(BLOB_FILE_TYPE)) {
                 if (StringUtils.isNotBlank(allowFilePattern) && !file.getName().matches(allowFilePattern)) {
                     continue;
                 }
@@ -214,16 +222,16 @@ public class ModelScopeUtil {
     }
 
     public static void main(String[] args) {
-//        List<ModelScopeFile> list = listModelFiles("zjwan461/shibing624_text2vec-base-chinese", "master", "");
+//        List<ModelScopeFile> list = listModelFiles("zjwan461/shibing624_text2vec-base-chinese", DEFAULT_REVISION, "");
 //        System.out.println(JSONUtil.toJsonStr(list));
 //
 //        String saveDir = download("zjwan461/shibing624_text2vec-base-chinese", "./models", "[\\s\\S]*");
 //        System.out.println("save model file to: " + saveDir);
-//        List<ModelScopeFile> list = listModelFilesList("zjwan461/shibing624_text2vec-base-chinese", "master", "", new ArrayList<>());
+//        List<ModelScopeFile> list = listModelFilesList("zjwan461/shibing624_text2vec-base-chinese", DEFAULT_REVISION, "", new ArrayList<>());
 //        list = list.stream().sorted((o1, o2) -> Math.toIntExact(o1.getSize() - o2.getSize())).collect(Collectors.toList());
 //
 //        System.out.println(JSONUtil.toJsonStr(list));
-        String saveDir = downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", "./models", "[\\s\\S]*", 12);
+        String saveDir = downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", "./models", "[\\s\\S]*", 4);
         System.out.println("save model file to: " + saveDir);
     }
 }
