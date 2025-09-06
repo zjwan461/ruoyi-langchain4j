@@ -1,9 +1,10 @@
-package com.ruoyi.common.utils;
+package com.ruoyi.ai.util;
 
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.http.HttpUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
