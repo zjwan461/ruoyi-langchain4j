@@ -286,12 +286,12 @@ public class AiTest {
 //    Response<Embedding> response = embeddingModel.embed("test");
 //    System.out.println(response.content());
 
-    String pathToModel = "E:\\models\\embedding\\shibing624_text2vec-base-chinese\\onnx\\model.onnx";
-    String pathToTokenizer = "E:\\models\\embedding\\shibing624_text2vec-base-chinese\\onnx\\tokenizer.json";
+    String pathToModel = "E:\\workspaces\\java\\RuoYi-Vue\\models\\onnx\\model.onnx";
+    String pathToTokenizer = "E:\\workspaces\\java\\RuoYi-Vue\\models\\onnx\\tokenizer.json";
     PoolingMode poolingMode = PoolingMode.MEAN;
     EmbeddingModel embeddingModel2 = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
 
-    Response<Embedding> response2 = embeddingModel2.embed("test");
+    Response<Embedding> response2 = embeddingModel2.embed("我爱祖国");
     Embedding embedding = response2.content();
     System.out.println(embedding);
   }

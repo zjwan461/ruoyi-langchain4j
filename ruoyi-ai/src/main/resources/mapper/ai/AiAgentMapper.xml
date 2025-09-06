@@ -24,7 +24,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAiAgentVo">
-        select id, name, kb_id, system_message, memory_count, model_id, create_by, create_time, update_by, update_time, status, visit_url, day_lmt_per_client, temperature, max_output_token, prompt_template from ai_agent
+        select id, name, kb_id, system_message, memory_count, model_id, create_by, create_time,
+               update_by, update_time, status, visit_url, day_lmt_per_client, temperature, max_output_token, prompt_template from ai_agent
     </sql>
 
     <select id="selectAiAgentList" parameterType="AiAgent" resultMap="AiAgentResult">
