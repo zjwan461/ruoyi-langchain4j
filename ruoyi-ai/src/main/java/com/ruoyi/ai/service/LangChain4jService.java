@@ -26,4 +26,6 @@ public interface LangChain4jService {
   List<EmbeddingMatch<TextSegment>> search(EmbeddingModel embeddingModel, String query,
       int maxResult,
       double minScore, Map<String, Object> metadata);
+
+  boolean checkLocalEmbeddingModel(String saveDir);
 }

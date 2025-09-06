@@ -42,3 +42,10 @@ export function delModel(id) {
     method: 'delete'
   })
 }
+
+export function checkEmbeddingModel() {
+  return request({
+    url: '/ai/model/checkEmbeddingModel',
+    method: 'get'
+  })
+}

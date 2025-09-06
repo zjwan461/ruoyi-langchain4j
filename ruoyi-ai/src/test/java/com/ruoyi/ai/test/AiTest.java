@@ -293,6 +293,6 @@ public class AiTest {
 
     Response<Embedding> response2 = embeddingModel2.embed("我爱祖国");
     Embedding embedding = response2.content();
-    System.out.println(embedding);
+    System.out.println(response2);
   }
 }

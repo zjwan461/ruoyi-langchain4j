@@ -45,6 +45,8 @@ public class Model extends BaseEntity
     @Excel(name = "模型提供商")
     private String provider;
 
+    private String saveDir;
+
     public void setId(Long id) 
     {
         this.id = id;
@@ -123,6 +125,14 @@ public class Model extends BaseEntity
         this.provider = provider;
     }
 
+    public String getSaveDir() {
+        return saveDir;
+    }
+
+    public void setSaveDir(String saveDir) {
+        this.saveDir = saveDir;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -138,6 +148,7 @@ public class Model extends BaseEntity
             .append("updateTime", getUpdateTime())
             .append("type", getType())
             .append("provider", getProvider())
+            .append("saveDir", getSaveDir())
             .toString();
     }
 }
