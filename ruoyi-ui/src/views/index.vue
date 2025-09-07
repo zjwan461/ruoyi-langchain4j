@@ -24,7 +24,7 @@
               <li>JWT</li>
               <li>MyBatis</li>
               <li>Druid</li>
-              <li>Fastjson</li>
+              <li>LangChain4j</li>
               <li>...</li>
             </ul>
           </el-col>
@@ -43,15 +43,15 @@
         </el-row>
       </el-col>
     </el-row>
-    <el-divider />
+    <el-divider/>
     <el-row :gutter="20">
       <el-col :xs="24" :sm="24" :md="12" :lg="8">
         <el-card class="update-log">
           <div slot="header" class="clearfix">
-            <span>最近的任务</span>
+            <span>近期智能体</span>
           </div>
           <div class="body">
-            <p v-for="item in recentTask" :key="item.id"><a href="/requirement/task">{{ item.name }}</a></p>
+            <p v-for="item in recentAgent" :key="item.id">{{ item.name }}</p>
           </div>
         </el-card>
       </el-col>
@@ -61,12 +61,7 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
-            <el-collapse-item title="v0.0.2 - 2025-08-20">
-              <ol>
-                <li>发布v0.0.2版本，首页信息展示</li>
-              </ol>
-            </el-collapse-item>
-            <el-collapse-item title="v0.0.1 - 2025-08-11">
+            <el-collapse-item title="v0.0.1 - 2025-09-03">
               <ol>
                 <li>发布v0.0.1版本</li>
               </ol>
@@ -77,10 +72,10 @@
       <el-col :xs="24" :sm="24" :md="12" :lg="8">
         <el-card class="update-log">
           <div slot="header" class="clearfix">
-            <span>我创建的任务</span>
+            <span>我的操作</span>
           </div>
           <div class="body">
-            <p v-for="item in myTask" :key="item.id"><a href="/requirement/task">{{ item.name }}</a></p>
+            <p v-for="item in myOperation" :key="item.operId">{{ item.title + "\t" + item.operTime }}</p>
           </div>
         </el-card>
       </el-col>
@@ -89,41 +84,47 @@
 </template>
 
 <script>
-import { queryMyTask, queryRecentTask } from '../api/home/home.js'
+import {getMyOperation, queryRecentAgent} from '../api/home/home.js'
+
 export default {
   name: "Index",
-  data () {
+  data() {
     return {
       // 版本号
       version: "3.9.0",
-      myTask: [],
-      recentTask: [],
+      myOperation: [],
+      recentAgent: [],
       showInfo: '',
-      systemName: ''
+      systemName: '',
+      msgLimit: 5
     }
   },
-  created () {
-    this.getMyTask()
-    this.getRecentTask()
+  created() {
+
     this.getConfigKey("homePage.desc.showInfo").then(response => {
       this.showInfo = response.msg
     })
     this.getConfigKey("homePage.system.name").then(response => {
       this.systemName = response.msg
     })
+    this.getConfigKey("homePage.msg.limit").then(response => {
+      this.msgLimit = response.msg
+    })
+    this.getMyOperation()
+    this.getRecentAgent()
   },
   methods: {
-    goTarget (href) {
+    goTarget(href) {
       window.open(href, "_blank")
     },
-    getMyTask () {
-      queryMyTask().then(res => {
-        this.myTask = res.data
+    getMyOperation() {
+      getMyOperation(this.msgLimit).then(res => {
+        this.myOperation = res.rows
       })
     },
-    getRecentTask () {
-      queryRecentTask().then(res => {
-        this.recentTask = res.data
+    getRecentAgent() {
+      queryRecentAgent(this.msgLimit).then(res => {
+        this.recentAgent = res.rows
       })
     }
   }
@@ -138,12 +139,14 @@ export default {
     font-size: 17.5px;
     border-left: 5px solid #eee;
   }
+
   hr {
     margin-top: 20px;
     margin-bottom: 20px;
     border: 0;
     border-top: 1px solid #eee;
   }
+
   .col-item {
     margin-bottom: 20px;
   }

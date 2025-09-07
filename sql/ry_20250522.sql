@@ -1273,3 +1273,16 @@ VALUES (0, 'LLM', '0', 'ai_model_type', NULL, 'primary', 'N', '0', 'admin', '202
         '2025-09-07 00:54:40', NULL),
        (0, '已启用', '1', 'ai_agent_status', NULL, 'success', 'N', '0', 'admin', '2025-09-07 00:54:33', '', NULL, NULL),
        (0, '已停用', '2', 'ai_agent_status', NULL, 'danger', 'N', '0', 'admin', '2025-09-07 00:54:57', '', NULL, NULL);
+
+-- ----------------------------
+-- 首页信息配置
+-- ----------------------------
+INSERT INTO sys_config (config_name, config_key, config_value, config_type, create_by, create_time, update_by,
+                                 update_time, remark)
+VALUES ('首页介绍信息', 'homePage.desc.showInfo',
+        '若依AI智能体系统是一个基于ruoyi-vue和LangChain4j打造的轻量级AI智能体系统。其提供简单的RAG功能，支持多知识库配置',
+        'Y', 'admin', '2025-09-07 14:12:41', 'admin', '2025-09-07 14:24:44', NULL),
+       ('首页系统名称', 'homePage.system.name', '若依AI智能体系统', 'Y', 'admin', '2025-09-07 14:22:10', 'admin',
+        '2025-09-07 14:22:14', NULL),
+       ('首页信息量限制', 'homePage.msg.limit', '5', 'Y', 'admin', '2025-09-07 14:27:34', 'admin',
+        '2025-09-07 14:30:32', NULL);
