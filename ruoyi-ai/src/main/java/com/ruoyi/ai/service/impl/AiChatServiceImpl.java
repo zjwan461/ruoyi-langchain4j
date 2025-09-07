@@ -115,6 +115,7 @@ public class AiChatServiceImpl implements IAiChatService {
 
                     @Override
                     public void onPartialResponse(String partialResponse) {
+                        System.out.print(partialResponse);
                         fluxSink.next(partialResponse);
                     }
 

@@ -135,12 +135,6 @@ xss:
 ai:
   modelScope:
     download-thread-num: 10
-  translate:
-#    baseUri: http://10.100.217.2:7788/v1
-    baseUri: http://127.0.0.1:11434
-    modelName: qwen3:1.7b
-    temperature: 0.4
-    systemMessage: 你是一个翻译官，你需要讲用户提供你的文字翻译为%s。请保证翻译准确，只包含翻译内容，不要包含其他元素
   pgVector:
     host: 127.0.0.1
     port: 5432

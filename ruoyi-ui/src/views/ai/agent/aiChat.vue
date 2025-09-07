@@ -62,7 +62,7 @@
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import { getAgent } from '../api/ai/aiChat.js'
+import { getAgent } from '../../../api/ai/aiChat.js'
 import { nanoid } from 'nanoid'
 
 // 初始化markdown-it实例

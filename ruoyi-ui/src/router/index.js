@@ -43,7 +43,7 @@ export const constantRoutes = [
   },
   {
     path: '/ai-chat/:agentId(.*)',
-    component: () => import('@/views/aiChat'),
+    component: () => import('@/views/ai/agent/aiChat.vue'),
     hidden: true
   },
   {

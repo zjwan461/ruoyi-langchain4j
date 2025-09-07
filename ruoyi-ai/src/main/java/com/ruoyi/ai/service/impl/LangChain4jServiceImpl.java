@@ -70,6 +70,7 @@ public class LangChain4jServiceImpl implements LangChain4jService {
             try {
                 model.chat("hello");
             } catch (Exception e) {
+                log.error("check model config error", e);
                 return false;
             }
         } else {

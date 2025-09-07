@@ -7,19 +7,10 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "ai")
 public class AiConfig {
 
-    private Translate translate;
-
     private PgVector pgVector;
 
     private ModelScope modelScope;
 
-    public Translate getTranslate() {
-        return translate;
-    }
-
-    public void setTranslate(Translate translate) {
-        this.translate = translate;
-    }
 
     public PgVector getPgVector() {
         return pgVector;
@@ -37,48 +28,6 @@ public class AiConfig {
         this.modelScope = modelScope;
     }
 
-    public static class Translate {
-
-        private String baseUri;
-
-        private String modelName;
-
-        private Double temperature;
-
-        private String systemMessage;
-
-        public String getBaseUri() {
-            return baseUri;
-        }
-
-        public void setBaseUri(String baseUri) {
-            this.baseUri = baseUri;
-        }
-
-        public String getModelName() {
-            return modelName;
-        }
-
-        public void setModelName(String modelName) {
-            this.modelName = modelName;
-        }
-
-        public Double getTemperature() {
-            return temperature;
-        }
-
-        public void setTemperature(Double temperature) {
-            this.temperature = temperature;
-        }
-
-        public String getSystemMessage() {
-            return systemMessage;
-        }
-
-        public void setSystemMessage(String systemMessage) {
-            this.systemMessage = systemMessage;
-        }
-    }
 
     public static class PgVector {
 
