@@ -51,7 +51,7 @@
             <span>近期智能体</span>
           </div>
           <div class="body">
-            <p v-for="item in recentAgent" :key="item.id">{{ item.name }}</p>
+            <p v-for="item in recentAgent" :key="item.id"><a :href="item.visitUrl" target="_blank">{{ item.name }}</a></p>
           </div>
         </el-card>
       </el-col>
