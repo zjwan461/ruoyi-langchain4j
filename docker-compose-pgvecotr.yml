@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector
+    container_name: pgvector
+    restart: always
+    environment:
+      # 设置管理员账号为root（PostgreSQL中的超级用户）
+      POSTGRES_USER: root
+      # 管理员（root）密码
+      POSTGRES_PASSWORD: root
+      # 初始创建的数据库名称
+      POSTGRES_DB: embedding
+      # 字符集设置，支持中文
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate=C --lc-ctype=C
+      # 时区设置
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      # 可选：初始化脚本目录
+      # - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    command: >
+      postgres
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=1310kB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+volumes:
+  postgres-data:

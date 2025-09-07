@@ -7,21 +7,17 @@ import com.ruoyi.ai.service.IAiChatService;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
-import com.ruoyi.common.utils.StringUtils;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 public class AiChatController extends BaseController {
@@ -58,7 +54,7 @@ public class AiChatController extends BaseController {
         Collections.singletonList(AI_AGENT_CHAT_LMT + aiAgent.getId() + ":" + clientSessionId),
         dayLmtPerClient,
         (int) TimeUnit.DAYS.toSeconds(1));
-    if (StringUtils.isNull(number) || number.intValue() > dayLmtPerClient) {
+    if (number.intValue() > dayLmtPerClient) {
       throw new ServiceException("当日请求已达上限");
     }
   }

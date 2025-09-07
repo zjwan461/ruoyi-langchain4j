@@ -133,6 +133,8 @@ xss:
 
 
 ai:
+  modelScope:
+    download-thread-num: 10
   translate:
 #    baseUri: http://10.100.217.2:7788/v1
     baseUri: http://127.0.0.1:11434

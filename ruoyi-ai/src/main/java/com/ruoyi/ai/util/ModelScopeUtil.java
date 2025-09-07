@@ -4,11 +4,16 @@ import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.http.HttpUtils;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,11 +22,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Component
 public class ModelScopeUtil {
 
     private static final int BUFFER_SIZE = 4096;
@@ -34,8 +39,29 @@ public class ModelScopeUtil {
 
     private static final String downloadUrlTemp = "https://modelscope.cn/models/%s/resolve/%s/%s";
 
+    private ThreadPoolExecutor threadPool = null;
 
-    public static void downloadFile(String fileUrl, String savePath) throws IOException {
+    @Resource
+    private AiConfig aiConfig;
+
+
+    @PostConstruct
+    private void init() {
+        AiConfig.ModelScope modelScope = aiConfig.getModelScope();
+        int threadNum = modelScope.getDownloadThreadNum();
+        int coreSize = Runtime.getRuntime().availableProcessors();
+        threadNum = Math.max(threadNum, coreSize);
+        threadPool = ThreadUtil.newExecutor(coreSize, threadNum);
+    }
+
+    @PreDestroy
+    private void destroy() {
+        if (threadPool != null) {
+            threadPool.shutdown();
+        }
+    }
+
+    public void downloadFile(String fileUrl, String savePath) throws IOException {
         URL url = new URL(fileUrl);
         HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
         httpConn.setRequestMethod("GET");
@@ -88,7 +114,7 @@ public class ModelScopeUtil {
     }
 
 
-    public static List<ModelScopeFile> listModelFilesList(String repoId, String revision, String root, List<ModelScopeFile> list) {
+    public List<ModelScopeFile> listModelFilesList(String repoId, String revision, String root, List<ModelScopeFile> list) {
         String url = String.format(urlTemp, repoId, revision, root);
         String resp = HttpUtils.sendGet(url);
         JSONObject jobj = JSONUtil.parseObj(resp);
@@ -110,7 +136,7 @@ public class ModelScopeUtil {
         return list;
     }
 
-    public static List<ModelScopeFile> listModelFilesTree(String repoId, String revision, String root) {
+    public List<ModelScopeFile> listModelFilesTree(String repoId, String revision, String root) {
         String url = String.format(urlTemp, repoId, revision, root);
         String resp = HttpUtils.sendGet(url);
         JSONObject jobj = JSONUtil.parseObj(resp);
@@ -133,7 +159,7 @@ public class ModelScopeUtil {
         return list;
     }
 
-    public static String downloadMultiThread(String repoId, String saveDir, String allowFilePattern, int threadNum) {
+    public String downloadMultiThread(String repoId, String saveDir, String allowFilePattern) {
         File root = new File(saveDir);
         if (!root.exists()) {
             root.mkdirs();
@@ -143,10 +169,8 @@ public class ModelScopeUtil {
                 .filter(item -> item.getName().matches(allowFilePattern))
                 .sorted((o1, o2) -> Math.toIntExact(o1.getSize() - o2.getSize()))
                 .collect(Collectors.toList());
-        int coreSize = Runtime.getRuntime().availableProcessors();
-        threadNum = Math.max(threadNum, coreSize);
-        ThreadPoolExecutor threadPool = ThreadUtil.newExecutor(coreSize, threadNum);
-        CountDownLatch countDownLatch = new CountDownLatch(list.size());
+
+//        CountDownLatch countDownLatch = new CountDownLatch(list.size());
         for (ModelScopeFile file : list) {
             if (file.getPath().contains("/")) {
                 File f = new File(saveDir + "/" + file.getPath());
@@ -159,29 +183,24 @@ public class ModelScopeUtil {
                     downloadFile(file.getDownloadUri(), saveDir + "/" + file.getPath());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-                } finally {
+                } /*finally {
                     countDownLatch.countDown();
-                }
+                }*/
 
             });
         }
-        try {
-            countDownLatch.await();
-            threadPool.shutdown();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+
 
         return root.getAbsolutePath();
     }
 
-    public static String download(String repoId, String saveDir, String allowFilePattern) {
+    public String download(String repoId, String saveDir, String allowFilePattern) {
         List<ModelScopeFile> list = listModelFilesTree(repoId, DEFAULT_REVISION, "");
         download(saveDir, allowFilePattern, list);
         return new File(saveDir).getAbsolutePath();
     }
 
-    private static void download(String saveDir, String allowFilePattern, List<ModelScopeFile> list) {
+    private void download(String saveDir, String allowFilePattern, List<ModelScopeFile> list) {
         File saveDirRoot = new File(saveDir);
         if (!saveDirRoot.exists()) {
             saveDirRoot.mkdirs();
@@ -231,7 +250,7 @@ public class ModelScopeUtil {
 //        list = list.stream().sorted((o1, o2) -> Math.toIntExact(o1.getSize() - o2.getSize())).collect(Collectors.toList());
 //
 //        System.out.println(JSONUtil.toJsonStr(list));
-        String saveDir = downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", "./models", "[\\s\\S]*", 4);
-        System.out.println("save model file to: " + saveDir);
+//        String saveDir = downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", "./models", "[\\s\\S]*", 4);
+//        System.out.println("save model file to: " + saveDir);
     }
 }

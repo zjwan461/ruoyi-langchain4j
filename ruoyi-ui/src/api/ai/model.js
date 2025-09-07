@@ -49,3 +49,10 @@ export function checkEmbeddingModel() {
     method: 'get'
   })
 }
+
+export function downloadEmbeddingModel() {
+  return request({
+    url: '/ai/model/download-default-embedding',
+    method: 'get'
+  })
+}

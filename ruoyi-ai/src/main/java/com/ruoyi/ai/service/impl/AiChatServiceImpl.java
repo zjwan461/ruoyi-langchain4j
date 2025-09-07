@@ -22,158 +22,144 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
-import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+
+import javax.annotation.Resource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import javax.annotation.Resource;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 @Service
 public class AiChatServiceImpl implements IAiChatService {
 
-  @Resource
-  private LangChain4jService langChain4jService;
+    @Resource
+    private LangChain4jService langChain4jService;
 
-  @Resource
-  private IModelService modelService;
+    @Resource
+    private IModelService modelService;
 
-  @Resource
-  private IKnowledgeBaseService knowledgeBaseService;
+    @Resource
+    private IKnowledgeBaseService knowledgeBaseService;
 
-  private static final TimedCache<String, ChatMemory> chatMemories = new TimedCache<>(
-      TimeUnit.DAYS.toMillis(1));
+    @Resource
+    private ModelBuilder modelBuilder;
 
-  public static final String MEMORY_CACHE_KEY_PREFIX = "ai:agent:memory:";
+    private static final TimedCache<String, ChatMemory> chatMemories = new TimedCache<>(
+            TimeUnit.DAYS.toMillis(1));
 
-  @Override
-  public Flux<String> chat(AiAgent aiAgent, String prompt, String sessionId) {
-    Model model = modelService.selectModelById(aiAgent.getModelId());
+    public static final String MEMORY_CACHE_KEY_PREFIX = "ai:agent:memory:";
 
-    StreamingChatModel llm = getLLM(model);
+    @Override
+    public Flux<String> chat(AiAgent aiAgent, String prompt, String sessionId) {
+        Model model = modelService.selectModelById(aiAgent.getModelId());
 
-    String promptTemplate = aiAgent.getPromptTemplate();
-    promptTemplate = promptTemplate.replaceAll("\\{question}", prompt);
+        StreamingChatModel llm = getLLM(model);
 
-    if (promptTemplate.contains("{data}") && aiAgent.getKbId() != null) {
-      KnowledgeBase kb = knowledgeBaseService.selectKnowledgeBaseById(aiAgent.getKbId());
-      EmbeddingModel embeddingModel;
-      if (kb != null) {
-        embeddingModel = getEmbeddingModel();
-        Map<String, Object> metadata = MapUtil.<String, Object>builder()
-            .put("kbId", kb.getId()).build();
-        List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel,
-            prompt,
-            3, 0.70, metadata);
-        StringBuilder embBuilder = new StringBuilder();
-        searchRes.stream().map(EmbeddingMatch::embedded).forEach(embedded -> {
-          String text = embedded.text();
-          embBuilder.append(text);
+        String promptTemplate = aiAgent.getPromptTemplate();
+        promptTemplate = promptTemplate.replaceAll("\\{question}", prompt);
+
+        if (promptTemplate.contains("{data}") && aiAgent.getKbId() != null) {
+            KnowledgeBase kb = knowledgeBaseService.selectKnowledgeBaseById(aiAgent.getKbId());
+            EmbeddingModel embeddingModel;
+            if (kb != null) {
+                embeddingModel = getEmbeddingModel();
+                Map<String, Object> metadata = MapUtil.<String, Object>builder()
+                        .put("kbId", kb.getId()).build();
+                List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel,
+                        prompt,
+                        3, 0.70, metadata);
+                StringBuilder embBuilder = new StringBuilder();
+                searchRes.stream().map(EmbeddingMatch::embedded).forEach(embedded -> {
+                    String text = embedded.text();
+                    embBuilder.append(text);
+                });
+                promptTemplate = promptTemplate.replaceAll("\\{data}", embBuilder.toString());
+            }
+        } else if (promptTemplate.contains("{data}") && aiAgent.getKbId() == null) {
+            promptTemplate = promptTemplate.replaceAll("\\{data}", "");
+        }
+
+        ChatMemory chatMemory = null;
+        if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
+            chatMemory = chatMemories.get(MEMORY_CACHE_KEY_PREFIX + sessionId);
+            if (chatMemory == null) {
+                chatMemory = MessageWindowChatMemory.builder()
+                        .chatMemoryStore(new InMemoryChatMemoryStore())
+                        .maxMessages(aiAgent.getMemoryCount())
+                        .id(sessionId)
+                        .build();
+                chatMemories.put(MEMORY_CACHE_KEY_PREFIX + sessionId, chatMemory);
+            }
+        }
+        UserMessage userMessage = UserMessage.from(promptTemplate);
+        if (chatMemory != null) {
+            chatMemory.add(userMessage);
+        }
+        final ChatRequest chatRequest = ChatRequest.builder()
+                .temperature(aiAgent.getTemperature())
+                .maxOutputTokens(aiAgent.getMaxOutputToken())
+                .messages(
+                        chatMemory != null ? chatMemory.messages() : Collections.singletonList(userMessage))
+                .build();
+
+        return Flux.create(fluxSink -> {
+            ThreadUtil.execute(() -> {
+
+                llm.chat(chatRequest, new StreamingChatResponseHandler() {
+
+                    @Override
+                    public void onPartialResponse(String partialResponse) {
+                        fluxSink.next(partialResponse);
+                    }
+
+                    @Override
+                    public void onCompleteResponse(ChatResponse completeResponse) {
+                        fluxSink.complete();
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        fluxSink.error(error);
+                    }
+                });
+
+            });
         });
-        promptTemplate = promptTemplate.replaceAll("\\{data}", embBuilder.toString());
-      }
-    } else if (promptTemplate.contains("{data}") && aiAgent.getKbId() == null) {
-      promptTemplate = promptTemplate.replaceAll("\\{data}", "");
+
     }
 
-    ChatMemory chatMemory = null;
-    if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
-      chatMemory = chatMemories.get(MEMORY_CACHE_KEY_PREFIX + sessionId);
-      if (chatMemory == null) {
-        chatMemory = MessageWindowChatMemory.builder()
-            .chatMemoryStore(new InMemoryChatMemoryStore())
-            .maxMessages(aiAgent.getMemoryCount())
-            .id(sessionId)
-            .build();
-        chatMemories.put(MEMORY_CACHE_KEY_PREFIX + sessionId, chatMemory);
-      }
+    private EmbeddingModel getEmbeddingModel() {
+        Model query = new Model();
+        query.setType(ModelType.EMBEDDING.getValue());
+        List<Model> models = modelService.selectModelList(query);
+        if (models == null) {
+            throw new ServiceException("尚未配置embedding模型,无法进行知识库查询");
+        }
+        Model first = models.get(0);
+        return modelBuilder.getEmbeddingModel(first);
     }
-    UserMessage userMessage = UserMessage.from(promptTemplate);
-    if (chatMemory != null) {
-      chatMemory.add(userMessage);
+
+    private StreamingChatModel getLLM(Model model) {
+        ModelProvider provider = ModelProvider.fromValue(model.getProvider());
+        StreamingChatModel llm = null;
+        if (provider == ModelProvider.OLLAMA) {
+            llm = OllamaStreamingChatModel.builder()
+                    .baseUrl(model.getBaseUrl())
+                    .modelName(model.getName())
+                    .build();
+        } else {
+            llm = OpenAiStreamingChatModel.builder()
+                    .baseUrl(model.getBaseUrl())
+                    .modelName(model.getName())
+                    .apiKey(model.getApiKey())
+                    .build();
+        }
+        return llm;
     }
-    final ChatRequest chatRequest = ChatRequest.builder()
-        .temperature(aiAgent.getTemperature())
-        .maxOutputTokens(aiAgent.getMaxOutputToken())
-        .messages(
-            chatMemory != null ? chatMemory.messages() : Collections.singletonList(userMessage))
-        .build();
-
-    return Flux.create(fluxSink -> {
-      ThreadUtil.execute(() -> {
-
-        llm.chat(chatRequest, new StreamingChatResponseHandler() {
-
-          @Override
-          public void onPartialResponse(String partialResponse) {
-            System.out.print(partialResponse);
-            fluxSink.next(partialResponse);
-          }
-
-          @Override
-          public void onCompleteResponse(ChatResponse completeResponse) {
-            fluxSink.complete();
-          }
-
-          @Override
-          public void onError(Throwable error) {
-            fluxSink.error(error);
-          }
-        });
-
-      });
-    });
-
-  }
-
-  private EmbeddingModel getEmbeddingModel() {
-    EmbeddingModel embeddingModel;
-    Model query = new Model();
-    query.setType(ModelType.EMBEDDING.getValue());
-    List<Model> models = modelService.selectModelList(query);
-    if (models == null) {
-      throw new ServiceException("尚未配置embedding模型,无法进行知识库查询");
-    }
-    Model first = models.get(0);
-
-    ModelProvider eProvider = ModelProvider.fromValue(first.getProvider());
-    if (eProvider == ModelProvider.OLLAMA) {
-      embeddingModel = OllamaEmbeddingModel.builder()
-          .baseUrl(first.getBaseUrl())
-          .modelName(first.getName())
-          .build();
-    } else {
-      embeddingModel = OpenAiEmbeddingModel.builder()
-          .baseUrl(first.getBaseUrl())
-          .apiKey(first.getApiKey())
-          .modelName(first.getName())
-          .build();
-    }
-    return embeddingModel;
-  }
-
-  private StreamingChatModel getLLM(Model model) {
-    ModelProvider provider = ModelProvider.fromValue(model.getProvider());
-    StreamingChatModel llm = null;
-    if (provider == ModelProvider.OLLAMA) {
-      llm = OllamaStreamingChatModel.builder()
-          .baseUrl(model.getBaseUrl())
-          .modelName(model.getName())
-          .build();
-    } else {
-      llm = OpenAiStreamingChatModel.builder()
-          .baseUrl(model.getBaseUrl())
-          .modelName(model.getName())
-          .apiKey(model.getApiKey())
-          .build();
-    }
-    return llm;
-  }
 }

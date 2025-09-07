@@ -55,7 +55,7 @@
             {{ scope.row.visitUrl }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column label="单个IP每日访问限制次数" align="center" prop="dayLmtPerIp" />
+      <el-table-column label="单个IP每日访问限制次数" align="center" prop="dayLmtPerClient" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-info" @click="gotoVisitUrl(scope.row.visitUrl)"
@@ -104,8 +104,8 @@
         <el-form-item label="记忆轮次" prop="memoryCount">
           <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容" />
         </el-form-item>
-        <el-form-item label="IP LMT" prop="dayLmtPerIp">
-          <el-input-number v-model="form.dayLmtPerIp" :max="1000" :min="1" :step="1" placeholder="请输入内容" />
+        <el-form-item label="IP LMT" prop="dayLmtPerClient">
+          <el-input-number v-model="form.dayLmtPerClient" :max="1000" :min="1" :step="1" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">

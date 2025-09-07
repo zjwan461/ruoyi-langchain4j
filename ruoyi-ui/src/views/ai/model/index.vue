@@ -65,7 +65,7 @@
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)"
-                     v-hasPermi="['ai:model:edit']">修改
+                     v-hasPermi="['ai:model:edit']" :disabled="scope.row.provider==='local'">修改
           </el-button>
           <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)"
                      v-hasPermi="['ai:model:remove']" :disabled="scope.row.provider==='local'">删除
@@ -119,7 +119,7 @@
 </template>
 
 <script>
-import {listModel, getModel, delModel, addModel, updateModel, checkEmbeddingModel} from "@/api/ai/model"
+import {listModel, getModel, delModel, addModel, updateModel, checkEmbeddingModel,downloadEmbeddingModel} from "@/api/ai/model"
 
 export default {
   name: "Model",
@@ -183,9 +183,10 @@ export default {
       checkEmbeddingModel().then(response => {
         if (response.msg === "fail") {
           this.$modal.confirm('系统检测到您还没有配置任何embedding模型，是否使用系统默认embedding模型？').then(() => {
-
+            return downloadEmbeddingModel()
           }).then(() => {
-
+            this.$modal.msgSuccess("开始下载本地embedding模型")
+            this.getList()
           }).catch(() => {
           })
         }

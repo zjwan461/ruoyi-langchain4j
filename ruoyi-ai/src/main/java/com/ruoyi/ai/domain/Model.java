@@ -45,6 +45,7 @@ public class Model extends BaseEntity
     @Excel(name = "模型提供商")
     private String provider;
 
+    @Excel(name = "保存目录")
     private String saveDir;
 
     public void setId(Long id) 

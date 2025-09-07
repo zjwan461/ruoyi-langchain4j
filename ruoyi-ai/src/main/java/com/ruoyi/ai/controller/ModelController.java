@@ -11,11 +11,14 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.system.service.ISysConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
@@ -30,6 +33,12 @@ import java.util.List;
 public class ModelController extends BaseController {
     @Autowired
     private IModelService modelService;
+
+    @Autowired
+    private ISysConfigService sysConfigService;
+
+    @Resource
+    private ModelScopeUtil modelScopeUtil;
 
     /**
      * 查询模型管理列表
@@ -104,8 +113,15 @@ public class ModelController extends BaseController {
 
     @PreAuthorize("@ss.hasPermi('ai:model:list')")
     @GetMapping("/download-default-embedding")
+    @Log(title = "模型管理", businessType = BusinessType.INSERT)
     public AjaxResult downloadDefaultEmbedding() {
-        String saveDir = ModelScopeUtil.downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", "./models", "[\\s\\S]*", 12);
+        Model req = new Model();
+        req.setProvider(ModelProvider.LOCAL.getValue());
+        if (!modelService.selectModelList(req).isEmpty()) {
+            throw new ServiceException("已经下载过本地embedding模型");
+        }
+        String saveDir = sysConfigService.selectConfigByKey("ai.model.saveDir");
+        saveDir = modelScopeUtil.downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", saveDir, "[\\s\\S]*");
         Model model = new Model();
         model.setName("shibing624_text2vec-base-chinese");
         model.setType(ModelType.EMBEDDING.getValue());
