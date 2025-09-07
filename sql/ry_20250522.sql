@@ -1281,7 +1281,7 @@ VALUES (0, 'LLM', '0', 'ai_model_type', NULL, 'primary', 'N', '0', 'admin', '202
 INSERT INTO sys_config (config_name, config_key, config_value, config_type, create_by, create_time, update_by,
                         update_time, remark)
 VALUES ('首页介绍信息', 'homePage.desc.showInfo',
-        '若依AI智能体系统是一个基于ruoyi-vue和LangChain4j打造的轻量级AI智能体系统。其提供简单的RAG功能，支持多知识库配置',
+        '若依AI智能体系统是一个基于ruoyi-vue和LangChain4j打造的轻量级AI智能体系统。其提供简单的RAG功能，支持多知识库配置。业务数据库沿用ruoyi-vue的MySQL，知识库数据存储使用pgvector。项目根目录下提供了一个pgvector的docker-compose文件，可以用这个构建pgvector实例。作者实在是懒得将业务数据迁移到pg，实际上不需要两个库的。目前只支持简单的RAG配置，未来有空我会加上基于工作流的复杂RAG功能。',
         'Y', 'admin', '2025-09-07 14:12:41', 'admin', '2025-09-07 14:24:44', NULL),
        ('首页系统名称', 'homePage.system.name', '若依AI智能体系统', 'Y', 'admin', '2025-09-07 14:22:10', 'admin',
         '2025-09-07 14:22:14', NULL),
