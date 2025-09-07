@@ -55,7 +55,7 @@
             {{ scope.row.visitUrl }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column label="单个IP每日访问限制次数" align="center" prop="dayLmtPerClient" />
+      <el-table-column label="单个Client每日访问限制次数" align="center" prop="dayLmtPerClient" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-info" @click="gotoVisitUrl(scope.row.visitUrl)"
@@ -181,7 +181,7 @@ export default {
           { required: true, message: "状态不能为空", trigger: "change" }
         ],
         dayLmtPerIp: [
-          { required: true, message: "单个IP每日访问限制次数不能为空", trigger: "blur" }
+          { required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur" }
         ],
         temperature: [
           { required: true, message: "模型温度不能为空", trigger: "blur" }

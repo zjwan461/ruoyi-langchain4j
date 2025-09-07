@@ -69,7 +69,7 @@ public class AiAgent extends BaseEntity {
   private String visitUrl;
 
   /**
-   * 单个IP每日访问限制次数
+   * 单个Client每日访问限制次数
    */
   @Excel(name = "单个Client每日访问限制次数")
   private Integer dayLmtPerClient;

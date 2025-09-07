@@ -3,11 +3,17 @@ package com.ruoyi.ai.service.impl;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.common.exception.ServiceException;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.PoolingMode;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
+import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,5 +39,41 @@ public class ModelBuilder {
             throw new ServiceException("不支持的模型提供商");
         }
         return embeddingModel;
+    }
+
+    public StreamingChatModel getStreamingLLM(Model model) {
+        ModelProvider provider = ModelProvider.fromValue(model.getProvider());
+        StreamingChatModel llm = null;
+        if (provider == ModelProvider.OLLAMA) {
+            llm = OllamaStreamingChatModel.builder()
+                    .baseUrl(model.getBaseUrl())
+                    .modelName(model.getName())
+                    .build();
+        } else {
+            llm = OpenAiStreamingChatModel.builder()
+                    .baseUrl(model.getBaseUrl())
+                    .modelName(model.getName())
+                    .apiKey(model.getApiKey())
+                    .build();
+        }
+        return llm;
+    }
+
+    public ChatModel getBlockingLLM(Model model) {
+        ModelProvider provider = ModelProvider.fromValue(model.getProvider());
+        ChatModel llm = null;
+        if (provider == ModelProvider.OLLAMA) {
+            llm = OllamaChatModel.builder()
+                    .baseUrl(model.getBaseUrl())
+                    .modelName(model.getName())
+                    .build();
+        } else {
+            llm = OpenAiChatModel.builder()
+                    .baseUrl(model.getBaseUrl())
+                    .modelName(model.getName())
+                    .apiKey(model.getApiKey())
+                    .build();
+        }
+        return llm;
     }
 }

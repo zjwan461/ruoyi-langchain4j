@@ -6,7 +6,6 @@ import cn.hutool.core.thread.ThreadUtil;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
-import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.IAiChatService;
 import com.ruoyi.ai.service.IKnowledgeBaseService;
@@ -22,8 +21,6 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.springframework.stereotype.Service;
@@ -59,7 +56,7 @@ public class AiChatServiceImpl implements IAiChatService {
     public Flux<String> chat(AiAgent aiAgent, String prompt, String sessionId) {
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
-        StreamingChatModel llm = getLLM(model);
+        StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
 
         String promptTemplate = aiAgent.getPromptTemplate();
         promptTemplate = promptTemplate.replaceAll("\\{question}", prompt);
@@ -146,21 +143,4 @@ public class AiChatServiceImpl implements IAiChatService {
         return modelBuilder.getEmbeddingModel(first);
     }
 
-    private StreamingChatModel getLLM(Model model) {
-        ModelProvider provider = ModelProvider.fromValue(model.getProvider());
-        StreamingChatModel llm = null;
-        if (provider == ModelProvider.OLLAMA) {
-            llm = OllamaStreamingChatModel.builder()
-                    .baseUrl(model.getBaseUrl())
-                    .modelName(model.getName())
-                    .build();
-        } else {
-            llm = OpenAiStreamingChatModel.builder()
-                    .baseUrl(model.getBaseUrl())
-                    .modelName(model.getName())
-                    .apiKey(model.getApiKey())
-                    .build();
-        }
-        return llm;
-    }
 }
