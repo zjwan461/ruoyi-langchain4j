@@ -67,9 +67,9 @@ public class ModelServiceImpl implements IModelService {
     private void checkModelConfig(Model model) {
         ModelProvider modelProvider = ModelProvider.fromValue(model.getProvider());
         if (modelProvider == ModelProvider.LOCAL) {
-            if (!langChain4jService.checkLocalEmbeddingModel(model.getSaveDir())) {
-                throw new ServiceException("模型验证失败");
-            }
+            // if (!langChain4jService.checkLocalEmbeddingModel(model.getSaveDir())) {
+            //     throw new ServiceException("模型验证失败");
+            // }
             return;
         }
         if (!langChain4jService.checkModelConfig(model.getBaseUrl(), model.getApiKey(), model.getName(),
