@@ -1097,7 +1097,7 @@ create table model
 -- ----------------------------
 -- 21、知识库表字段
 -- ----------------------------
-drop table if exists knowledge_base
+drop table if exists knowledge_base;
 create table knowledge_base
 (
     id          bigint unsigned not null auto_increment comment 'id',
@@ -1113,7 +1113,7 @@ create table knowledge_base
 -- ----------------------------
 -- 22、AI智能体表字段
 -- ----------------------------
-drop table if exists ai_agent
+drop table if exists ai_agent;
 create table ai_agent
 (
     id                 bigint unsigned auto_increment not null comment 'id',
