@@ -112,7 +112,7 @@ public class AiChatServiceImpl implements IAiChatService {
             promptTemplate = promptTemplate.replaceAll("\\{data}", "");
         }
 
-        saveChatMessage(promptTemplate, clientId, sessionId, ChatMessageType.USER);
+        saveChatMessage(promptTemplate, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
@@ -189,7 +189,7 @@ public class AiChatServiceImpl implements IAiChatService {
                         }
                         String aiText = completeResponse.aiMessage().text();
                         content.append(aiText);
-                        saveChatMessage(content.toString(), clientId, sessionId, ChatMessageType.AI);
+                        saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
                     }
 
                     @Override
@@ -214,12 +214,13 @@ public class AiChatServiceImpl implements IAiChatService {
         return modelBuilder.getEmbeddingModel(first);
     }
 
-    private void saveChatMessage(String content, String clientId, String sessionId,
+    private void saveChatMessage(String content, String clientId, String sessionId, Long agentId,
                                  ChatMessageType chatMessageType) {
         AsyncManager.me().execute(new TimerTask() {
             @Override
             public void run() {
                 ChatMessage chatMessage = new ChatMessage();
+                chatMessage.setAgentId(agentId);
                 chatMessage.setContent(content);
                 if (chatMessageType == ChatMessageType.AI) {
                     chatMessage.setRole("assistant");
@@ -259,8 +260,8 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     @Override
-    public List<Map<String, String>> listClientSession(String clientId) {
-        List<Map<String, String>> res = chatMessageService.selectSessionList(clientId);
+    public List<Map<String, String>> listClientSession(String clientId, Long agentId) {
+        List<Map<String, String>> res = chatMessageService.selectSessionList(clientId, agentId);
         res.forEach(x -> {
             String title = x.get("title");
             if (title.length() > 5) {
@@ -272,7 +273,7 @@ public class AiChatServiceImpl implements IAiChatService {
     }
 
     @Override
-    public List<ChatMessage> listChatMessageBySessionId(String sessionId) {
-        return chatMessageService.selectChatMessageBySessionId(sessionId);
+    public List<ChatMessage> listAgentChatMessageBySessionId(String sessionId, Long agentId) {
+        return chatMessageService.selectAgentChatMessageBySessionId(sessionId, agentId);
     }
 }

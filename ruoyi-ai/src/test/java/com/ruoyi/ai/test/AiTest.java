@@ -41,7 +41,7 @@ import static dev.langchain4j.rag.content.ContentMetadata.EMBEDDING_ID;
 
 public class AiTest {
 
-  public static final String LLM_BASE_URL = "http://10.100.217.2:7788/v1";
+  public static final String LLM_BASE_URL = "http://10.100.216.70:8000/v1";
   public static final String OLLAMA_BASE_URL = "http://10.100.217.2:11434";
 
   @Test

@@ -17,7 +17,7 @@ public interface IAiChatService {
 
     boolean checkIfOverLmtRequest(Long agentId, Integer dayLmtPerClient, String clientId);
 
-    List<Map<String, String>> listClientSession(String clientId);
+    List<Map<String, String>> listClientSession(String clientId, Long agentId);
 
-    List<ChatMessage> listChatMessageBySessionId(String sessionId);
+    List<ChatMessage> listAgentChatMessageBySessionId(String sessionId, Long agentId);
 }

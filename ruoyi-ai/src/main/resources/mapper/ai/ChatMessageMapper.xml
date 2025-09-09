@@ -1,86 +1,99 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.ai.mapper.ChatMessageMapper">
 
-  <resultMap type="ChatMessage" id="ChatMessageResult">
-    <result property="id" column="id"/>
-    <result property="role" column="role"/>
-    <result property="content" column="content"/>
-    <result property="clientId" column="client_id"/>
-    <result property="sessionId" column="session_id"/>
-    <result property="createTime" column="create_time"/>
-  </resultMap>
+    <resultMap type="ChatMessage" id="ChatMessageResult">
+        <result property="id" column="id"/>
+        <result property="role" column="role"/>
+        <result property="content" column="content"/>
+        <result property="clientId" column="client_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
 
-  <sql id="selectChatMessageVo">
-    select id, role, content, client_id, session_id, create_time from chat_message
-  </sql>
+    <sql id="selectChatMessageVo">
+        select id, role, content, client_id, session_id, agent_id, create_time
+        from chat_message
+    </sql>
 
-  <select id="selectChatMessageList" parameterType="ChatMessage" resultMap="ChatMessageResult">
-    <include refid="selectChatMessageVo"/>
-    <where>
-      <if test="role != null  and role != ''">and role = #{role}</if>
-      <if test="content != null  and content != ''">and content = #{content}</if>
-      <if test="clientId != null  and clientId != ''">and client_id = #{clientId}</if>
-      <if test="sessionId != null  and sessionId != ''">and session_id = #{sessionId}</if>
-    </where>
-  </select>
+    <select id="selectChatMessageList" parameterType="ChatMessage" resultMap="ChatMessageResult">
+        <include refid="selectChatMessageVo"/>
+        <where>
+            <if test="role != null  and role != ''">and role = #{role}</if>
+            <if test="content != null  and content != ''">and content = #{content}</if>
+            <if test="clientId != null  and clientId != ''">and client_id = #{clientId}</if>
+            <if test="sessionId != null  and sessionId != ''">and session_id = #{sessionId}</if>
+            <if test="agentId != null  and sessionId != ''">and agent_id = #{agentId}</if>
+        </where>
+    </select>
 
-  <select id="selectChatMessageById" parameterType="Long" resultMap="ChatMessageResult">
-    <include refid="selectChatMessageVo"/>
-    where id = #{id}
-  </select>
+    <select id="selectChatMessageById" parameterType="Long" resultMap="ChatMessageResult">
+        <include refid="selectChatMessageVo"/>
+        where id = #{id}
+    </select>
 
-  <insert id="insertChatMessage" parameterType="ChatMessage" useGeneratedKeys="true"
-    keyProperty="id">
-    insert into chat_message
-    <trim prefix="(" suffix=")" suffixOverrides=",">
-      <if test="role != null and role != ''">role,</if>
-      <if test="content != null and content != ''">content,</if>
-      <if test="clientId != null and clientId != ''">client_id,</if>
-      <if test="sessionId != null and sessionId != ''">session_id,</if>
-      <if test="createTime != null">create_time,</if>
-    </trim>
-    <trim prefix="values (" suffix=")" suffixOverrides=",">
-      <if test="role != null and role != ''">#{role},</if>
-      <if test="content != null and content != ''">#{content},</if>
-      <if test="clientId != null and clientId != ''">#{clientId},</if>
-      <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
-      <if test="createTime != null">#{createTime},</if>
-    </trim>
-  </insert>
+    <insert id="insertChatMessage" parameterType="ChatMessage" useGeneratedKeys="true"
+            keyProperty="id">
+        insert into chat_message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="role != null and role != ''">role,</if>
+            <if test="content != null and content != ''">content,</if>
+            <if test="clientId != null and clientId != ''">client_id,</if>
+            <if test="sessionId != null and sessionId != ''">session_id,</if>
+            <if test="agentId != null and agentId != ''">agent_id,</if>
+            <if test="createTime != null">create_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="role != null and role != ''">#{role},</if>
+            <if test="content != null and content != ''">#{content},</if>
+            <if test="clientId != null and clientId != ''">#{clientId},</if>
+            <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
+            <if test="agentId != null and agentId != ''">#{agentId},</if>
+            <if test="createTime != null">#{createTime},</if>
+        </trim>
+    </insert>
 
-  <update id="updateChatMessage" parameterType="ChatMessage">
-    update chat_message
-    <trim prefix="SET" suffixOverrides=",">
-      <if test="role != null and role != ''">role = #{role},</if>
-      <if test="content != null and content != ''">content = #{content},</if>
-      <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
-      <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
-      <if test="createTime != null">create_time = #{createTime},</if>
-    </trim>
-    where id = #{id}
-  </update>
+    <update id="updateChatMessage" parameterType="ChatMessage">
+        update chat_message
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="role != null and role != ''">role = #{role},</if>
+            <if test="content != null and content != ''">content = #{content},</if>
+            <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
+            <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
+            <if test="agentId != null and agentId != ''">agent_id = #{agentId},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
 
-  <delete id="deleteChatMessageById" parameterType="Long">
-    delete from chat_message where id = #{id}
-  </delete>
+    <delete id="deleteChatMessageById" parameterType="Long">
+        delete
+        from chat_message
+        where id = #{id}
+    </delete>
 
-  <delete id="deleteChatMessageByIds" parameterType="String">
-    delete from chat_message where id in
-    <foreach item="id" collection="array" open="(" separator="," close=")">
-      #{id}
-    </foreach>
-  </delete>
+    <delete id="deleteChatMessageByIds" parameterType="String">
+        delete from chat_message where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 
-  <select id="selectSessionList" parameterType="String" resultType="java.util.Map">
-    SELECT a.session_id sessionId, a.content title from chat_message a where client_id
-    = #{clientId} group by a.session_id order by a.create_time desc limit 10;
-  </select>
+    <select id="selectSessionList" resultType="java.util.Map">
+        SELECT a.session_id sessionId, a.content title
+        from chat_message a
+        where client_id
+            = #{clientId}
+          and agent_id = #{agentId}
+        group by a.session_id
+        order by a.create_time desc limit 10;
+    </select>
 
-  <select id="selectChatMessageBySessionId" parameterType="string" resultMap="ChatMessageResult">
-    <include refid="selectChatMessageVo"/>
-    where session_id = #{sessionId}
-  </select>
+    <select id="selectAgentChatMessageBySessionId" resultMap="ChatMessageResult">
+        <include refid="selectChatMessageVo"/>
+        where session_id = #{sessionId} and agent_id = #{agentId}
+    </select>
 </mapper>

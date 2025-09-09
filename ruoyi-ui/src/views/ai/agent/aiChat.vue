@@ -8,7 +8,8 @@
     <!-- 聊天头部 -->
     <div class="chat-header">
       <h2 v-text="agentInfo.name"></h2>
-      <el-button type="text" icon="el-icon-circle-plus" @click="newSession" class="refresh-btn" title="新对话"></el-button>
+      <el-button type="text" icon="el-icon-circle-plus" @click="newSession" class="refresh-btn"
+                 title="新对话"></el-button>
     </div>
 
     <!-- 聊天内容区域 -->
@@ -51,7 +52,8 @@
 
     <!-- 输入区域 -->
     <div class="chat-input-area">
-      <el-input v-model="userInput" type="textarea" :rows="3" placeholder="请输入您的问题..." @keyup.enter.native="sendMessage"
+      <el-input v-model="userInput" type="textarea" :rows="3" placeholder="请输入您的问题..."
+                @keyup.enter.native="sendMessage"
                 class="message-input"></el-input>
       <el-button type="primary" @click="sendMessage" :disabled="!userInput.trim() || isSending" class="send-btn">
         <i v-if="!isSending" class="el-icon-paper-plane"></i>
@@ -68,8 +70,8 @@
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import { getAgent, createSession, listChatSession, listChatMessage } from '@/api/ai/aiChat'
-import { nanoid } from 'nanoid'
+import {getAgent, createSession, listChatSession, listChatMessage} from '@/api/ai/aiChat'
+import {nanoid} from 'nanoid'
 
 // 初始化markdown-it实例
 const md = new MarkdownIt({
@@ -81,8 +83,9 @@ const md = new MarkdownIt({
     // 代码高亮处理
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return hljs.highlight(str, { language: lang }).value
-      } catch (__) { }
+        return hljs.highlight(str, {language: lang}).value
+      } catch (__) {
+      }
     }
     // 自动识别语言
     return hljs.highlightAuto(str).value
@@ -91,7 +94,7 @@ const md = new MarkdownIt({
 
 export default {
   name: 'AiChat',
-  data () {
+  data() {
     return {
       sessionList: [],
       sessionId: null,
@@ -104,34 +107,44 @@ export default {
       streamController: null // 流式请求控制器
     }
   },
-  mounted () {
+  mounted() {
     this.visitId = this.$route.params && this.$route.params.agentId
-    this.loadAgentInfo()
     this.initClientAndSession()
   },
   methods: {
-    initClientAndSession () {
-      const clientId = localStorage.getItem('chat-clientId')
-      if (!clientId) {
-        this.clientId = nanoid()
-        localStorage.setItem('chat-clientId', this.clientId)
-      } else {
-        this.clientId = clientId
-      }
-      const sessionId = localStorage.getItem('chat-sessionId')
-      if (!sessionId) {
-        createSession(this.clientId).then(res => {
-          this.sessionId = res.data
-          localStorage.setItem('chat-sessionId', this.sessionId)
-        })
-      } else {
-        this.sessionId = sessionId
-      }
-      this.getSessionList()
-      this.getChatHistoryMessage()
+    initClientAndSession() {
+      getAgent(this.visitId).then(res => {
+        if (res.data.status !== 1) {
+          this.$message.error('智能体未启用，页面即将跳转')
+          setTimeout(() => {
+            this.$router.push('/404')
+          }, 1000)
+        } else {
+          this.agentInfo = res.data
+          const clientId = localStorage.getItem('chat-clientId')
+          if (!clientId) {
+            this.clientId = nanoid()
+            localStorage.setItem('chat-clientId', this.clientId)
+          } else {
+            this.clientId = clientId
+          }
+          const sessionId = localStorage.getItem('chat-sessionId')
+          if (!sessionId) {
+            createSession(this.clientId).then(res => {
+              this.sessionId = res.data
+              localStorage.setItem('chat-sessionId', this.sessionId)
+            })
+          } else {
+            this.sessionId = sessionId
+          }
+          this.getSessionList()
+          this.getChatHistoryMessage()
+        }
+      })
+
 
     },
-    newSession () {
+    newSession() {
       createSession(this.clientId).then(res => {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
@@ -142,37 +155,31 @@ export default {
         })
       })
     },
-    changeTab (tab, event) {
+    changeTab(tab, event) {
       this.getChatHistoryMessage()
     },
-    getSessionList () {
-      listChatSession(this.clientId).then(res => {
+    getSessionList() {
+      listChatSession(this.clientId, this.agentInfo.id).then(res => {
         this.sessionList = res.data
+        if (this.sessionList.length === 0) {
+          this.sessionList.unshift({
+            sessionId: this.sessionId,
+            title: '新对话'
+          })
+        }
       })
     },
-    getChatHistoryMessage () {
-      listChatMessage(this.sessionId).then(res => {
+    getChatHistoryMessage() {
+      listChatMessage(this.sessionId, this.agentInfo.id).then(res => {
         this.messages = res.data
         this.$forceUpdate()
         this.scrollToBottom()
       })
     },
-    loadAgentInfo () {
-      getAgent(this.visitId).then(res => {
-        if (res.data.status !== 1) {
-          this.$message.error('智能体未启用，页面即将跳转')
-          setTimeout(() => {
-            this.$router.push('/404')
-          }, 1000)
-        } else {
-          this.agentInfo = res.data
-        }
-      })
-    },
     /**
      * 发送消息
      */
-    sendMessage () {
+    sendMessage() {
       const content = this.userInput.trim()
       if (!content) return
 
@@ -200,7 +207,7 @@ export default {
     /**
      * 调用流式API
      */
-    async callStreamApi (content) {
+    async callStreamApi(content) {
       // 创建AbortController用于取消请求
       this.streamController = new AbortController()
       const chatApi = process.env.VUE_APP_BASE_API + '/ai-chat'
@@ -222,7 +229,7 @@ export default {
       const reader = response.body.getReader()
       const decoder = new TextDecoder('utf-8')
       while (true) {
-        const { done, value } = await reader.read()
+        const {done, value} = await reader.read()
         if (done) {
           this.isSending = false
           const lastMessage = this.messages[this.messages.length - 1]
@@ -251,7 +258,7 @@ export default {
     /**
      * 更新AI消息内容
      */
-    updateAiMessage (chunk) {
+    updateAiMessage(chunk) {
       if (this.messages.length === 0) return
 
       const lastMessage = this.messages[this.messages.length - 1]
@@ -268,7 +275,7 @@ export default {
     /**
      * 处理流错误
      */
-    handleStreamError () {
+    handleStreamError() {
       if (this.messages.length === 0) return
 
       const lastMessage = this.messages[this.messages.length - 1]
@@ -281,7 +288,7 @@ export default {
     /**
      * 渲染Markdown内容
      */
-    renderMarkdown (content) {
+    renderMarkdown(content) {
       if (!content) return ''
 
       const index = content.indexOf("</think>")
@@ -297,7 +304,7 @@ export default {
     /**
      * 滚动到底部
      */
-    scrollToBottom () {
+    scrollToBottom() {
       this.$nextTick(() => {
         const container = this.$refs.chatContainer
         if (container) {
@@ -309,7 +316,7 @@ export default {
     /**
      * 清除聊天历史
      */
-    clearChatHistory () {
+    clearChatHistory() {
       // 如果正在发送，先取消请求
       if (this.streamController) {
         this.streamController.abort()
@@ -320,7 +327,7 @@ export default {
       this.isSending = false
     }
   },
-  beforeDestroy () {
+  beforeDestroy() {
     // 组件销毁时取消可能存在的流请求
     if (this.streamController) {
       this.streamController.abort()

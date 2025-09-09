@@ -1,14 +1,14 @@
 import request from '@/utils/request'
 
 // 查询AI智能体列表
-export function getAgent (agentId) {
+export function getAgent(agentId) {
   return request({
     url: '/agent-info/' + agentId,
     method: 'get',
   })
 }
 
-export function createSession (clientId) {
+export function createSession(clientId) {
   return request({
     url: '/create-session/' + clientId,
     method: 'post',
@@ -16,16 +16,16 @@ export function createSession (clientId) {
 }
 
 
-export function listChatSession (clientId) {
+export function listChatSession(clientId, agentId) {
   return request({
-    url: '/list-chat-session/' + clientId,
+    url: '/list-chat-session/' + clientId + '/' + agentId,
     method: 'get',
   })
 }
 
-export function listChatMessage (sessionId) {
+export function listChatMessage(sessionId, agentId) {
   return request({
-    url: '/list-chat-message/' + sessionId,
+    url: '/list-chat-message/' + sessionId + '/' + agentId,
     method: 'get',
   })
 }

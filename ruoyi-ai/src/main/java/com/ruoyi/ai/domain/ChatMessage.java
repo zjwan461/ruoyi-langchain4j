@@ -34,6 +34,9 @@ public class ChatMessage extends BaseEntity
     @Excel(name = "会话ID")
     private String sessionId;
 
+    @Excel(name = "智能体ID")
+    private Long agentId;
+
     public void setId(Long id) 
     {
         this.id = id;
@@ -84,6 +87,14 @@ public class ChatMessage extends BaseEntity
         return sessionId;
     }
 
+    public Long getAgentId() {
+        return agentId;
+    }
+
+    public void setAgentId(Long agentId) {
+        this.agentId = agentId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -93,6 +104,7 @@ public class ChatMessage extends BaseEntity
             .append("clientId", getClientId())
             .append("sessionId", getSessionId())
             .append("createTime", getCreateTime())
+            .append("agentId", getAgentId())
             .toString();
     }
 }

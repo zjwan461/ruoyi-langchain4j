@@ -58,13 +58,13 @@ public class AiChatController extends BaseController {
         return AjaxResult.success("success", aiChatService.createSession(clientId));
     }
 
-    @GetMapping("/list-chat-session/{clientId}")
-    public AjaxResult listChatSession(@PathVariable("clientId") String clientId) {
-        return success(aiChatService.listClientSession(clientId));
+    @GetMapping("/list-chat-session/{clientId}/{agentId}")
+    public AjaxResult listChatSession(@PathVariable("clientId") String clientId, @PathVariable("agentId") Long agentId) {
+        return success(aiChatService.listClientSession(clientId, agentId));
     }
 
-    @GetMapping("/list-chat-message/{sessionId}")
-    public AjaxResult listChatHistory(@PathVariable("sessionId") String sessionId) {
-        return success(aiChatService.listChatMessageBySessionId(sessionId));
+    @GetMapping("/list-chat-message/{sessionId}/{agentId}")
+    public AjaxResult listChatHistory(@PathVariable("sessionId") String sessionId, @PathVariable("agentId") Long agentId) {
+        return success(aiChatService.listAgentChatMessageBySessionId(sessionId, agentId));
     }
 }
