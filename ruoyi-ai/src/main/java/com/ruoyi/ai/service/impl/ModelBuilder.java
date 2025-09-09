@@ -56,6 +56,8 @@ public class ModelBuilder {
                     .modelName(model.getName())
                     .think(true)
                     .returnThinking(true)
+                    .logRequests(true)
+                    .logResponses(true)
                     .build();
         } else {
             llm = OpenAiStreamingChatModel.builder()
@@ -63,6 +65,8 @@ public class ModelBuilder {
                     .modelName(model.getName())
                     .returnThinking(true)
                     .apiKey(model.getApiKey())
+                    .logRequests(true)
+                    .logResponses(true)
                     .build();
         }
         return llm;
