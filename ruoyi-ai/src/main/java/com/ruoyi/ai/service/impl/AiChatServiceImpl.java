@@ -22,7 +22,9 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
@@ -38,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class AiChatServiceImpl implements IAiChatService {
@@ -74,6 +78,9 @@ public class AiChatServiceImpl implements IAiChatService {
     public static final String AI_AGENT_CHAT_LMT = "ai:agent:limit:";
 
     public static final String MEMORY_CACHE_KEY_PREFIX = "ai:agent:memory:";
+
+    public static final String THINK_PREFIX_TAG = "<think>";
+    public static final String THINK_SUFFIX_TAG = "</think>";
 
     @Override
     public Flux<String> chat(AiAgent aiAgent, String prompt, String clientId, String sessionId) {
@@ -123,20 +130,43 @@ public class AiChatServiceImpl implements IAiChatService {
         if (chatMemory != null) {
             chatMemory.add(userMessage);
         }
+
+        ChatRequestParameters parameters = modelBuilder.getParameters(aiAgent);
+
         final ChatRequest chatRequest = ChatRequest.builder()
-                .temperature(aiAgent.getTemperature())
-                .maxOutputTokens(aiAgent.getMaxOutputToken())
+                .parameters(parameters)
                 .messages(
                         chatMemory != null ? chatMemory.messages() : Collections.singletonList(userMessage))
                 .build();
 
         return Flux.create(fluxSink -> {
             ThreadUtil.execute(() -> {
-
+                AtomicInteger thinkCount = new AtomicInteger(0);
+                AtomicBoolean thinkFinish = new AtomicBoolean(false);
                 llm.chat(chatRequest, new StreamingChatResponseHandler() {
 
                     @Override
+                    public void onPartialThinking(PartialThinking partialThinking) {
+                        String text = partialThinking.text();
+                        if (thinkCount.incrementAndGet() == 1) {
+                            text = THINK_PREFIX_TAG + text;
+                        }
+                        Map<String, String> msg = MapUtil.<String, String>builder()
+                                .put("msg", text)
+                                .build();
+                        try {
+                            fluxSink.next(objectMapper.writeValueAsString(msg));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
                     public void onPartialResponse(String partialResponse) {
+                        if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
+                            partialResponse = THINK_SUFFIX_TAG + partialResponse;
+                            thinkFinish.set(true);
+                        }
                         Map<String, String> msg = MapUtil.<String, String>builder()
                                 .put("msg", partialResponse)
                                 .build();
@@ -150,8 +180,16 @@ public class AiChatServiceImpl implements IAiChatService {
                     @Override
                     public void onCompleteResponse(ChatResponse completeResponse) {
                         fluxSink.complete();
+                        StringBuilder content = new StringBuilder();
+                        String thinking = completeResponse.aiMessage().thinking();
+                        if (StringUtils.isNotBlank(thinking)) {
+                            content.append(THINK_PREFIX_TAG)
+                                    .append(thinking)
+                                    .append(THINK_SUFFIX_TAG);
+                        }
                         String aiText = completeResponse.aiMessage().text();
-                        saveChatMessage(aiText, clientId, sessionId, ChatMessageType.AI);
+                        content.append(aiText);
+                        saveChatMessage(content.toString(), clientId, sessionId, ChatMessageType.AI);
                     }
 
                     @Override

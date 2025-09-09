@@ -1,17 +1,23 @@
 package com.ruoyi.ai.service.impl;
 
+import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
+import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.spring.SpringUtils;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.PoolingMode;
 import dev.langchain4j.model.ollama.OllamaChatModel;
+import dev.langchain4j.model.ollama.OllamaChatRequestParameters;
 import dev.langchain4j.model.ollama.OllamaEmbeddingModel;
 import dev.langchain4j.model.ollama.OllamaStreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.stereotype.Service;
@@ -78,5 +84,46 @@ public class ModelBuilder {
                     .build();
         }
         return llm;
+    }
+
+    public ChatRequestParameters getParameters(Model model) {
+        ModelProvider provider = ModelProvider.fromValue(model.getProvider());
+        ChatRequestParameters parameters = null;
+        if (provider == ModelProvider.OLLAMA) {
+            parameters = OpenAiChatRequestParameters.builder()
+                    .modelName(model.getName())
+                    .temperature(model.getTemperature())
+                    .maxOutputTokens(model.getMaxOutputToken())
+                    .build();
+        } else {
+            parameters = OllamaChatRequestParameters.builder()
+                    .modelName(model.getName())
+                    .temperature(model.getTemperature())
+                    .maxOutputTokens(model.getMaxOutputToken())
+                    .build();
+        }
+
+        return parameters;
+    }
+
+    public ChatRequestParameters getParameters(AiAgent aiAgent) {
+        Model model = SpringUtils.getBean(IModelService.class).selectModelById(aiAgent.getModelId());
+        ModelProvider provider = ModelProvider.fromValue(model.getProvider());
+        ChatRequestParameters parameters = null;
+        if (provider == ModelProvider.OLLAMA) {
+            parameters = OpenAiChatRequestParameters.builder()
+                    .modelName(model.getName())
+                    .temperature(aiAgent.getTemperature())
+                    .maxOutputTokens(aiAgent.getMaxOutputToken())
+                    .build();
+        } else {
+            parameters = OllamaChatRequestParameters.builder()
+                    .modelName(model.getName())
+                    .temperature(aiAgent.getTemperature())
+                    .maxOutputTokens(aiAgent.getMaxOutputToken())
+                    .build();
+        }
+
+        return parameters;
     }
 }
