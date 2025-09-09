@@ -1289,3 +1289,15 @@ VALUES ('首页介绍信息', 'homePage.desc.showInfo',
         '2025-09-07 14:30:32', NULL),
        ('本地模型保存文件夹', 'ai.model.saveDir', './models', 'Y', 'admin', '2025-09-07 14:57:15', '', NULL, NULL);
 
+
+drop table if exists chat_message;
+create table chat_message (
+  id bigint unsigned not null auto_increment comment 'id',
+  role varchar(100) not null comment '角色',
+  content longtext not null comment '消息内容',
+  client_id varchar(100) not null comment '客户端id',
+  session_id varchar(100) not null comment '会话id',
+  create_time datetime default null comment '创建时间',
+  primary key (`id`),
+  key chat_message_client_id_idx (client_id)
+) engine=innodb auto_increment=1 comment='聊天信息表';

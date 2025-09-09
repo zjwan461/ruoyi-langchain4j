@@ -12,6 +12,9 @@ public class ChatReq {
   private String prompt;
 
   @NotBlank
+  private String clientId;
+
+  @NotBlank
   private String sessionId;
 
   public Long getAgentId() {
@@ -38,11 +41,20 @@ public class ChatReq {
     this.sessionId = sessionId;
   }
 
+  public String getClientId() {
+    return clientId;
+  }
+
+  public void setClientId(String clientId) {
+    this.clientId = clientId;
+  }
+
   @Override
   public String toString() {
     return "ChatReq{" +
         "agentId=" + agentId +
         ", prompt='" + prompt + '\'' +
+        ", clientId='" + clientId + '\'' +
         ", sessionId='" + sessionId + '\'' +
         '}';
   }

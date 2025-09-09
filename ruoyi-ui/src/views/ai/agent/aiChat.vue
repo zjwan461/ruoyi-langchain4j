@@ -1,10 +1,14 @@
 <template>
+
   <div class="ai-chat-container">
+    <el-tabs type="card" v-model="sessionId" @tab-click="changeTab">
+      <el-tab-pane :label="item.title" :name="item.sessionId" v-for="item in sessionList"
+                   :key="item.sessionId"></el-tab-pane>
+    </el-tabs>
     <!-- 聊天头部 -->
     <div class="chat-header">
       <h2 v-text="agentInfo.name"></h2>
-      <el-button type="text" icon="el-icon-refresh" @click="clearChatHistory" class="refresh-btn"
-        title="刷新"></el-button>
+      <el-button type="text" icon="el-icon-circle-plus" @click="newSession" class="refresh-btn" title="新对话"></el-button>
     </div>
 
     <!-- 聊天内容区域 -->
@@ -29,7 +33,7 @@
         <!-- AI消息 -->
         <div v-if="message.role === 'assistant'" class="message ai-message">
           <div class="avatar ai-avatar">
-            <i class="el-icon-robot"></i>
+            <i class="el-icon-cpu"></i>
           </div>
           <div class="content ai-content">
             <div class="message-bubble" v-html="renderMarkdown(message.content)"></div>
@@ -48,21 +52,23 @@
     <!-- 输入区域 -->
     <div class="chat-input-area">
       <el-input v-model="userInput" type="textarea" :rows="3" placeholder="请输入您的问题..." @keyup.enter.native="sendMessage"
-        class="message-input"></el-input>
+                class="message-input"></el-input>
       <el-button type="primary" @click="sendMessage" :disabled="!userInput.trim() || isSending" class="send-btn">
         <i v-if="!isSending" class="el-icon-paper-plane"></i>
         <i v-if="isSending" class="el-icon-loading"></i>
         发送
       </el-button>
     </div>
+
   </div>
+
 </template>
 
 <script>
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import { getAgent } from '../../../api/ai/aiChat.js'
+import { getAgent, createSession, listChatSession, listChatMessage } from '@/api/ai/aiChat'
 import { nanoid } from 'nanoid'
 
 // 初始化markdown-it实例
@@ -87,7 +93,9 @@ export default {
   name: 'AiChat',
   data () {
     return {
+      sessionList: [],
       sessionId: null,
+      clientId: null,
       visitId: null,
       agentInfo: {},
       messages: [], // 聊天消息列表
@@ -97,19 +105,57 @@ export default {
     }
   },
   mounted () {
-    this.getSessionId()
     this.visitId = this.$route.params && this.$route.params.agentId
     this.loadAgentInfo()
+    this.initClientAndSession()
   },
   methods: {
-    getSessionId () {
-      const savedSessionId = localStorage.getItem('chat-sessionId')
-      if (!savedSessionId) {
-        this.sessionId = nanoid()
-        localStorage.setItem('chat-sessionId', this.sessionId)
+    initClientAndSession () {
+      const clientId = localStorage.getItem('chat-clientId')
+      if (!clientId) {
+        this.clientId = nanoid()
+        localStorage.setItem('chat-clientId', this.clientId)
       } else {
-        this.sessionId = savedSessionId
+        this.clientId = clientId
       }
+      const sessionId = localStorage.getItem('chat-sessionId')
+      if (!sessionId) {
+        createSession(this.clientId).then(res => {
+          this.sessionId = res.data
+          localStorage.setItem('chat-sessionId', this.sessionId)
+        })
+      } else {
+        this.sessionId = sessionId
+      }
+      this.getSessionList()
+      this.getChatHistoryMessage()
+
+    },
+    newSession () {
+      createSession(this.clientId).then(res => {
+        this.sessionId = res.data
+        localStorage.setItem('chat-sessionId', this.sessionId)
+        this.messages = []
+        this.sessionList.unshift({
+          sessionId: this.sessionId,
+          title: '新对话'
+        })
+      })
+    },
+    changeTab (tab, event) {
+      this.getChatHistoryMessage()
+    },
+    getSessionList () {
+      listChatSession(this.clientId).then(res => {
+        this.sessionList = res.data
+      })
+    },
+    getChatHistoryMessage () {
+      listChatMessage(this.sessionId).then(res => {
+        this.messages = res.data
+        this.$forceUpdate()
+        this.scrollToBottom()
+      })
     },
     loadAgentInfo () {
       getAgent(this.visitId).then(res => {
@@ -167,6 +213,7 @@ export default {
         body: JSON.stringify({
           prompt: content,
           agentId: this.agentInfo.id,
+          clientId: this.clientId,
           sessionId: this.sessionId
         })
 
@@ -187,23 +234,18 @@ export default {
           break
         }
         const chunk = decoder.decode(value)
-        const dataArray = chunk.split('data:')
+        const str = chunk.replace(/data:/g, '').trim()
+
+        const dataArray = str.split('\n')
         dataArray.forEach(item => {
-          if (item && item.trim().length > 0) {
-            this.updateAiMessage(item.trim())
+          if (item.trim().length > 0) {
+            const res = JSON.parse(item)
+            this.updateAiMessage(res.msg)
           }
         })
-
-
       }
 
 
-    },
-    removeLastNewLine (str) {
-      if (str.endsWith('\n')) {
-        str.slice(0, -1)
-      }
-      return str
     },
 
     /**
@@ -215,16 +257,10 @@ export default {
       const lastMessage = this.messages[this.messages.length - 1]
       if (lastMessage.role === 'assistant') {
         let str = chunk
-        // let str = chunk.replace(/data:/g, '').trim()/* .replace(/\n/g, '') */
-        // str = this.removeLastNewLine(str)
-        if (str.includes('<think>')) {
-          str = str.replace('<think>', 'Deep thinking...\n<think style="color: #909399">')
-        } else if (str.includes('</think>')) {
-          str = str.replace('</think>', '</think>\n')
-        }
         lastMessage.content += str
+
         // 触发视图更新
-        this.$forceUpdate()
+        // this.$forceUpdate()
         this.scrollToBottom()
       }
     },
@@ -247,6 +283,13 @@ export default {
      */
     renderMarkdown (content) {
       if (!content) return ''
+
+      const index = content.indexOf("</think>")
+      if (index !== -1) {
+        let think = content.substring(0, index + 8)
+        const output = content.substring(index + 8)
+        return think + md.render(output)
+      }
       // 使用markdown-it渲染Markdown
       return md.render(content)
     },
@@ -291,7 +334,7 @@ export default {
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   border: 1px solid #e6e6e6;
   border-radius: 4px;
@@ -388,6 +431,12 @@ export default {
   background-color: #f5f5f5;
   color: #333;
   border: 1px solid #e6e6e6;
+
+  think {
+    color: #999;
+    font-size: small;
+    font-style: italic;
+  }
 }
 
 /* 代码块样式增强 */

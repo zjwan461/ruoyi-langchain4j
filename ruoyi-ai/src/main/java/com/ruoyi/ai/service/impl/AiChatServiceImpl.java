@@ -3,15 +3,19 @@ package com.ruoyi.ai.service.impl;
 import cn.hutool.cache.impl.TimedCache;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.thread.ThreadUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelType;
-import com.ruoyi.ai.service.IAiChatService;
-import com.ruoyi.ai.service.IKnowledgeBaseService;
-import com.ruoyi.ai.service.IModelService;
-import com.ruoyi.ai.service.LangChain4jService;
+import com.ruoyi.ai.service.*;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.uuid.IdUtils;
+import com.ruoyi.framework.manager.AsyncManager;
+import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.ChatMemory;
@@ -23,6 +27,8 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -30,6 +36,7 @@ import javax.annotation.Resource;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -47,13 +54,29 @@ public class AiChatServiceImpl implements IAiChatService {
     @Resource
     private ModelBuilder modelBuilder;
 
+    @Resource
+    private RedisTemplate<Object, Object> redisTemplate;
+
+    @Resource
+    private RedisScript<Long> limitScript;
+
+    @Resource
+    private ObjectMapper objectMapper;
+
+    @Resource
+    private IChatMessageService chatMessageService;
+
     private static final TimedCache<String, ChatMemory> chatMemories = new TimedCache<>(
             TimeUnit.DAYS.toMillis(1));
+
+    public static final String AI_CHAT_CLIENT_SESSION = "ai:chat:client:";
+
+    public static final String AI_AGENT_CHAT_LMT = "ai:agent:limit:";
 
     public static final String MEMORY_CACHE_KEY_PREFIX = "ai:agent:memory:";
 
     @Override
-    public Flux<String> chat(AiAgent aiAgent, String prompt, String sessionId) {
+    public Flux<String> chat(AiAgent aiAgent, String prompt, String clientId, String sessionId) {
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -81,6 +104,8 @@ public class AiChatServiceImpl implements IAiChatService {
         } else if (promptTemplate.contains("{data}") && aiAgent.getKbId() == null) {
             promptTemplate = promptTemplate.replaceAll("\\{data}", "");
         }
+
+        saveChatMessage(promptTemplate, clientId, sessionId, ChatMessageType.USER);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
@@ -112,13 +137,21 @@ public class AiChatServiceImpl implements IAiChatService {
 
                     @Override
                     public void onPartialResponse(String partialResponse) {
-                        System.out.print(partialResponse);
-                        fluxSink.next(partialResponse);
+                        Map<String, String> msg = MapUtil.<String, String>builder()
+                                .put("msg", partialResponse)
+                                .build();
+                        try {
+                            fluxSink.next(objectMapper.writeValueAsString(msg));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
 
                     @Override
                     public void onCompleteResponse(ChatResponse completeResponse) {
                         fluxSink.complete();
+                        String aiText = completeResponse.aiMessage().text();
+                        saveChatMessage(aiText, clientId, sessionId, ChatMessageType.AI);
                     }
 
                     @Override
@@ -143,4 +176,65 @@ public class AiChatServiceImpl implements IAiChatService {
         return modelBuilder.getEmbeddingModel(first);
     }
 
+    private void saveChatMessage(String content, String clientId, String sessionId,
+                                 ChatMessageType chatMessageType) {
+        AsyncManager.me().execute(new TimerTask() {
+            @Override
+            public void run() {
+                ChatMessage chatMessage = new ChatMessage();
+                chatMessage.setContent(content);
+                if (chatMessageType == ChatMessageType.AI) {
+                    chatMessage.setRole("assistant");
+                } else if (chatMessageType == ChatMessageType.USER) {
+                    chatMessage.setRole("user");
+                } else {
+                    chatMessage.setRole("system");
+                }
+                chatMessage.setClientId(clientId);
+                chatMessage.setSessionId(sessionId);
+                chatMessage.setCreateBy("system");
+                chatMessageService.insertChatMessage(chatMessage);
+            }
+        });
+
+    }
+
+    @Override
+    public String createSession(String clientId) {
+        String sessionId = IdUtils.fastSimpleUUID();
+        redisTemplate.opsForValue().set(AI_CHAT_CLIENT_SESSION + clientId, sessionId);
+        return sessionId;
+    }
+
+    @Override
+    public boolean checkClientSession(String clientId, String sessionId) {
+        return sessionId.equals(redisTemplate.opsForValue().get(AI_CHAT_CLIENT_SESSION + clientId));
+    }
+
+    @Override
+    public boolean checkIfOverLmtRequest(Long agentId, Integer dayLmtPerClient, String clientId) {
+        Long number = redisTemplate.execute(limitScript,
+                Collections.singletonList(AI_AGENT_CHAT_LMT + agentId + ":" + clientId),
+                dayLmtPerClient,
+                (int) TimeUnit.DAYS.toSeconds(1));
+        return !StringUtils.isNull(number) && number.intValue() <= dayLmtPerClient;
+    }
+
+    @Override
+    public List<Map<String, String>> listClientSession(String clientId) {
+        List<Map<String, String>> res = chatMessageService.selectSessionList(clientId);
+        res.forEach(x -> {
+            String title = x.get("title");
+            if (title.length() > 5) {
+                title = title.substring(0, 5) + "...";
+            }
+            x.put("title", title);
+        });
+        return res;
+    }
+
+    @Override
+    public List<ChatMessage> listChatMessageBySessionId(String sessionId) {
+        return chatMessageService.selectChatMessageBySessionId(sessionId);
+    }
 }

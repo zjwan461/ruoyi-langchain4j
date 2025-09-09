@@ -7,3 +7,25 @@ export function getAgent (agentId) {
     method: 'get',
   })
 }
+
+export function createSession (clientId) {
+  return request({
+    url: '/create-session/' + clientId,
+    method: 'post',
+  })
+}
+
+
+export function listChatSession (clientId) {
+  return request({
+    url: '/list-chat-session/' + clientId,
+    method: 'get',
+  })
+}
+
+export function listChatMessage (sessionId) {
+  return request({
+    url: '/list-chat-message/' + sessionId,
+    method: 'get',
+  })
+}

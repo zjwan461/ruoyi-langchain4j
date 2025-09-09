@@ -48,11 +48,14 @@ public class ModelBuilder {
             llm = OllamaStreamingChatModel.builder()
                     .baseUrl(model.getBaseUrl())
                     .modelName(model.getName())
+                    .think(true)
+                    .returnThinking(true)
                     .build();
         } else {
             llm = OpenAiStreamingChatModel.builder()
                     .baseUrl(model.getBaseUrl())
                     .modelName(model.getName())
+                    .returnThinking(true)
                     .apiKey(model.getApiKey())
                     .build();
         }
