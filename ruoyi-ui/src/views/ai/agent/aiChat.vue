@@ -162,10 +162,7 @@ export default {
       listChatSession(this.clientId, this.agentInfo.id).then(res => {
         this.sessionList = res.data
         if (this.sessionList.length === 0) {
-          this.sessionList.unshift({
-            sessionId: this.sessionId,
-            title: '新对话'
-          })
+          this.newSession()
         }
       })
     },
