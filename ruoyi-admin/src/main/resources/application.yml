@@ -99,6 +99,8 @@ token:
   secret: abcdefghijklmnopqrstuvwxyz
   # 令牌有效期（默认30分钟）
   expireTime: 30
+  # 令牌自定义参数
+  parameter: ${token.header}
 
 # MyBatis配置
 mybatis:

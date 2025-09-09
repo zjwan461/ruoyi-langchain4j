@@ -1,14 +1,5 @@
 package com.ruoyi.framework.web.service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import javax.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import com.ruoyi.common.constant.CacheConstants;
 import com.ruoyi.common.constant.Constants;
 import com.ruoyi.common.core.domain.model.LoginUser;
@@ -22,10 +13,20 @@ import eu.bitwalker.useragentutils.UserAgent;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * token验证处理
- * 
+ *
  * @author ruoyi
  */
 @Component
@@ -36,6 +37,10 @@ public class TokenService
     // 令牌自定义标识
     @Value("${token.header}")
     private String header;
+
+    // 令牌自定义参数
+    @Value("${token.parameter}")
+    private String parameter;
 
     // 令牌秘钥
     @Value("${token.secret}")
@@ -56,7 +61,7 @@ public class TokenService
 
     /**
      * 获取用户身份信息
-     * 
+     *
      * @return 用户信息
      */
     public LoginUser getLoginUser(HttpServletRequest request)
@@ -107,7 +112,7 @@ public class TokenService
 
     /**
      * 创建令牌
-     * 
+     *
      * @param loginUser 用户信息
      * @return 令牌
      */
@@ -126,7 +131,7 @@ public class TokenService
 
     /**
      * 验证令牌有效期，相差不足20分钟，自动刷新缓存
-     * 
+     *
      * @param loginUser 登录信息
      * @return 令牌
      */
@@ -142,7 +147,7 @@ public class TokenService
 
     /**
      * 刷新令牌有效期
-     * 
+     *
      * @param loginUser 登录信息
      */
     public void refreshToken(LoginUser loginUser)
@@ -156,7 +161,7 @@ public class TokenService
 
     /**
      * 设置用户代理信息
-     * 
+     *
      * @param loginUser 登录信息
      */
     public void setUserAgent(LoginUser loginUser)
@@ -217,7 +222,12 @@ public class TokenService
      */
     private String getToken(HttpServletRequest request)
     {
+        //先从token取值，没有则从参数取，用于websocket兼容
         String token = request.getHeader(header);
+
+        if (StringUtils.isEmpty(token)) {
+            token = request.getParameter(parameter);
+        }
         if (StringUtils.isNotEmpty(token) && token.startsWith(Constants.TOKEN_PREFIX))
         {
             token = token.replace(Constants.TOKEN_PREFIX, "");
