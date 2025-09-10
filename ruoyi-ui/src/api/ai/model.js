@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { urlAlphabet } from 'nanoid'
 
 // 查询模型管理列表
 export function listModel(query) {
@@ -54,5 +55,19 @@ export function downloadEmbeddingModel() {
   return request({
     url: '/ai/model/download-default-embedding',
     method: 'get'
+  })
+}
+
+export function localEmbeddingModel(){
+  return request({
+    url:'/ai/model/local-embedding-model',
+    method: 'get'
+  })
+}
+
+export function setDefaultEmbeddingModel(id){
+  return request({
+    url: '/ai/model/set-default-embedding/' + id,
+    method: 'post'
   })
 }

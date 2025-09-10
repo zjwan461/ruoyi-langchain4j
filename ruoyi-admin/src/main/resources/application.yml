@@ -137,6 +137,7 @@ xss:
 ai:
   modelScope:
     download-thread-num: 10
+    embeddingModelRepoId: zjwan461/shibing624_text2vec-base-chinese
   pgVector:
     host: 127.0.0.1
     port: 5432

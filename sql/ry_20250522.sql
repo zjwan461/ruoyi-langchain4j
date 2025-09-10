@@ -1303,7 +1303,9 @@ VALUES ('首页介绍信息', 'homePage.desc.showInfo',
         '2025-09-07 14:22:14', NULL),
        ('首页信息量限制', 'homePage.msg.limit', '5', 'Y', 'admin', '2025-09-07 14:27:34', 'admin',
         '2025-09-07 14:30:32', NULL),
-       ('本地模型保存文件夹', 'ai.model.saveDir', './models', 'Y', 'admin', '2025-09-07 14:57:15', '', NULL, NULL);
+       ('本地模型保存文件夹', 'ai.model.saveDir', './models', 'Y', 'admin', '2025-09-07 14:57:15', '', NULL, NULL),
+       ('默认向量模型','ai.model.embedding','#','Y','admin','2025-09-10 13:57:44','admin','2025-09-10 13:58:20',NULL);
+
 
 
 drop table if exists chat_message;

@@ -100,7 +100,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="remark != null">remark = #{remark},</if>
  			update_time = sysdate()
         </set>
-        where config_id = #{configId}
+        <where>
+            <if test="configId != null and configId != ''">
+                AND config_id = #{configId}
+            </if>
+            <if test="configKey != null and configKey != ''">
+                AND config_key = #{configKey}
+            </if>
+        </where>
     </update>
 	
     <delete id="deleteConfigById" parameterType="Long">

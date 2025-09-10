@@ -90,12 +90,22 @@ public class AiConfig {
     public static class ModelScope {
         private int downloadThreadNum = 10;
 
+        private String embeddingModelRepoId = "zjwan461/shibing624_text2vec-base-chinese";
+
         public int getDownloadThreadNum() {
             return downloadThreadNum;
         }
 
         public void setDownloadThreadNum(int downloadThreadNum) {
             this.downloadThreadNum = downloadThreadNum;
+        }
+
+        public String getEmbeddingModelRepoId() {
+            return embeddingModelRepoId;
+        }
+
+        public void setEmbeddingModelRepoId(String embeddingModelRepoId) {
+            this.embeddingModelRepoId = embeddingModelRepoId;
         }
     }
 

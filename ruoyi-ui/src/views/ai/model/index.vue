@@ -40,6 +40,11 @@
           v-hasPermi="['ai:model:export']">导出
         </el-button>
       </el-col>
+      <el-col :span="1.5">
+        <el-button type="info" plain icon="el-icon-edit" size="mini" @click="handleSetting"
+          v-hasPermi="['ai:model:list']">向量模型设置
+        </el-button>
+      </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -113,17 +118,45 @@
         <el-button @click="cancel">取 消</el-button>
       </div>
     </el-dialog>
+
+
+    <el-dialog title="Embedding设置" :visible.sync="openEmbedding" width="800px" append-to-body>
+      <el-form ref="EmbeddingForm" :model="embeddingForm" :rules="embeddingRules" label-width="180px">
+        <el-form-item label="默认Embedding模型" prop="embeddingModelId">
+          <el-select v-model="embeddingForm.embeddingModelId">
+            <el-option v-for="item in embeddingModelList" :key="item.id" :value="item.id"
+              :label="item.name"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="本地Embedding模型" prop="saveDir">
+          <el-input v-model="embeddingForm.saveDir" placeholder="本地模型下载目录，为空说明未下载本地向量模型" readonly disabled></el-input>
+          <i>
+            <el-button type="text" icon="el-icon-refresh" title="支持断点续传" @click="handleDownloadLocal">下载模型</el-button>
+          </i>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="submitEmbeddingForm">确 定</el-button>
+        <el-button @click="cancelEmbedding">取 消</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
-import { listModel, getModel, delModel, addModel, updateModel, checkEmbeddingModel, downloadEmbeddingModel } from "@/api/ai/model"
+import { listModel, getModel, delModel, addModel, updateModel, checkEmbeddingModel, downloadEmbeddingModel, localEmbeddingModel, setDefaultEmbeddingModel } from "@/api/ai/model"
 
 export default {
   name: "Model",
   dicts: ['ai_model_type', 'ai_model_provider'],
   data() {
     return {
+      openEmbedding: false,
+      embeddingForm: {
+        embeddingModelId: null,
+        saveDir: ''
+      },
+      embeddingModelList: [],
       // 遮罩层
       loading: true,
       // 选中数组
@@ -169,6 +202,11 @@ export default {
         provider: [
           { required: true, message: "提供商不能为空", trigger: "change" }
         ]
+      },
+      embeddingRules: {
+        embeddingModelId: [
+          { required: true, message: "必须选择一个向量模型", trigger: "blur" }
+        ]
       }
     }
   },
@@ -193,6 +231,22 @@ export default {
         })
       }
     },
+    getEmbedingModel() {
+      listModel({ pageNum: 1, pageSize: 1000, type: 1 }).then(response => {
+        this.embeddingModelList = response.rows
+
+        this.getConfigKey("ai.model.embedding").then(response => {
+          if (response.msg !== '#') {
+            this.embeddingForm.embeddingModelId = parseInt(response.msg)
+          }
+        })
+        localEmbeddingModel().then(res => {
+          if (res.data) {
+            this.embeddingForm.saveDir = res.data.saveDir
+          }
+        })
+      })
+    },
     /** 查询模型管理列表 */
     getList() {
       this.loading = true
@@ -206,6 +260,17 @@ export default {
     cancel() {
       this.open = false
       this.reset()
+    },
+    cancelEmbedding() {
+      this.openEmbedding = false
+      this.resetEmbedding()
+    },
+    resetEmbedding() {
+      this.embeddingForm = {
+        embeddingModelId: null,
+        saveDir: ''
+      }
+      this.resetForm("EmbeddingForm")
     },
     // 表单重置
     reset() {
@@ -257,6 +322,17 @@ export default {
         this.title = "修改模型管理"
       })
     },
+    submitEmbeddingForm() {
+      this.$refs["EmbeddingForm"].validate(valid => {
+        if (valid) {
+          setDefaultEmbeddingModel(this.embeddingForm.embeddingModelId).then(res => {
+            this.$modal.alertSuccess('设置成功')
+            this.openEmbedding = false
+            this.resetEmbedding()
+          })
+        }
+      })
+    },
     /** 提交按钮 */
     submitForm() {
       this.$refs["form"].validate(valid => {
@@ -302,6 +378,20 @@ export default {
       this.download('ai/model/export', {
         ...this.queryParams
       }, `model_${new Date().getTime()}.xlsx`)
+    },
+    handleSetting() {
+      this.openEmbedding = true
+      this.getEmbedingModel()
+
+
+    },
+    handleDownloadLocal() {
+      this.$modal.confirm('确定要开始下载本地向量模型吗?').then(() => {
+        return downloadEmbeddingModel()
+      }).then(() => {
+        this.$modal.msgSuccess("开始下载本地embedding模型，请留意系统推送")
+      }).catch(err => { })
+
     }
   }
 }

@@ -3,6 +3,7 @@ package com.ruoyi.ai.controller;
 import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
@@ -55,6 +56,10 @@ public class ModelController extends BaseController {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private AiConfig aiConfig;
+
 
     /**
      * 查询模型管理列表
@@ -140,10 +145,11 @@ public class ModelController extends BaseController {
         }
         String saveDir = sysConfigService.selectConfigByKey("ai.model.saveDir");
         String token = tokenService.getToken(request);
-        saveDir = modelScopeUtil.downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", saveDir, "[\\s\\S]*", modelDir -> {
+        String repoId = aiConfig.getModelScope().getEmbeddingModelRepoId();
+        saveDir = modelScopeUtil.downloadMultiThread(repoId, saveDir, "[\\s\\S]*", modelDir -> {
             try {
                 Model model = new Model();
-                model.setName("shibing624_text2vec-base-chinese");
+                model.setName(repoId);
                 model.setType(ModelType.EMBEDDING.getValue());
                 model.setProvider(ModelProvider.LOCAL.getValue());
                 model.setBaseUrl("#");
@@ -151,6 +157,7 @@ public class ModelController extends BaseController {
                 model.setCreateBy("System");
                 modelService.insertModel(model);
 
+                sysConfigService.updateConfigByKeyValue("ai.model.embedding", String.valueOf(model.getId()));
                 Session session = WebSocketUsers.getSessionByToken(token);
                 if (session != null) {
                     WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("embedding模型已下载,保存位置：" + modelDir)));
@@ -161,5 +168,24 @@ public class ModelController extends BaseController {
         });
 
         return success(saveDir);
+    }
+
+    @PreAuthorize("@ss.hasPermi('ai:model:list')")
+    @GetMapping("/local-embedding-model")
+    public AjaxResult getLocalEmbeddingModel() {
+        Model req = new Model();
+        req.setProvider(ModelProvider.LOCAL.getValue());
+        List<Model> list = modelService.selectModelList(req);
+        if (CollUtil.isNotEmpty(list)) {
+            return success(list.get(0));
+        }
+        return success();
+    }
+
+    @PreAuthorize("@ss.hasPermi('ai:model:list')")
+    @PostMapping("/set-default-embedding/{id}")
+    public AjaxResult setDefaultEmbeddingModel(@PathVariable("id") Long embeddingId) {
+        sysConfigService.updateConfigByKeyValue("ai.model.embedding", String.valueOf(embeddingId));
+        return success();
     }
 }
