@@ -138,9 +138,18 @@ public class ModelController extends BaseController {
         }
         String saveDir = sysConfigService.selectConfigByKey("ai.model.saveDir");
         String token = tokenService.getToken(request);
-        Session session = WebSocketUsers.getSessionByToken(token);
         saveDir = modelScopeUtil.downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", saveDir, "[\\s\\S]*", modelDir -> {
             try {
+                Model model = new Model();
+                model.setName("shibing624_text2vec-base-chinese");
+                model.setType(ModelType.EMBEDDING.getValue());
+                model.setProvider(ModelProvider.LOCAL.getValue());
+                model.setBaseUrl("#");
+                model.setSaveDir(modelDir);
+                model.setCreateBy("System");
+                modelService.insertModel(model);
+
+                Session session = WebSocketUsers.getSessionByToken(token);
                 if (session != null) {
                     WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("embedding模型已下载,保存位置：" + modelDir)));
                 }
@@ -148,14 +157,7 @@ public class ModelController extends BaseController {
                 throw new RuntimeException(e);
             }
         });
-        Model model = new Model();
-        model.setName("shibing624_text2vec-base-chinese");
-        model.setType(ModelType.EMBEDDING.getValue());
-        model.setProvider(ModelProvider.LOCAL.getValue());
-        model.setBaseUrl("#");
-        model.setSaveDir(saveDir);
-        model.setCreateBy(getUsername());
-        modelService.insertModel(model);
+
         return success(saveDir);
     }
 }
