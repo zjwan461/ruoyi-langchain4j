@@ -22,7 +22,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -159,7 +161,7 @@ public class ModelScopeUtil {
         return list;
     }
 
-    public String downloadMultiThread(String repoId, String saveDir, String allowFilePattern) {
+    public String downloadMultiThread(String repoId, String saveDir, String allowFilePattern, Consumer<String> consumer) {
         File root = new File(saveDir);
         if (!root.exists()) {
             root.mkdirs();
@@ -170,7 +172,7 @@ public class ModelScopeUtil {
                 .sorted((o1, o2) -> Math.toIntExact(o1.getSize() - o2.getSize()))
                 .collect(Collectors.toList());
 
-//        CountDownLatch countDownLatch = new CountDownLatch(list.size());
+        final CountDownLatch countDownLatch = new CountDownLatch(list.size());
         for (ModelScopeFile file : list) {
             if (file.getPath().contains("/")) {
                 File f = new File(saveDir + "/" + file.getPath());
@@ -183,13 +185,23 @@ public class ModelScopeUtil {
                     downloadFile(file.getDownloadUri(), saveDir + "/" + file.getPath());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
-                } /*finally {
+                } finally {
                     countDownLatch.countDown();
-                }*/
+                }
 
             });
         }
 
+        if (consumer != null) {
+            new Thread(() -> {
+                try {
+                    countDownLatch.await();
+                    consumer.accept(root.getAbsolutePath());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }).start();
+        }
 
         return root.getAbsolutePath();
     }

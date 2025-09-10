@@ -13,9 +13,18 @@
 <script>
 import copyright from "./Copyright/index"
 import iframeToggle from "./IframeToggle/index"
+import {getToken} from '@/utils/auth'
+import {  Notification } from 'element-ui'
 
 export default {
   name: 'AppMain',
+  data(){
+    return {
+      message: "",
+      text_content: "",
+      ws: null,
+    }
+  },
   components: { iframeToggle, copyright },
   computed: {
     cachedViews() {
@@ -31,6 +40,7 @@ export default {
     }
   },
   mounted() {
+    this.join()
     this.addIframe()
   },
   methods: {
@@ -39,7 +49,43 @@ export default {
       if (name && this.$route.meta.link) {
         this.$store.dispatch('tagsView/addIframeView', this.$route)
       }
-    }
+    },
+    join() {
+      const wsuri = process.env.VUE_APP_WS_API
+      this.ws = new WebSocket(wsuri + "?Authorization=" + getToken());
+      this.ws.onopen = function (event) {
+        console.log("socket已连接")
+      };
+      this.ws.onmessage = function (event) {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 1) {
+          Notification.success(msg.content)
+        } else if(msg.type ===2) {
+          Notification.error(msg.content)
+        } else if(msg.type ===3) {
+          Notification.warning(msg.content)
+        } else {
+          Notification.info(msg.content)
+        }
+
+      };
+      this.ws.onclose = function (event) {
+       console.log("socket已关闭")
+      };
+    },
+    exit() {
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+    },
+    send() {
+      if (this.ws) {
+        this.ws.send(this.message);
+      } else {
+        alert("未连接到服务器");
+      }
+    },
   }
 }
 </script>

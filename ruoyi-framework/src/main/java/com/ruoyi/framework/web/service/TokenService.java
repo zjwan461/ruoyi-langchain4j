@@ -220,7 +220,7 @@ public class TokenService
      * @param request
      * @return token
      */
-    private String getToken(HttpServletRequest request)
+    public String getToken(HttpServletRequest request)
     {
         //先从token取值，没有则从参数取，用于websocket兼容
         String token = request.getHeader(header);

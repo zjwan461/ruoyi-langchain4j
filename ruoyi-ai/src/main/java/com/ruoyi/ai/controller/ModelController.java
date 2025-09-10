@@ -1,6 +1,8 @@
 package com.ruoyi.ai.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
@@ -13,13 +15,18 @@ import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.websocket.SocketMessage;
+import com.ruoyi.framework.websocket.WebSocketUsers;
 import com.ruoyi.system.service.ISysConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.websocket.Session;
 import java.util.List;
 
 /**
@@ -39,6 +46,15 @@ public class ModelController extends BaseController {
 
     @Resource
     private ModelScopeUtil modelScopeUtil;
+
+    @Resource
+    private HttpServletRequest request;
+
+    @Resource
+    private TokenService tokenService;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 查询模型管理列表
@@ -121,7 +137,17 @@ public class ModelController extends BaseController {
             throw new ServiceException("已经下载过本地embedding模型");
         }
         String saveDir = sysConfigService.selectConfigByKey("ai.model.saveDir");
-        saveDir = modelScopeUtil.downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", saveDir, "[\\s\\S]*");
+        String token = tokenService.getToken(request);
+        Session session = WebSocketUsers.getSessionByToken(token);
+        saveDir = modelScopeUtil.downloadMultiThread("zjwan461/shibing624_text2vec-base-chinese", saveDir, "[\\s\\S]*", modelDir -> {
+            try {
+                if (session != null) {
+                    WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("embedding模型已下载,保存位置：" + modelDir)));
+                }
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        });
         Model model = new Model();
         model.setName("shibing624_text2vec-base-chinese");
         model.setType(ModelType.EMBEDDING.getValue());

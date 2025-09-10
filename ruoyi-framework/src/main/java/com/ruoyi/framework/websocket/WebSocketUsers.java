@@ -2,21 +2,22 @@ package com.ruoyi.framework.websocket;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import javax.websocket.Session;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * websocket 客户端用户集
- * 
+ *
  * @author ruoyi
  */
-public class WebSocketUsers
-{
+public class WebSocketUsers {
     /**
      * WebSocketUsers 日志控制器
      */
@@ -25,16 +26,15 @@ public class WebSocketUsers
     /**
      * 用户集
      */
-    private static Map<String, Session> USERS = new ConcurrentHashMap<String, Session>();
+    private static final Map<String, Session> USERS = new ConcurrentHashMap<String, Session>();
 
     /**
      * 存储用户
      *
-     * @param key 唯一键
+     * @param key     唯一键
      * @param session 用户信息
      */
-    public static void put(String key, Session session)
-    {
+    public static void put(String key, Session session) {
         USERS.put(key, session);
     }
 
@@ -42,28 +42,21 @@ public class WebSocketUsers
      * 移除用户
      *
      * @param session 用户信息
-     *
      * @return 移除结果
      */
-    public static boolean remove(Session session)
-    {
+    public static boolean remove(Session session) {
         String key = null;
         boolean flag = USERS.containsValue(session);
-        if (flag)
-        {
+        if (flag) {
             Set<Map.Entry<String, Session>> entries = USERS.entrySet();
-            for (Map.Entry<String, Session> entry : entries)
-            {
+            for (Map.Entry<String, Session> entry : entries) {
                 Session value = entry.getValue();
-                if (value.equals(session))
-                {
+                if (value.equals(session)) {
                     key = entry.getKey();
                     break;
                 }
             }
-        }
-        else
-        {
+        } else {
             return true;
         }
         return remove(key);
@@ -74,18 +67,14 @@ public class WebSocketUsers
      *
      * @param key 键
      */
-    public static boolean remove(String key)
-    {
+    public static boolean remove(String key) {
         LOGGER.info("\n 正在移出用户 - {}", key);
         Session remove = USERS.remove(key);
-        if (remove != null)
-        {
+        if (remove != null) {
             boolean containsValue = USERS.containsValue(remove);
             LOGGER.info("\n 移出结果 - {}", containsValue ? "失败" : "成功");
             return containsValue;
-        }
-        else
-        {
+        } else {
             return true;
         }
     }
@@ -95,8 +84,7 @@ public class WebSocketUsers
      *
      * @return 返回用户集合
      */
-    public static Map<String, Session> getUsers()
-    {
+    public static Map<String, Session> getUsers() {
         return USERS;
     }
 
@@ -105,11 +93,9 @@ public class WebSocketUsers
      *
      * @param message 消息内容
      */
-    public static void sendMessageToUsersByText(String message)
-    {
+    public static void sendMessageToUsersByText(String message) {
         Collection<Session> values = USERS.values();
-        for (Session value : values)
-        {
+        for (Session value : values) {
             sendMessageToUserByText(value, message);
         }
     }
@@ -118,24 +104,33 @@ public class WebSocketUsers
      * 发送文本消息
      *
      * @param userName 自己的用户名
-     * @param message 消息内容
+     * @param message  消息内容
      */
-    public static void sendMessageToUserByText(Session session, String message)
-    {
-        if (session != null)
-        {
-            try
-            {
+    public static void sendMessageToUserByText(Session session, String message) {
+        if (session != null) {
+            try {
                 session.getBasicRemote().sendText(message);
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 LOGGER.error("\n[发送消息异常]", e);
             }
-        }
-        else
-        {
+        } else {
             LOGGER.info("\n[你已离线]");
         }
+    }
+
+    public static Session getSessionByToken(String token) {
+        Collection<Session> values = USERS.values();
+        Session session = null;
+        for (Session value : values) {
+            List<String> authorization = value.getRequestParameterMap().get("Authorization");
+            if (!CollectionUtils.isEmpty(authorization)) {
+                String sessionToken = authorization.get(0);
+                if (sessionToken.equals(token)) {
+                    session = value;
+                    break;
+                }
+            }
+        }
+        return session;
     }
 }

@@ -42,11 +42,6 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/websocket',
-    component: () => import('@/views/websocket/websocket.vue'),
-    hidden: true
-  },
-  {
     path: '/ai-chat/:agentId(.*)',
     component: () => import('@/views/ai/agent/aiChat.vue'),
     hidden: true
