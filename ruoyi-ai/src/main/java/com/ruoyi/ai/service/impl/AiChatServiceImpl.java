@@ -112,7 +112,7 @@ public class AiChatServiceImpl implements IAiChatService {
             promptTemplate = promptTemplate.replaceAll("\\{data}", "");
         }
 
-        saveChatMessage(promptTemplate, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
+        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
