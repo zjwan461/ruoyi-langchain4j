@@ -96,4 +96,8 @@
         <include refid="selectChatMessageVo"/>
         where session_id = #{sessionId} and agent_id = #{agentId}
     </select>
+
+    <delete id="deleteBySessionId" parameterType="String">
+        delete from chat_message where session_id = #{sessionId}
+    </delete>
 </mapper>

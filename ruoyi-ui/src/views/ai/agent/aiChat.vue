@@ -1,7 +1,7 @@
 <template>
 
   <div class="ai-chat-container">
-    <el-tabs type="card" v-model="sessionId" @tab-click="changeTab">
+    <el-tabs type="card" v-model="sessionId" @tab-click="changeTab" closable @tab-remove="deleteSession">
       <el-tab-pane :label="item.title" :name="item.sessionId" v-for="item in sessionList"
                    :key="item.sessionId"></el-tab-pane>
     </el-tabs>
@@ -70,7 +70,7 @@
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import {getAgent, createSession, listChatSession, listChatMessage} from '@/api/ai/aiChat'
+import {getAgent, createSession, listChatSession, listChatMessage,deleteSession} from '@/api/ai/aiChat'
 import {nanoid} from 'nanoid'
 
 // 初始化markdown-it实例
@@ -141,8 +141,16 @@ export default {
           this.getChatHistoryMessage()
         }
       })
-
-
+    },
+    deleteSession(sessionId) {
+      this.$modal.confirm('确认删除此会话的记录吗？').then(function(){
+          return deleteSession(sessionId)
+      }).then(()=>{
+        this.sessionId = this.sessionList[0].sessionId
+        this.getSessionList()
+        this.getChatHistoryMessage()
+        this.$modal.msgSuccess("删除成功")
+      }).catch(()=>{})
     },
     newSession() {
       createSession(this.clientId).then(res => {

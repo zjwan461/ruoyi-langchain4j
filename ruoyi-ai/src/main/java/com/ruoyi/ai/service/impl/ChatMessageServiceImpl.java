@@ -97,4 +97,9 @@ public class ChatMessageServiceImpl implements IChatMessageService {
     public List<ChatMessage> selectAgentChatMessageBySessionId(String sessionId, Long agentId) {
         return chatMessageMapper.selectAgentChatMessageBySessionId(sessionId, agentId);
     }
+
+    @Override
+    public int deleteBySessionId(String sessionId) {
+        return chatMessageMapper.deleteBySessionId(sessionId);
+    }
 }

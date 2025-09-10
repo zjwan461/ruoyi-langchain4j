@@ -65,4 +65,6 @@ public interface IChatMessageService
 
 
     public List<ChatMessage> selectAgentChatMessageBySessionId(String sessionId, Long agentId);
+
+    public int deleteBySessionId(String sessionId);
 }

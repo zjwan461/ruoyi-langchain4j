@@ -4,6 +4,7 @@ import com.ruoyi.ai.controller.model.ChatReq;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.service.IAiAgentService;
 import com.ruoyi.ai.service.IAiChatService;
+import com.ruoyi.ai.service.IChatMessageService;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
@@ -16,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 @RestController
+@RequestMapping("/ai-chat")
 public class AiChatController extends BaseController {
 
     @Resource
@@ -27,8 +29,11 @@ public class AiChatController extends BaseController {
     @Resource
     IAiChatService aiChatService;
 
+    @Resource
+    private IChatMessageService chatMessageService;
 
-    @PostMapping(value = "/ai-chat", produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
+
+    @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
     public Flux<String> aiChat(@RequestBody @Valid ChatReq chatReq) {
         AiAgent aiAgent = aiAgentService.selectAiAgentById(chatReq.getAgentId());
         preCheck(aiAgent, chatReq);
@@ -66,5 +71,10 @@ public class AiChatController extends BaseController {
     @GetMapping("/list-chat-message/{sessionId}/{agentId}")
     public AjaxResult listChatHistory(@PathVariable("sessionId") String sessionId, @PathVariable("agentId") Long agentId) {
         return success(aiChatService.listAgentChatMessageBySessionId(sessionId, agentId));
+    }
+
+    @DeleteMapping("/delete-session/{sessionId}")
+    public AjaxResult deleteSession(@PathVariable("sessionId") String sessionId) {
+        return success(chatMessageService.deleteBySessionId(sessionId));
     }
 }
