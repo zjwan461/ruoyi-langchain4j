@@ -103,6 +103,7 @@ public class KnowledgeBaseController extends BaseController {
     @Log(title = "知识库", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody KnowledgeBase knowledgeBase) {
+        knowledgeBase.setCreateBy(getUsername());
         return toAjax(knowledgeBaseService.insertKnowledgeBase(knowledgeBase));
     }
 
@@ -113,6 +114,7 @@ public class KnowledgeBaseController extends BaseController {
     @Log(title = "知识库", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody KnowledgeBase knowledgeBase) {
+        knowledgeBase.setUpdateBy(getUsername());
         return toAjax(knowledgeBaseService.updateKnowledgeBase(knowledgeBase));
     }
 

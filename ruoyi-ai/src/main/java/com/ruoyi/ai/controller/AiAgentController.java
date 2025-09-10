@@ -105,6 +105,7 @@ public class AiAgentController extends BaseController {
   @PostMapping
   public AjaxResult add(@RequestBody AiAgent aiAgent) {
     constructInfo(aiAgent);
+    aiAgent.setCreateBy(getUsername());
     return toAjax(aiAgentService.insertAiAgent(aiAgent));
   }
 
@@ -131,6 +132,7 @@ public class AiAgentController extends BaseController {
   @PutMapping
   public AjaxResult edit(@RequestBody AiAgent aiAgent) {
     constructInfo(aiAgent);
+    aiAgent.setUpdateBy(getUsername());
     return toAjax(aiAgentService.updateAiAgent(aiAgent));
   }
 

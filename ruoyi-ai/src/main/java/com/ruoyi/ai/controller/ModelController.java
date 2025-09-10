@@ -95,6 +95,7 @@ public class ModelController extends BaseController {
     @Log(title = "模型管理", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody Model model) {
+        model.setCreateBy(getUsername());
         return toAjax(modelService.insertModel(model));
     }
 
@@ -105,6 +106,7 @@ public class ModelController extends BaseController {
     @Log(title = "模型管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody Model model) {
+        model.setUpdateBy(getUsername());
         return toAjax(modelService.updateModel(model));
     }
 
