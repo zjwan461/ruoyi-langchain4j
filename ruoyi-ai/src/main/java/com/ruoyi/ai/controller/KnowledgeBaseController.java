@@ -10,6 +10,7 @@ import com.ruoyi.ai.service.IKnowledgeBaseService;
 import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.ai.service.impl.ModelBuilder;
+import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.PgVectorUtil;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.config.RuoYiConfig;
@@ -47,7 +48,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/ai/knowledgeBase")
 public class KnowledgeBaseController extends BaseController {
 
-    public static final String KB_ID = "kb_id";
 
     @Autowired
     private IKnowledgeBaseService knowledgeBaseService;
@@ -156,7 +156,7 @@ public class KnowledgeBaseController extends BaseController {
         List<TextSegment> segments = docSplitSegment(embeddingReq);
         segments.forEach(segment -> {
             Metadata metadata = segment.metadata();
-            metadata.put(KB_ID, embeddingReq.getKbId());
+            metadata.put(Constants.KB_ID, embeddingReq.getKbId());
         });
         langChain4jService.embedTextSegments(embeddingModel, segments);
         return success();
@@ -168,7 +168,7 @@ public class KnowledgeBaseController extends BaseController {
     public TableDataInfo segmentQuery(@NotBlank @Param("kbId") Long kbId, @Param("pageNum") int pageNum,
                                       @Param("pageSize") int pageSize) {
         Map<String, Object> metadata = new HashMap<>();
-        metadata.put("kb_id", kbId);
+        metadata.put(Constants.KB_ID, kbId);
         List<Map<String, Object>> all = langChain4jService.querySegmentTextEqualsByMetaData(
                 metadata).stream().map(x -> {
             Map<String, Object> map = new HashMap<>();
@@ -209,7 +209,7 @@ public class KnowledgeBaseController extends BaseController {
         Model model = modelService.selectModelById(embeddingModelId);
         EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
         Metadata metadata = new Metadata();
-        metadata.put(KB_ID, textEmbeddingReq.getKbId());
+        metadata.put(Constants.KB_ID, textEmbeddingReq.getKbId());
         metadata.put("update_ts", LocalDateTime.now().toString());
         metadata.put("update_by", getUsername());
         TextSegment textSegment = TextSegment.from(textEmbeddingReq.getText(), metadata);

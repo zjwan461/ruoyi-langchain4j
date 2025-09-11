@@ -11,6 +11,7 @@ import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
@@ -97,7 +98,7 @@ public class AiChatServiceImpl implements IAiChatService {
             if (kb != null) {
                 embeddingModel = getEmbeddingModel();
                 Map<String, Object> metadata = MapUtil.<String, Object>builder()
-                        .put("kb_id", kb.getId()).build();
+                        .put(Constants.KB_ID, kb.getId()).build();
                 List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel,
                         prompt,
                         3, 0.70, metadata);
