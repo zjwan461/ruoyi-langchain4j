@@ -1,7 +1,8 @@
 package com.ruoyi.ai.service;
 
-import java.util.List;
 import com.ruoyi.ai.domain.KnowledgeBase;
+
+import java.util.List;
 
 /**
  * 知识库Service接口
@@ -58,4 +59,7 @@ public interface IKnowledgeBaseService
      * @return 结果
      */
     public int deleteKnowledgeBaseById(Long id);
+
+
+    public List<KnowledgeBase> selectKnowledgeBaseByIds(List<Long> ids);
 }

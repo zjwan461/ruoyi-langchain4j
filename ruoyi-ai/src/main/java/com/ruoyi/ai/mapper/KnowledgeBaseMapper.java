@@ -1,7 +1,8 @@
 package com.ruoyi.ai.mapper;
 
-import java.util.List;
 import com.ruoyi.ai.domain.KnowledgeBase;
+
+import java.util.List;
 
 /**
  * 知识库Mapper接口
@@ -58,4 +59,7 @@ public interface KnowledgeBaseMapper
      * @return 结果
      */
     public int deleteKnowledgeBaseByIds(Long[] ids);
+
+
+    public List<KnowledgeBase> selectByIds(List<Long> ids);
 }

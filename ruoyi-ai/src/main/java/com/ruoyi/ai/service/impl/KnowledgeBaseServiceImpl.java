@@ -1,12 +1,13 @@
 package com.ruoyi.ai.service.impl;
 
-import java.util.List;
+import com.ruoyi.ai.domain.KnowledgeBase;
+import com.ruoyi.ai.mapper.KnowledgeBaseMapper;
+import com.ruoyi.ai.service.IKnowledgeBaseService;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.ai.mapper.KnowledgeBaseMapper;
-import com.ruoyi.ai.domain.KnowledgeBase;
-import com.ruoyi.ai.service.IKnowledgeBaseService;
+
+import java.util.List;
 
 /**
  * 知识库Service业务层处理
@@ -92,5 +93,10 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService
     public int deleteKnowledgeBaseById(Long id)
     {
         return knowledgeBaseMapper.deleteKnowledgeBaseById(id);
+    }
+
+    @Override
+    public List<KnowledgeBase> selectKnowledgeBaseByIds(List<Long> ids) {
+        return knowledgeBaseMapper.selectByIds(ids);
     }
 }

@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.ai.mapper.KnowledgeBaseMapper">
-    
+
     <resultMap type="KnowledgeBase" id="KnowledgeBaseResult">
-        <result property="id"    column="id"    />
-        <result property="name"    column="name"    />
-        <result property="createBy"    column="create_by"    />
-        <result property="createTime"    column="create_time"    />
-        <result property="updateBy"    column="update_by"    />
-        <result property="updateTime"    column="update_time"    />
-        <result property="remark"    column="remark"    />
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="remark" column="remark"/>
     </resultMap>
 
     <sql id="selectKnowledgeBaseVo">
@@ -20,12 +20,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectKnowledgeBaseList" parameterType="KnowledgeBase" resultMap="KnowledgeBaseResult">
         <include refid="selectKnowledgeBaseVo"/>
-        <where>  
-            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
-            <if test="createBy != null  and createBy != ''"> and create_by = #{createBy}</if>
+        <where>
+            <if test="name != null  and name != ''">and name like concat('%', #{name}, '%')</if>
+            <if test="createBy != null  and createBy != ''">and create_by = #{createBy}</if>
         </where>
     </select>
-    
+
     <select id="selectKnowledgeBaseById" parameterType="Long" resultMap="KnowledgeBaseResult">
         <include refid="selectKnowledgeBaseVo"/>
         where id = #{id}
@@ -40,7 +40,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">update_by,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="remark != null">remark,</if>
-         </trim>
+        </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">#{name},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -48,7 +48,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="remark != null">#{remark},</if>
-         </trim>
+        </trim>
     </insert>
 
     <update id="updateKnowledgeBase" parameterType="KnowledgeBase">
@@ -69,9 +69,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <delete id="deleteKnowledgeBaseByIds" parameterType="String">
-        delete from knowledge_base where id in 
+        delete from knowledge_base where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>
     </delete>
+
+    <select id="selectByIds" resultMap="KnowledgeBaseResult">
+        <include refid="selectKnowledgeBaseVo"/>
+        <foreach item="id" collection="list" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>
