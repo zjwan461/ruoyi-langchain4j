@@ -120,6 +120,13 @@ public class LangChain4jServiceImpl implements LangChain4jService {
         return embeddingStore.addAll(embeddings, textSegments);
     }
 
+    /**
+     * 用于向量搜索
+     *
+     * @param embeddingModel
+     * @param pgVector
+     * @return
+     */
     public PgVectorEmbeddingStore buildPgEmbeddingStore(EmbeddingModel embeddingModel,
                                                         PgVector pgVector) {
         return PgVectorEmbeddingStore.builder()
@@ -133,6 +140,12 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                 .build();
     }
 
+    /**
+     * 用于元数据查询
+     *
+     * @param pgVector
+     * @return
+     */
     public PgVectorEmbeddingStore buildPgEmbeddingStore(
             PgVector pgVector) {
         return PgVectorEmbeddingStore.builder()
@@ -176,7 +189,7 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                                                     int maxResult,
                                                     double minScore, Map<String, Object> metadata) {
         Response<Embedding> response = embeddingModel.embed(query);
-        PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(aiConfig.getPgVector());
+        PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(embeddingModel, aiConfig.getPgVector());
 
         EmbeddingSearchRequestBuilder searchBuilder = EmbeddingSearchRequest.builder();
         searchBuilder.queryEmbedding(response.content())

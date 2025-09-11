@@ -26,6 +26,8 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
@@ -286,13 +288,31 @@ public class AiTest {
 //    Response<Embedding> response = embeddingModel.embed("test");
 //    System.out.println(response.content());
 
-    String pathToModel = "E:\\workspaces\\java\\RuoYi-Vue\\models\\onnx\\model.onnx";
-    String pathToTokenizer = "E:\\workspaces\\java\\RuoYi-Vue\\models\\onnx\\tokenizer.json";
+    String pathToModel = "D:\\workspaces\\java\\ruoyi-langchain4j\\models\\onnx\\model.onnx";
+    String pathToTokenizer = "D:\\workspaces\\java\\ruoyi-langchain4j\\models\\onnx\\tokenizer.json";
     PoolingMode poolingMode = PoolingMode.MEAN;
-    EmbeddingModel embeddingModel2 = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
+    EmbeddingModel embeddingModel = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
 
-    Response<Embedding> response2 = embeddingModel2.embed("我爱祖国");
-    Embedding embedding = response2.content();
-    System.out.println(response2);
+    Response<Embedding> response = embeddingModel.embed("新反数码诈骗措施");
+    Embedding embedding = response.content();
+
+    PgVectorEmbeddingStore embeddingStore = PgVectorEmbeddingStore.builder()
+            .host("10.100.216.70")
+            .port(5432)
+            .database("embedding")
+            .user("root")
+            .password("root")
+            .table("embedding")
+            .dimension(embeddingModel.dimension())
+            .build();
+    EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
+            .queryEmbedding(embedding)
+            .filter(new IsEqualTo("kb_id","1"))
+            .minScore(0.7)
+            .build();
+
+    EmbeddingSearchResult<TextSegment> result = embeddingStore.search(request);
+    System.out.println(result.matches());
+
   }
 }
