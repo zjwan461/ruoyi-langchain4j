@@ -86,7 +86,7 @@ public class AiChatServiceImpl implements IAiChatService {
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
 
         String promptTemplate = aiAgent.getPromptTemplate();
-        promptTemplate = promptTemplate.replaceAll(Constants.USER_MSG_TEMPLATE_PATTERN, prompt);
+        promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
 
         if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && aiAgent.getKbId() != null) {
             KnowledgeBase kb = knowledgeBaseService.selectKnowledgeBaseById(aiAgent.getKbId());
@@ -103,10 +103,10 @@ public class AiChatServiceImpl implements IAiChatService {
                     String text = embedded.text();
                     embBuilder.append(text);
                 });
-                promptTemplate = promptTemplate.replaceAll(Constants.KNOWLEDGE_BASE_TEMPLATE_PATTERN, embBuilder.toString());
+                promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, embBuilder.toString());
             }
         } else if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && aiAgent.getKbId() == null) {
-            promptTemplate = promptTemplate.replaceAll(Constants.KNOWLEDGE_BASE_TEMPLATE_PATTERN, "");
+            promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
 
         saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);

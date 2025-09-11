@@ -26,12 +26,6 @@ public interface Constants {
 
     String KNOWLEDGE_BASE_TEMPLATE = "{data}";
 
-    String KNOWLEDGE_BASE_TEMPLATE_PATTERN = "\\{data}";
-
     String USER_MSG_TEMPLATE = "{question}";
-
-    String USER_MSG_TEMPLATE_PATTERN = "\\{question}";
-
-
 
 }
