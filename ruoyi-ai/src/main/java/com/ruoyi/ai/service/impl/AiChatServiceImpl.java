@@ -97,7 +97,7 @@ public class AiChatServiceImpl implements IAiChatService {
             if (kb != null) {
                 embeddingModel = getEmbeddingModel();
                 Map<String, Object> metadata = MapUtil.<String, Object>builder()
-                        .put("kbId", kb.getId()).build();
+                        .put("kb_id", kb.getId()).build();
                 List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel,
                         prompt,
                         3, 0.70, metadata);
