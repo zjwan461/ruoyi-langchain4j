@@ -89,7 +89,10 @@
             = #{clientId}
           and agent_id = #{agentId}
         group by a.session_id
-        order by a.create_time desc limit 10;
+        order by a.create_time desc
+        <if test="limit !=null">
+        limit #{limit};
+        </if>
     </select>
 
     <select id="selectAgentChatMessageBySessionId" resultMap="ChatMessageResult">

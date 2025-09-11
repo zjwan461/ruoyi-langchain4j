@@ -75,6 +75,7 @@ public class AiChatController extends BaseController {
 
     @DeleteMapping("/delete-session/{sessionId}")
     public AjaxResult deleteSession(@PathVariable("sessionId") String sessionId) {
-        return success(chatMessageService.deleteBySessionId(sessionId));
+        aiChatService.deleteSession(sessionId);
+        return success();
     }
 }

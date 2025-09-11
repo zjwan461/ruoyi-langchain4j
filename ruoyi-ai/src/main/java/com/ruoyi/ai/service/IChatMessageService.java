@@ -7,15 +7,14 @@ import java.util.Map;
 
 /**
  * 聊天信息Service接口
- * 
+ *
  * @author ruoyi
  * @date 2025-09-08
  */
-public interface IChatMessageService 
-{
+public interface IChatMessageService {
     /**
      * 查询聊天信息
-     * 
+     *
      * @param id 聊天信息主键
      * @return 聊天信息
      */
@@ -23,7 +22,7 @@ public interface IChatMessageService
 
     /**
      * 查询聊天信息列表
-     * 
+     *
      * @param chatMessage 聊天信息
      * @return 聊天信息集合
      */
@@ -31,7 +30,7 @@ public interface IChatMessageService
 
     /**
      * 新增聊天信息
-     * 
+     *
      * @param chatMessage 聊天信息
      * @return 结果
      */
@@ -39,7 +38,7 @@ public interface IChatMessageService
 
     /**
      * 修改聊天信息
-     * 
+     *
      * @param chatMessage 聊天信息
      * @return 结果
      */
@@ -47,7 +46,7 @@ public interface IChatMessageService
 
     /**
      * 批量删除聊天信息
-     * 
+     *
      * @param ids 需要删除的聊天信息主键集合
      * @return 结果
      */
@@ -55,13 +54,13 @@ public interface IChatMessageService
 
     /**
      * 删除聊天信息信息
-     * 
+     *
      * @param id 聊天信息主键
      * @return 结果
      */
     public int deleteChatMessageById(Long id);
 
-    public List<Map<String, String>> selectSessionList(String clientId,Long agentId);
+    public List<Map<String, String>> selectSessionList(String clientId, Long agentId, Integer limit);
 
 
     public List<ChatMessage> selectAgentChatMessageBySessionId(String sessionId, Long agentId);

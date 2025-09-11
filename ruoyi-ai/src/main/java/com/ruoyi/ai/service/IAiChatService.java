@@ -20,4 +20,6 @@ public interface IAiChatService {
     List<Map<String, String>> listClientSession(String clientId, Long agentId);
 
     List<ChatMessage> listAgentChatMessageBySessionId(String sessionId, Long agentId);
+
+    void deleteSession(String sessionId);
 }

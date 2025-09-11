@@ -62,7 +62,7 @@ public interface ChatMessageMapper {
     public int deleteChatMessageByIds(Long[] ids);
 
 
-    public List<Map<String, String>> selectSessionList(@Param("clientId") String clientId, @Param("agentId") Long agentId);
+    public List<Map<String, String>> selectSessionList(@Param("clientId") String clientId, @Param("agentId") Long agentId, @Param("limit") Integer limit);
 
 
     public List<ChatMessage> selectAgentChatMessageBySessionId(@Param("sessionId") String sessionId, @Param("agentId") Long agentId);

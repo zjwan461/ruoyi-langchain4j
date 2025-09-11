@@ -1305,8 +1305,8 @@ VALUES ('首页介绍信息', 'homePage.desc.showInfo',
         '2025-09-07 14:30:32', NULL),
        ('本地模型保存文件夹', 'ai.model.saveDir', './models', 'Y', 'admin', '2025-09-07 14:57:15', '', NULL, NULL),
        ('默认向量模型','ai.model.embedding','#','Y','admin','2025-09-10 13:57:44','admin','2025-09-10 13:58:20',NULL),
-	   ('分段向量化批量大小','ai.embedding.batchSize','5','Y','admin','2025-09-11 11:44:45','',NULL,'向量化文档时，一次向量几个分段的内容');
-
+	   ('分段向量化批量大小','ai.embedding.batchSize','5','Y','admin','2025-09-11 11:44:45','',NULL,'向量化文档时，一次向量几个分段的内容'),
+	   ('智能体显示会话数','ai.agent.sessionNum','10','Y','admin','2025-09-11 13:37:47','admin','2025-09-11 13:38:49','每个客户端一个智能体最多显示数会话数量（根据时间倒序排列）');
 
 
 drop table if exists chat_message;

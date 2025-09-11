@@ -16,6 +16,7 @@ import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.framework.manager.AsyncManager;
+import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
@@ -70,6 +71,9 @@ public class AiChatServiceImpl implements IAiChatService {
 
     @Resource
     private IChatMessageService chatMessageService;
+
+    @Resource
+    private ISysConfigService sysConfigService;
 
     private static final TimedCache<String, ChatMemory> chatMemories = new TimedCache<>(
             TimeUnit.DAYS.toMillis(1));
@@ -254,7 +258,12 @@ public class AiChatServiceImpl implements IAiChatService {
 
     @Override
     public List<Map<String, String>> listClientSession(String clientId, Long agentId) {
-        List<Map<String, String>> res = chatMessageService.selectSessionList(clientId, agentId);
+        String value = sysConfigService.selectConfigByKey("ai.agent.sessionNum");
+        Integer limit = null;
+        if (StringUtils.isNotEmpty(value)) {
+            limit = Integer.valueOf(value);
+        }
+        List<Map<String, String>> res = chatMessageService.selectSessionList(clientId, agentId, limit);
         res.forEach(x -> {
             String title = x.get("title");
             if (title.length() > 5) {
@@ -268,5 +277,12 @@ public class AiChatServiceImpl implements IAiChatService {
     @Override
     public List<ChatMessage> listAgentChatMessageBySessionId(String sessionId, Long agentId) {
         return chatMessageService.selectAgentChatMessageBySessionId(sessionId, agentId);
+    }
+
+    @Override
+    public void deleteSession(String sessionId) {
+        if (chatMessageService.deleteBySessionId(sessionId) > 0) {
+            chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
+        }
     }
 }
