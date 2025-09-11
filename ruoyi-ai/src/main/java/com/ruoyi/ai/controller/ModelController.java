@@ -8,6 +8,7 @@ import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.IModelService;
+import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.ModelScopeUtil;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
@@ -146,7 +147,7 @@ public class ModelController extends BaseController {
         String saveDir = sysConfigService.selectConfigByKey("ai.model.saveDir");
         String token = tokenService.getToken(request);
         String repoId = aiConfig.getModelScope().getEmbeddingModelRepoId();
-        saveDir = modelScopeUtil.downloadMultiThread(repoId, saveDir, "[\\s\\S]*", modelDir -> {
+        saveDir = modelScopeUtil.downloadMultiThread(repoId, saveDir, Constants.ALL_ALLOW_PATTERN, modelDir -> {
             try {
                 Model model = new Model();
                 model.setName(repoId);

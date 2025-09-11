@@ -5,7 +5,9 @@ import com.ruoyi.ai.config.AiConfig.PgVector;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.LangChain4jService;
+import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.PgVectorUtil;
+import com.ruoyi.common.exception.ServiceException;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -58,17 +60,18 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                         .logResponses(true)
                         .apiKey(apiKey)
                         .build();
-            } else/* if (provider == ModelProvider.OLLAMA)*/ {
+            } else if (provider == ModelProvider.OLLAMA) {
                 model = OllamaChatModel.builder()
                         .baseUrl(baseUrl)
                         .modelName(modelName)
                         .logRequests(true)
                         .logResponses(true)
                         .build();
-            }
+            } else
+                throw new ServiceException("不支持模型提供商");
 
             try {
-                model.chat("hello");
+                model.chat(Constants.TEST_CHAT_TEXT);
             } catch (Exception e) {
                 log.error("check model config error", e);
                 return false;
@@ -83,17 +86,18 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                         .logRequests(true)
                         .logResponses(true)
                         .build();
-            } else {
+            } else if (provider == ModelProvider.OLLAMA) {
                 model = OllamaEmbeddingModel.builder()
                         .baseUrl(baseUrl)
                         .modelName(modelName)
                         .logRequests(true)
                         .logResponses(true)
                         .build();
-            }
+            } else
+                throw new ServiceException("不支持模型提供商");
 
             try {
-                model.embed("hello world");
+                model.embed(Constants.TEST_EMBEDDING_TEXT);
             } catch (Exception e) {
                 return false;
             }
@@ -207,11 +211,11 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     @Override
     public boolean checkLocalEmbeddingModel(String saveDir) {
         try {
-            String pathToModel = saveDir + "/onnx/model.onnx";
-            String pathToTokenizer = saveDir + "/onnx/tokenizer.json";
+            String pathToModel = saveDir + Constants.LOCAL_EMBEDDING_MODEL_FILE;
+            String pathToTokenizer = saveDir + Constants.LOCAL_EMBEDDING_TOKENIZER_FILE;
             PoolingMode poolingMode = PoolingMode.MEAN;
             EmbeddingModel embeddingModel = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
-            embeddingModel.embed("test");
+            embeddingModel.embed(Constants.TEST_EMBEDDING_TEXT);
         } catch (Exception e) {
             log.error("检查本地模型失败", e);
             return false;

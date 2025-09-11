@@ -74,14 +74,6 @@ public class AiChatServiceImpl implements IAiChatService {
     private static final TimedCache<String, ChatMemory> chatMemories = new TimedCache<>(
             TimeUnit.DAYS.toMillis(1));
 
-    public static final String AI_CHAT_CLIENT_SESSION = "ai:chat:client:";
-
-    public static final String AI_AGENT_CHAT_LMT = "ai:agent:limit:";
-
-    public static final String MEMORY_CACHE_KEY_PREFIX = "ai:agent:memory:";
-
-    public static final String THINK_PREFIX_TAG = "<think>";
-    public static final String THINK_SUFFIX_TAG = "</think>";
 
     @Override
     public Flux<String> chat(AiAgent aiAgent, String prompt, String clientId, String sessionId) {
@@ -90,9 +82,9 @@ public class AiChatServiceImpl implements IAiChatService {
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
 
         String promptTemplate = aiAgent.getPromptTemplate();
-        promptTemplate = promptTemplate.replaceAll("\\{question}", prompt);
+        promptTemplate = promptTemplate.replaceAll(Constants.USER_MSG_TEMPLATE_PATTERN, prompt);
 
-        if (promptTemplate.contains("{data}") && aiAgent.getKbId() != null) {
+        if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && aiAgent.getKbId() != null) {
             KnowledgeBase kb = knowledgeBaseService.selectKnowledgeBaseById(aiAgent.getKbId());
             EmbeddingModel embeddingModel;
             if (kb != null) {
@@ -107,24 +99,24 @@ public class AiChatServiceImpl implements IAiChatService {
                     String text = embedded.text();
                     embBuilder.append(text);
                 });
-                promptTemplate = promptTemplate.replaceAll("\\{data}", embBuilder.toString());
+                promptTemplate = promptTemplate.replaceAll(Constants.KNOWLEDGE_BASE_TEMPLATE_PATTERN, embBuilder.toString());
             }
-        } else if (promptTemplate.contains("{data}") && aiAgent.getKbId() == null) {
-            promptTemplate = promptTemplate.replaceAll("\\{data}", "");
+        } else if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && aiAgent.getKbId() == null) {
+            promptTemplate = promptTemplate.replaceAll(Constants.KNOWLEDGE_BASE_TEMPLATE_PATTERN, "");
         }
 
         saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
-            chatMemory = chatMemories.get(MEMORY_CACHE_KEY_PREFIX + sessionId);
+            chatMemory = chatMemories.get(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
             if (chatMemory == null) {
                 chatMemory = MessageWindowChatMemory.builder()
                         .chatMemoryStore(new InMemoryChatMemoryStore())
                         .maxMessages(aiAgent.getMemoryCount())
                         .id(sessionId)
                         .build();
-                chatMemories.put(MEMORY_CACHE_KEY_PREFIX + sessionId, chatMemory);
+                chatMemories.put(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId, chatMemory);
             }
         }
         UserMessage userMessage = UserMessage.from(promptTemplate);
@@ -150,7 +142,7 @@ public class AiChatServiceImpl implements IAiChatService {
                     public void onPartialThinking(PartialThinking partialThinking) {
                         String text = partialThinking.text();
                         if (thinkCount.incrementAndGet() == 1) {
-                            text = THINK_PREFIX_TAG + text;
+                            text = Constants.THINK_PREFIX_TAG + text;
                         }
                         Map<String, String> msg = MapUtil.<String, String>builder()
                                 .put("msg", text)
@@ -165,7 +157,7 @@ public class AiChatServiceImpl implements IAiChatService {
                     @Override
                     public void onPartialResponse(String partialResponse) {
                         if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
-                            partialResponse = THINK_SUFFIX_TAG + partialResponse;
+                            partialResponse = Constants.THINK_SUFFIX_TAG + partialResponse;
                             thinkFinish.set(true);
                         }
                         Map<String, String> msg = MapUtil.<String, String>builder()
@@ -184,9 +176,9 @@ public class AiChatServiceImpl implements IAiChatService {
                         StringBuilder content = new StringBuilder();
                         String thinking = completeResponse.aiMessage().thinking();
                         if (StringUtils.isNotBlank(thinking)) {
-                            content.append(THINK_PREFIX_TAG)
+                            content.append(Constants.THINK_PREFIX_TAG)
                                     .append(thinking)
-                                    .append(THINK_SUFFIX_TAG);
+                                    .append(Constants.THINK_SUFFIX_TAG);
                         }
                         String aiText = completeResponse.aiMessage().text();
                         content.append(aiText);
@@ -242,19 +234,19 @@ public class AiChatServiceImpl implements IAiChatService {
     @Override
     public String createSession(String clientId) {
         String sessionId = IdUtils.fastSimpleUUID();
-        redisTemplate.opsForValue().set(AI_CHAT_CLIENT_SESSION + clientId, sessionId);
+        redisTemplate.opsForValue().set(Constants.AI_CHAT_CLIENT_SESSION + clientId, sessionId);
         return sessionId;
     }
 
     @Override
     public boolean checkClientSession(String clientId, String sessionId) {
-        return sessionId.equals(redisTemplate.opsForValue().get(AI_CHAT_CLIENT_SESSION + clientId));
+        return sessionId.equals(redisTemplate.opsForValue().get(Constants.AI_CHAT_CLIENT_SESSION + clientId));
     }
 
     @Override
     public boolean checkIfOverLmtRequest(Long agentId, Integer dayLmtPerClient, String clientId) {
         Long number = redisTemplate.execute(limitScript,
-                Collections.singletonList(AI_AGENT_CHAT_LMT + agentId + ":" + clientId),
+                Collections.singletonList(Constants.AI_AGENT_CHAT_LMT + agentId + ":" + clientId),
                 dayLmtPerClient,
                 (int) TimeUnit.DAYS.toSeconds(1));
         return !StringUtils.isNull(number) && number.intValue() <= dayLmtPerClient;
