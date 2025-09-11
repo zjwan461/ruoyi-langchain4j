@@ -29,7 +29,7 @@
       </el-table-column>
     </el-table>
 
-    <pagination v-show="total>0" :total="total" :page.sync="pageNum" :limit.sync="pageSize" @pagination="listSegment" />
+    <pagination v-show="total > 0" :total="total" :page.sync="pageNum" :limit.sync="pageSize" @pagination="listSegment" />
 
     <el-dialog :title="title" :visible.sync="showDialog" width="1000px" append-to-body>
       <el-row>
@@ -63,7 +63,7 @@
             </el-form-item>
           </el-form>
         </el-col>
-        <el-col :span="12" v-if="documentList.length >0">
+        <el-col :span="12" v-if="documentList.length > 0">
           <div style="height: 600px; overflow: scroll;">
             <el-card v-for="item, index in documentList" :key="index" class="documentCard">
               {{ item }}
@@ -104,7 +104,7 @@ import { listModel } from '@/api/ai/model'
 export default {
   components: {},
   props: [],
-  data () {
+  data() {
     return {
       showUpdate: false,
       total: 0,
@@ -178,15 +178,15 @@ export default {
   },
   computed: {},
   watch: {},
-  created () {
+  created() {
     this.formData.kbId = this.$route.params && this.$route.params.kbId
     this.createHeader()
     this.getEmbedingModel()
     this.listSegment()
   },
-  mounted () { },
+  mounted() { },
   methods: {
-    submitUpdateForm () {
+    submitUpdateForm() {
       this.$refs['segmentForm'].validate(valid => {
         if (!valid) return
 
@@ -203,24 +203,24 @@ export default {
       })
     },
 
-    resetUpdate () {
+    resetUpdate() {
       this.segmentForm = {
         embeddingId: null,
         text: ''
       }
     },
-    reset () {
+    reset() {
       this.formData.setfileList = []
       this.formData.maxSegmentSize = 300
       this.formData.maxOverlapSize = 10
 
     },
-    handleAdd () {
+    handleAdd() {
       this.reset()
       this.showDialog = true
       this.title = "新增文档分段"
     },
-    handleUpdate (row) {
+    handleUpdate(row) {
       this.reset()
       const id = row.embeddingId || this.ids
       getSegment(id).then(response => {
@@ -228,7 +228,7 @@ export default {
         this.segmentForm = response.data
       })
     },
-    handleDelete (row) {
+    handleDelete(row) {
       const ids = row.embeddingId || this.ids
       this.$modal.confirm('是否确认删除向量ID为"' + ids + '"的分段？').then(function () {
         return delSegment(ids)
@@ -237,22 +237,22 @@ export default {
         this.$modal.msgSuccess("删除成功")
       }).catch(() => { })
     },
-    handleSelectionChange (selection) {
+    handleSelectionChange(selection) {
       this.ids = selection.map(item => item.embeddingId)
       this.single = selection.length !== 1
       this.multiple = !selection.length
     },
-    getEmbedingModel () {
+    getEmbedingModel() {
       listModel({ pageNum: 1, pageSize: 1000, type: 1 }).then(response => {
         this.embeddingModelList = response.rows
       })
     },
-    createHeader () {
+    createHeader() {
       this.tokenHeader = {
         'Authorization': 'Bearer ' + getToken()
       }
     },
-    submitForm () {
+    submitForm() {
       this.$refs['elForm'].validate(valid => {
         if (!valid) return
         documentSplit(this.formData).then(response => {
@@ -260,47 +260,46 @@ export default {
         })
       })
     },
-    resetForm () {
+    resetForm() {
       this.$refs['elForm'].resetFields()
 
     },
-    fileBeforeUpload (file) {
+    fileBeforeUpload(file) {
       let isRightSize = file.size / 1024 / 1024 < 50
       if (!isRightSize) {
         this.$message.error('文件大小超过 50MB')
       }
       return isRightSize
     },
-    errorHandle (err, file, fileList) {
+    errorHandle(err, file, fileList) {
       this.$message.error(err)
     },
-    successHandle (response, file, fileList) {
+    successHandle(response, file, fileList) {
       if (response.code !== 200) {
         this.$message.error(response.msg)
         this.$refs.file.clearFiles()
       }
     },
-    changeHandle (file, fileList) {
+    changeHandle(file, fileList) {
       this.formData.fileList = fileList
     },
-    removeHandle (file, fileList) {
+    removeHandle(file, fileList) {
       this.formData.fileList = fileList
     },
-    agreeSegment () {
+    agreeSegment() {
       this.$refs['elForm'].validate(valid => {
         if (!valid) return
         this.$modal.loading("embedding...")
         embedding(this.formData).then(response => {
           this.$modal.closeLoading()
-          this.documentList = []
-          this.listSegment()
+          this.$modal.alertSuccess('处理中，共计' + response.data.segmentSize + '个文档分段，单次处理分段数为' + response.data.batchSize + "。请留意系统推送信息")
           this.showDialog = false
         }).catch(err => {
           this.$modal.closeLoading()
         })
       })
     },
-    listSegment () {
+    listSegment() {
       const reqParams = { ...this.formData }
       reqParams.pageNum = this.pageNum
       reqParams.pageSize = this.pageSize
@@ -320,6 +319,7 @@ export default {
 .el-upload__tip {
   line-height: 1.2;
 }
+
 .documentCard {
   margin: 10px 10px;
 }

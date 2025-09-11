@@ -8,6 +8,7 @@ import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.PgVectorUtil;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -33,9 +34,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Slf4j
 @Service
@@ -46,6 +49,9 @@ public class LangChain4jServiceImpl implements LangChain4jService {
 
     @Resource
     private PgVectorUtil pgVectorUtil;
+
+    @Resource
+    private ISysConfigService sysConfigService;
 
     @Override
     public boolean checkModelConfig(String baseUrl, String apiKey, String modelName,
@@ -114,8 +120,30 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     }
 
     @Override
-    public List<String> embedTextSegments(EmbeddingModel embeddingModel,
-                                          List<TextSegment> textSegments) {
+    public List<String> embedTextSegments(EmbeddingModel embeddingModel, List<TextSegment> textSegments, Consumer<List<TextSegment>> consumer) {
+        String value = sysConfigService.selectConfigByKey("ai.embedding.batchSize");
+        int batchSize = Integer.parseInt(value);
+        List<String> ids = new ArrayList<>();
+        if (textSegments.size() < batchSize) {
+            ids = doEmbedding(embeddingModel, textSegments);
+        } else {
+            int mod = textSegments.size() % batchSize;
+            int divide = textSegments.size() / batchSize;
+            int loop = mod == 0 ? divide : divide + 1;
+            for (int i = 0; i < loop; i++) {
+                int from = i * batchSize;
+                int end = Math.min(from + batchSize, textSegments.size());
+                List<TextSegment> tmp = textSegments.subList(from, end);
+                ids.addAll(doEmbedding(embeddingModel, tmp));
+            }
+        }
+        if (consumer != null) {
+            consumer.accept(textSegments);
+        }
+        return ids;
+    }
+
+    private List<String> doEmbedding(EmbeddingModel embeddingModel, List<TextSegment> textSegments) {
         Response<List<Embedding>> response = embeddingModel.embedAll(textSegments);
         PgVector pgVector = aiConfig.getPgVector();
         PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(

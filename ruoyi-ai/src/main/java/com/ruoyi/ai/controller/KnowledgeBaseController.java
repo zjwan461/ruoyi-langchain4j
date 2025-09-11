@@ -1,6 +1,9 @@
 package com.ruoyi.ai.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.map.MapUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.controller.model.DocSplitReq;
 import com.ruoyi.ai.controller.model.EmbeddingReq;
 import com.ruoyi.ai.controller.model.TextEmbeddingReq;
@@ -20,6 +23,11 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
+import com.ruoyi.framework.manager.AsyncManager;
+import com.ruoyi.framework.web.service.TokenService;
+import com.ruoyi.framework.websocket.SocketMessage;
+import com.ruoyi.framework.websocket.WebSocketUsers;
+import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -28,14 +36,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.websocket.Session;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -63,6 +70,18 @@ public class KnowledgeBaseController extends BaseController {
 
     @Autowired
     private ModelBuilder modelBuilder;
+
+    @Autowired
+    private ISysConfigService sysConfigService;
+
+    @Autowired
+    private TokenService tokenService;
+
+    @Autowired
+    private HttpServletRequest request;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * 查询知识库列表
@@ -158,8 +177,29 @@ public class KnowledgeBaseController extends BaseController {
             Metadata metadata = segment.metadata();
             metadata.put(Constants.KB_ID, embeddingReq.getKbId());
         });
-        langChain4jService.embedTextSegments(embeddingModel, segments);
-        return success();
+        String batchSize = sysConfigService.selectConfigByKey("ai.embedding.batchSize");
+        String token = tokenService.getToken(request);
+        AsyncManager.me().execute(new TimerTask() {
+            @Override
+            public void run() {
+                langChain4jService.embedTextSegments(embeddingModel, segments, textSegments -> {
+                    Session session = WebSocketUsers.getSessionByToken(token);
+                    if (session != null) {
+                        try {
+                            WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("文档分段向量化处理完成")));
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                });
+            }
+        });
+
+        Map<String, Object> res = MapUtil.<String, Object>builder()
+                .put("batchSize", batchSize)
+                .put("segmentSize", segments.size())
+                .build();
+        return success(res);
     }
 
 

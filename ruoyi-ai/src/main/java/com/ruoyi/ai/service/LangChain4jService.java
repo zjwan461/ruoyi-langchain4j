@@ -7,6 +7,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public interface LangChain4jService {
 
@@ -15,7 +16,7 @@ public interface LangChain4jService {
 
   List<TextSegment> splitDocument(String docFile, int maxSegmentSize, int maxOverlapSize);
 
-  List<String> embedTextSegments(EmbeddingModel embeddingModel, List<TextSegment> textSegments);
+  List<String> embedTextSegments(EmbeddingModel embeddingModel, List<TextSegment> textSegments, Consumer<List<TextSegment>> consumer);
 
   List<Map<String, Object>> querySegmentTextEqualsByMetaData(Map<String, Object> metadata);
 
