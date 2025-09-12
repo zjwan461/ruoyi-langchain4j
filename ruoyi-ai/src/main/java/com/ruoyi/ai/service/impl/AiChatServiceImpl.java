@@ -30,21 +30,22 @@ import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class AiChatServiceImpl implements IAiChatService {
 
@@ -88,16 +89,16 @@ public class AiChatServiceImpl implements IAiChatService {
         String promptTemplate = aiAgent.getPromptTemplate();
         promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
 
-        if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && aiAgent.getKbId() != null) {
-            KnowledgeBase kb = knowledgeBaseService.selectKnowledgeBaseById(aiAgent.getKbId());
+        if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isNotBlank(aiAgent.getKbIds())) {
+            List<Long> ids = Arrays.stream(aiAgent.getKbIds().split(",")).map(Long::valueOf)
+                    .collect(Collectors.toList());
+            List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
             EmbeddingModel embeddingModel;
-            if (kb != null) {
+            if (kbs != null) {
                 embeddingModel = getEmbeddingModel();
-                Map<String, Object> metadata = MapUtil.<String, Object>builder()
-                        .put(Constants.KB_ID, kb.getId()).build();
+
                 List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel,
-                        prompt,
-                        3, 0.70, metadata);
+                        prompt, 3, 0.70, new IsIn("kb_id", ids));
                 StringBuilder embBuilder = new StringBuilder();
                 searchRes.stream().map(EmbeddingMatch::embedded).forEach(embedded -> {
                     String text = embedded.text();
@@ -105,7 +106,7 @@ public class AiChatServiceImpl implements IAiChatService {
                 });
                 promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, embBuilder.toString());
             }
-        } else if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && aiAgent.getKbId() == null) {
+        } else if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isBlank(aiAgent.getKbIds())) {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
 
@@ -207,8 +208,20 @@ public class AiChatServiceImpl implements IAiChatService {
         if (models == null) {
             throw new ServiceException("尚未配置embedding模型,无法进行知识库查询");
         }
-        Model first = models.get(0);
-        return modelBuilder.getEmbeddingModel(first);
+        String value = sysConfigService.selectConfigByKey("ai.model.embedding");
+        if (StringUtils.isBlank(value)) {
+            log.warn("not configure default embedding model, will use the first one embedding model save in db");
+            Model first = models.get(0);
+            return modelBuilder.getEmbeddingModel(first);
+        } else {
+            long embId = Long.parseLong(value);
+            Model model = models.stream().filter(x -> embId == x.getId()).findFirst().orElse(null);
+            if (model == null) {
+                throw new ServiceException("已配置的默认向量模型id未配置");
+            }
+            return modelBuilder.getEmbeddingModel(model);
+        }
+
     }
 
     private void saveChatMessage(String content, String clientId, String sessionId, Long agentId,

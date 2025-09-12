@@ -1,9 +1,9 @@
 package com.ruoyi.ai.domain;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
  * AI智能体对象 ai_agent
@@ -30,10 +30,10 @@ public class AiAgent extends BaseEntity {
    * 知识库ID
    */
   @Excel(name = "知识库ID")
-  private Long kbId;
+  private String kbIds;
 
   @Excel(name = "知识库名")
-  private String kbName;
+  private String kbNames;
 
   /**
    * 系统提示词
@@ -105,13 +105,7 @@ public class AiAgent extends BaseEntity {
     return name;
   }
 
-  public void setKbId(Long kbId) {
-    this.kbId = kbId;
-  }
 
-  public Long getKbId() {
-    return kbId;
-  }
 
   public void setSystemMessage(String systemMessage) {
     this.systemMessage = systemMessage;
@@ -161,12 +155,20 @@ public class AiAgent extends BaseEntity {
     this.dayLmtPerClient = dayLmtPerClient;
   }
 
-  public String getKbName() {
-    return kbName;
+  public String getKbIds() {
+    return kbIds;
   }
 
-  public void setKbName(String kbName) {
-    this.kbName = kbName;
+  public void setKbIds(String kbIds) {
+    this.kbIds = kbIds;
+  }
+
+  public String getKbNames() {
+    return kbNames;
+  }
+
+  public void setKbNames(String kbNames) {
+    this.kbNames = kbNames;
   }
 
   public String getModelName() {
@@ -206,7 +208,7 @@ public class AiAgent extends BaseEntity {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
         .append("id", getId())
         .append("name", getName())
-        .append("kbId", getKbId())
+        .append("kbIds", getKbIds())
         .append("systemMessage", getSystemMessage())
         .append("memoryCount", getMemoryCount())
         .append("modelId", getModelId())
@@ -218,7 +220,7 @@ public class AiAgent extends BaseEntity {
         .append("visitUrl", getVisitUrl())
         .append("dayLmtPerClient", getDayLmtPerClient())
         .append("modelName", getModelName())
-        .append("kbName", getKbName())
+        .append("kbNames", getKbNames())
         .append("temperature", getTemperature())
         .append("maxOutputToken", getMaxOutputToken())
         .append("promptTemplate", getPromptTemplate())

@@ -5,28 +5,28 @@ import com.ruoyi.ai.enums.ModelType;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.filter.Filter;
+
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 public interface LangChain4jService {
 
-  boolean checkModelConfig(String baseUrl, String apiKey, String modelName, ModelProvider provider,
-      ModelType type);
+    boolean checkModelConfig(String baseUrl, String apiKey, String modelName, ModelProvider provider,
+                             ModelType type);
 
-  List<TextSegment> splitDocument(String docFile, int maxSegmentSize, int maxOverlapSize);
+    List<TextSegment> splitDocument(String docFile, int maxSegmentSize, int maxOverlapSize);
 
-  List<String> embedTextSegments(EmbeddingModel embeddingModel, List<TextSegment> textSegments, Consumer<List<TextSegment>> consumer);
+    List<String> embedTextSegments(EmbeddingModel embeddingModel, List<TextSegment> textSegments, Consumer<List<TextSegment>> consumer);
 
-  List<Map<String, Object>> querySegmentTextEqualsByMetaData(Map<String, Object> metadata);
+    List<Map<String, Object>> querySegmentTextEqualsByMetaData(Map<String, Object> metadata);
 
-  void removeSegment(List<String> ids);
+    void removeSegment(List<String> ids);
 
-  void updateSegment(EmbeddingModel embeddingModel, TextSegment textSegment, String embeddingId);
+    void updateSegment(EmbeddingModel embeddingModel, TextSegment textSegment, String embeddingId);
 
-  List<EmbeddingMatch<TextSegment>> search(EmbeddingModel embeddingModel, String query,
-      int maxResult,
-      double minScore, Map<String, Object> metadata);
+    List<EmbeddingMatch<TextSegment>> search(EmbeddingModel embeddingModel, String query, int maxResult, double minScore, Filter filter);
 
-  boolean checkLocalEmbeddingModel(String saveDir);
+    boolean checkLocalEmbeddingModel(String saveDir);
 }

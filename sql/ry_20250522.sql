@@ -1133,7 +1133,7 @@ create table ai_agent
 (
     id                 bigint unsigned auto_increment    not null comment 'id',
     name               varchar(100)                      not null comment '智能体名称',
-    kb_id              bigint unsigned                   null comment '知识库id',
+    kb_ids             varchar(255)                      null comment '知识库id',
     system_message     varchar(500)                      not null comment '系统提示词',
     memory_count       int unsigned default 3            not null comment '记忆轮次',
     model_id           bigint unsigned                   not null comment '模型id',

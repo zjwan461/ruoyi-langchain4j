@@ -7,7 +7,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="AiAgent" id="AiAgentResult">
         <result property="id"    column="id"    />
         <result property="name"    column="name"    />
-        <result property="kbId"    column="kb_id"    />
+        <result property="kbIds"    column="kb_ids"    />
         <result property="systemMessage"    column="system_message"    />
         <result property="memoryCount"    column="memory_count"    />
         <result property="modelId"    column="model_id"    />
@@ -24,7 +24,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAiAgentVo">
-        select id, name, kb_id, system_message, memory_count, model_id, create_by, create_time,
+        select id, name, kb_ids, system_message, memory_count, model_id, create_by, create_time,
                update_by, update_time, status, visit_url, day_lmt_per_client, temperature, max_output_token, prompt_template from ai_agent
     </sql>
 
@@ -32,7 +32,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectAiAgentVo"/>
         <where>  
             <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
-            <if test="kbId != null "> and kb_id = #{kbId}</if>
+            <if test="kbIds != null "> and kb_ids = #{kbIds}</if>
             <if test="memoryCount != null  and memoryCount != ''"> and memory_count = #{memoryCount}</if>
             <if test="modelId != null "> and model_id = #{modelId}</if>
             <if test="status != null "> and status = #{status}</if>
@@ -48,7 +48,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into ai_agent
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">name,</if>
-            <if test="kbId != null">kb_id,</if>
+            <if test="kbIds != null">kb_ids,</if>
             <if test="systemMessage != null">system_message,</if>
             <if test="memoryCount != null and memoryCount != ''">memory_count,</if>
             <if test="modelId != null">model_id,</if>
@@ -65,7 +65,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">#{name},</if>
-            <if test="kbId != null">#{kbId},</if>
+            <if test="kbIds != null">#{kbIds},</if>
             <if test="systemMessage != null">#{systemMessage},</if>
             <if test="memoryCount != null and memoryCount != ''">#{memoryCount},</if>
             <if test="modelId != null">#{modelId},</if>
@@ -86,7 +86,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update ai_agent
         <trim prefix="SET" suffixOverrides=",">
             <if test="name != null and name != ''">name = #{name},</if>
-            <if test="kbId != null">kb_id = #{kbId},</if>
+            <if test="kbIds != null">kb_ids = #{kbIds},</if>
             <if test="systemMessage != null">system_message = #{systemMessage},</if>
             <if test="memoryCount != null and memoryCount != ''">memory_count = #{memoryCount},</if>
             <if test="modelId != null">model_id = #{modelId},</if>

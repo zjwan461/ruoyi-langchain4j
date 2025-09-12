@@ -40,7 +40,7 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键ID" align="center" prop="id" />
       <el-table-column label="应用名" align="center" prop="name" />
-      <el-table-column label="知识库" align="center" prop="kbName" />
+      <el-table-column label="知识库" align="center" prop="kbNames" />
       <!-- <el-table-column label="系统提示词" align="center" prop="systemMessage" /> -->
       <el-table-column label="记忆轮次" align="center" prop="memoryCount" />
       <el-table-column label="模型" align="center" prop="modelName" />
@@ -68,7 +68,7 @@
       </el-table-column>
     </el-table>
 
-    <pagination v-show="total>0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
+    <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
       @pagination="getList" />
 
     <!-- 添加或修改AI智能体对话框 -->
@@ -88,8 +88,8 @@
         <el-form-item label="token最大生成数" prop="maxOutputToken">
           <el-input-number v-model="form.maxOutputToken" :step="100" :min="200" placeholder="请输入token最大生成数" />
         </el-form-item>
-        <el-form-item label="知识库" prop="kbId">
-          <el-select v-model="form.kbId">
+        <el-form-item label="知识库" prop="kbIds">
+          <el-select v-model="form.kbIds" filterable multiple>
             <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
           </el-select>
         </el-form-item>
@@ -109,8 +109,8 @@
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
-            <el-radio v-for="dict in dict.type.ai_agent_status" :key="dict.value"
-              :label="parseInt(dict.value)">{{dict.label}}</el-radio>
+            <el-radio v-for="dict in dict.type.ai_agent_status" :key="dict.value" :label="parseInt(dict.value)">{{
+              dict.label }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -130,7 +130,7 @@ import { listKnowledgeBase } from "@/api/ai/knowledgeBase"
 export default {
   name: "Agent",
   dicts: ['ai_agent_status'],
-  data () {
+  data() {
     return {
       baseUrl: window.location.host,
       llms: [],
@@ -195,31 +195,36 @@ export default {
       }
     }
   },
-  created () {
+  created() {
     this.getList()
   },
   methods: {
-    gotoVisitUrl (visitUrl) {
+    gotoVisitUrl(visitUrl) {
       if (visitUrl && visitUrl.length > 0) {
         window.open(visitUrl, '_blank')
       }
     },
     /** 查询AI智能体列表 */
-    getList () {
+    getList() {
       this.loading = true
       listAgent(this.queryParams).then(response => {
         this.agentList = response.rows
+        this.agentList.forEach(item => {
+          if (item.kbIds) {
+            item.kbIds = item.kbIds.split(',')
+          }
+        });
         this.total = response.total
         this.loading = false
       })
     },
     // 取消按钮
-    cancel () {
+    cancel() {
       this.open = false
       this.reset()
     },
     // 表单重置
-    reset () {
+    reset() {
       this.form = {
         id: null,
         name: null,
@@ -241,23 +246,23 @@ export default {
       this.resetForm("form")
     },
     /** 搜索按钮操作 */
-    handleQuery () {
+    handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
     },
     /** 重置按钮操作 */
-    resetQuery () {
+    resetQuery() {
       this.resetForm("queryForm")
       this.handleQuery()
     },
     // 多选框选中数据
-    handleSelectionChange (selection) {
+    handleSelectionChange(selection) {
       this.ids = selection.map(item => item.id)
       this.single = selection.length !== 1
       this.multiple = !selection.length
     },
     /** 新增按钮操作 */
-    handleAdd () {
+    handleAdd() {
       this.reset()
       this.open = true
       this.title = "添加AI智能体"
@@ -265,21 +270,29 @@ export default {
       this.listKbs()
     },
     /** 修改按钮操作 */
-    handleUpdate (row) {
+    handleUpdate(row) {
       this.reset()
       const id = row.id || this.ids
       this.listLLM()
       this.listKbs()
       getAgent(id).then(response => {
         this.form = response.data
+        if (this.form) {
+          if (this.form.kbIds) {
+            this.form.kbIds = this.form.kbIds.split(',').map(str=> parseInt(str,10))
+          }
+        }
         this.open = true
         this.title = "修改AI智能体"
       })
     },
     /** 提交按钮 */
-    submitForm () {
+    submitForm() {
       this.$refs["form"].validate(valid => {
         if (valid) {
+          if (this.form.kbIds) {
+            this.form.kbIds = this.form.kbIds.join(',')
+          }
           if (this.form.id != null) {
             updateAgent(this.form).then(response => {
               this.$modal.msgSuccess("修改成功")
@@ -297,7 +310,7 @@ export default {
       })
     },
     /** 删除按钮操作 */
-    handleDelete (row) {
+    handleDelete(row) {
       const ids = row.id || this.ids
       this.$modal.confirm('是否确认删除AI智能体编号为"' + ids + '"的数据项？').then(function () {
         return delAgent(ids)
@@ -307,17 +320,17 @@ export default {
       }).catch(() => { })
     },
     /** 导出按钮操作 */
-    handleExport () {
+    handleExport() {
       this.download('ai/agent/export', {
         ...this.queryParams
       }, `agent_${new Date().getTime()}.xlsx`)
     },
-    listLLM () {
+    listLLM() {
       listModel({ type: 0 }).then(res => {
         this.llms = res.rows
       })
     },
-    listKbs () {
+    listKbs() {
       listKnowledgeBase().then(res => {
         this.kbs = res.rows
       })

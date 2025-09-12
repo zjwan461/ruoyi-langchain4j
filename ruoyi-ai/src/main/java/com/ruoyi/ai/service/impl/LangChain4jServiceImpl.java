@@ -28,7 +28,7 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest.EmbeddingSearchRequestBuilder;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.filter.Filter;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -218,8 +218,7 @@ public class LangChain4jServiceImpl implements LangChain4jService {
 
     @Override
     public List<EmbeddingMatch<TextSegment>> search(EmbeddingModel embeddingModel, String query,
-                                                    int maxResult,
-                                                    double minScore, Map<String, Object> metadata) {
+                                                    int maxResult, double minScore, Filter filter) {
         Response<Embedding> response = embeddingModel.embed(query);
         PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(embeddingModel, aiConfig.getPgVector());
 
@@ -227,10 +226,8 @@ public class LangChain4jServiceImpl implements LangChain4jService {
         searchBuilder.queryEmbedding(response.content())
                 .maxResults(maxResult)
                 .minScore(minScore);
-        if (metadata != null && !metadata.isEmpty()) {
-            metadata.forEach((k, v) -> {
-                searchBuilder.filter(new IsEqualTo(k, v));
-            });
+        if (filter!=null) {
+            searchBuilder.filter(filter);
         }
         EmbeddingSearchResult<TextSegment> result = embeddingStore.search(searchBuilder.build());
         return result.matches();
