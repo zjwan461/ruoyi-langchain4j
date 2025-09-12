@@ -18,6 +18,7 @@ import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.framework.manager.AsyncManager;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.ChatMemory;
@@ -124,8 +125,19 @@ public class AiChatServiceImpl implements IAiChatService {
                 chatMemories.put(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId, chatMemory);
             }
         }
+
+        SystemMessage systemMessage = null;
+        String sysMsgContent = aiAgent.getSystemMessage();
+        if (StringUtils.isNotBlank(sysMsgContent)) {
+            systemMessage = SystemMessage.from(sysMsgContent);
+        }
+
         UserMessage userMessage = UserMessage.from(promptTemplate);
+
         if (chatMemory != null) {
+            if (systemMessage != null) {
+                chatMemory.add(systemMessage);
+            }
             chatMemory.add(userMessage);
         }
 
@@ -134,7 +146,7 @@ public class AiChatServiceImpl implements IAiChatService {
         final ChatRequest chatRequest = ChatRequest.builder()
                 .parameters(parameters)
                 .messages(
-                        chatMemory != null ? chatMemory.messages() : Collections.singletonList(userMessage))
+                        chatMemory != null ? chatMemory.messages() : systemMessage != null ? Arrays.asList(systemMessage, userMessage) : Collections.singletonList(userMessage))
                 .build();
 
         return Flux.create(fluxSink -> {
