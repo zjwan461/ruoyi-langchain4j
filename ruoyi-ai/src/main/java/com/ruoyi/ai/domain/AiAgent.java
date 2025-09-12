@@ -89,6 +89,12 @@ public class AiAgent extends BaseEntity {
   @Excel(name = "提示词模板")
   private String promptTemplate;
 
+  @Excel(name = "知识库查询最小得分")
+  private Double minScore;
+
+  @Excel(name = "知识库查询最多条数")
+  private Integer maxResult;
+
   public void setId(Long id) {
     this.id = id;
   }
@@ -203,6 +209,22 @@ public class AiAgent extends BaseEntity {
     this.promptTemplate = promptTemplate;
   }
 
+  public Double getMinScore() {
+    return minScore;
+  }
+
+  public void setMinScore(Double minScore) {
+    this.minScore = minScore;
+  }
+
+  public Integer getMaxResult() {
+    return maxResult;
+  }
+
+  public void setMaxResult(Integer maxResult) {
+    this.maxResult = maxResult;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -224,6 +246,8 @@ public class AiAgent extends BaseEntity {
         .append("temperature", getTemperature())
         .append("maxOutputToken", getMaxOutputToken())
         .append("promptTemplate", getPromptTemplate())
+        .append("minScore", getMinScore())
+        .append("maxResult", getMaxResult())
         .toString();
   }
 

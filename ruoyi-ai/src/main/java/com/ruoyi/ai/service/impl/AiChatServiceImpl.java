@@ -98,8 +98,9 @@ public class AiChatServiceImpl implements IAiChatService {
             if (kbs != null) {
                 embeddingModel = getEmbeddingModel();
 
-                List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel,
-                        prompt, 3, 0.70, new IsIn("kb_id", ids));
+                List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel, prompt,
+                        aiAgent.getMaxResult() == null ? 3 : aiAgent.getMaxResult(), aiAgent.getMinScore() == null ? 0.7 : aiAgent.getMinScore(),
+                        new IsIn("kb_id", ids));
                 StringBuilder embBuilder = new StringBuilder();
                 searchRes.stream().map(EmbeddingMatch::embedded).forEach(embedded -> {
                     String text = embedded.text();

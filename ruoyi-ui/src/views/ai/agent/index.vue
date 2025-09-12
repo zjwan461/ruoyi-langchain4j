@@ -93,13 +93,22 @@
             <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="最小得分" prop="minScore"
+          v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+          <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
+        </el-form-item>
+        <el-form-item label="最大查询记录数" prop="maxResult"
+          v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+          <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
+        </el-form-item>
         <el-form-item label="系统提示词" prop="systemMessage">
           <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="100"
             show-word-limit clearable />
         </el-form-item>
         <el-form-item label="提示词模板" prop="promptTemplate">
           <el-input v-model="form.promptTemplate" type="textarea" rows="5" placeholder="请输入内容" :maxlength="100"
-            show-word-limit clearable /><i class="color: grey">Tips: 占位符{question}表示用户输入的内容；占位符{data}表示知识库搜索出来的内容</i>
+            show-word-limit clearable /><i class="color: grey">Tips: 占位符<b
+              style="color: red;">{question}</b>表示用户输入的内容；占位符<b style="color: red;">{data}</b>表示知识库搜索出来的内容</i>
         </el-form-item>
         <el-form-item label="记忆轮次" prop="memoryCount">
           <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容" />
@@ -228,7 +237,7 @@ export default {
       this.form = {
         id: null,
         name: null,
-        kbId: null,
+        kbIds: null,
         systemMessage: "你是一个AI小助手",
         memoryCount: null,
         modelId: null,
@@ -241,7 +250,9 @@ export default {
         dayLmtPerIp: 100,
         temperature: 0.7,
         maxOutputToken: 2048,
-        promptTemplate: "已知信息：{data}\n用户问题：{question}\n回答要求：\n- 请使用中文回答用户问题"
+        promptTemplate: "已知信息：{data}\n用户问题：{question}\n回答要求：\n- 请使用中文回答用户问题",
+        minScore: 0.7,
+        maxResult: 3
       }
       this.resetForm("form")
     },
@@ -279,7 +290,7 @@ export default {
         this.form = response.data
         if (this.form) {
           if (this.form.kbIds) {
-            this.form.kbIds = this.form.kbIds.split(',').map(str=> parseInt(str,10))
+            this.form.kbIds = this.form.kbIds.split(',').map(str => parseInt(str, 10))
           }
         }
         this.open = true

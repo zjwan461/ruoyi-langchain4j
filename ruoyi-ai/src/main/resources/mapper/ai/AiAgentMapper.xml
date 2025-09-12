@@ -3,7 +3,7 @@
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ruoyi.ai.mapper.AiAgentMapper">
-    
+
     <resultMap type="AiAgent" id="AiAgentResult">
         <result property="id"    column="id"    />
         <result property="name"    column="name"    />
@@ -21,16 +21,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="temperature"    column="temperature"    />
         <result property="maxOutputToken"    column="max_output_token"    />
         <result property="promptTemplate"    column="prompt_template"    />
+        <result property="minScore"    column="min_score"    />
+        <result property="maxResult"    column="max_result"    />
     </resultMap>
 
     <sql id="selectAiAgentVo">
         select id, name, kb_ids, system_message, memory_count, model_id, create_by, create_time,
-               update_by, update_time, status, visit_url, day_lmt_per_client, temperature, max_output_token, prompt_template from ai_agent
+               update_by, update_time, status, visit_url, day_lmt_per_client, temperature,
+                max_output_token, prompt_template, min_score, max_result
+        from ai_agent
     </sql>
 
     <select id="selectAiAgentList" parameterType="AiAgent" resultMap="AiAgentResult">
         <include refid="selectAiAgentVo"/>
-        <where>  
+        <where>
             <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
             <if test="kbIds != null "> and kb_ids = #{kbIds}</if>
             <if test="memoryCount != null  and memoryCount != ''"> and memory_count = #{memoryCount}</if>
@@ -38,7 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="status != null "> and status = #{status}</if>
         </where>
     </select>
-    
+
     <select id="selectAiAgentById" parameterType="Long" resultMap="AiAgentResult">
         <include refid="selectAiAgentVo"/>
         where id = #{id}
@@ -62,6 +66,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="temperature != null">temperature,</if>
             <if test="maxOutputToken != null">max_output_token,</if>
             <if test="promptTemplate != null">prompt_template,</if>
+            <if test="minScore != null">min_score,</if>
+            <if test="maxResult != null">max_result,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">#{name},</if>
@@ -79,6 +85,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="temperature != null">#{temperature},</if>
             <if test="maxOutputToken != null">#{maxOutputToken},</if>
             <if test="promptTemplate != null">#{promptTemplate},</if>
+            <if test="minScore != null">#{minScore},</if>
+            <if test="maxResult != null">#{maxResult},</if>
          </trim>
     </insert>
 
@@ -100,6 +108,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="temperature != null">temperature = #{temperature},</if>
             <if test="maxOutputToken != null">max_output_token = #{maxOutputToken},</if>
             <if test="promptTemplate != null">prompt_template = #{promptTemplate},</if>
+            <if test="minScore != null">min_score = #{minScore},</if>
+            <if test="maxResult != null">max_result = #{maxResult},</if>
         </trim>
         where id = #{id}
     </update>
@@ -109,7 +119,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <delete id="deleteAiAgentByIds" parameterType="String">
-        delete from ai_agent where id in 
+        delete from ai_agent where id in
         <foreach item="id" collection="array" open="(" separator="," close=")">
             #{id}
         </foreach>

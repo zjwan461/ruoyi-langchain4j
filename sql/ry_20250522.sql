@@ -1147,6 +1147,8 @@ create table ai_agent
     temperature        double       default 0.7          not null comment '温度',
     max_output_token   int unsigned default 2048         not null comment '最大输出token',
     prompt_template    varchar(500) default '{question}' not null comment '提示词模板',
+    min_score          double unsigned                   null comment '知识库查询最小得分',
+    max_result         int unsigned                      null comment '知识库查询最多条数',
     primary key (id)
 ) engine = innodb
   auto_increment = 1 comment ='ai智能体';
