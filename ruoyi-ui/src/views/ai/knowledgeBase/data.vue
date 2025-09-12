@@ -29,7 +29,8 @@
       </el-table-column>
     </el-table>
 
-    <pagination v-show="total > 0" :total="total" :page.sync="pageNum" :limit.sync="pageSize" @pagination="listSegment" />
+    <pagination v-show="total > 0" :total="total" :page.sync="pageNum" :limit.sync="pageSize"
+      @pagination="listSegment" />
 
     <el-dialog :title="title" :visible.sync="showDialog" width="1000px" append-to-body>
       <el-row>
@@ -125,6 +126,7 @@ export default {
       embeddingModelList: [],
       documentList: [],
       formData: {
+        embeddingModelId: null,
         fileList: [],
         maxSegmentSize: 300,
         maxOverlapSize: 10,
@@ -206,22 +208,26 @@ export default {
     resetUpdate() {
       this.segmentForm = {
         embeddingId: null,
+        embeddingModelId: null,
         text: ''
       }
     },
     reset() {
+      this.formData.embeddingModelId = null
       this.formData.setfileList = []
       this.formData.maxSegmentSize = 300
       this.formData.maxOverlapSize = 10
-
     },
     handleAdd() {
       this.reset()
+      this.getConfigKey("ai.model.embedding").then(response => {
+        this.formData.embeddingModelId = parseInt(response.msg)
+      })
       this.showDialog = true
       this.title = "新增文档分段"
     },
     handleUpdate(row) {
-      this.reset()
+      this.resetUpdate()
       const id = row.embeddingId || this.ids
       getSegment(id).then(response => {
         this.showUpdate = true
@@ -262,7 +268,6 @@ export default {
     },
     resetForm() {
       this.$refs['elForm'].resetFields()
-
     },
     fileBeforeUpload(file) {
       let isRightSize = file.size / 1024 / 1024 < 50
