@@ -279,7 +279,7 @@ public class AiChatServiceImpl implements IAiChatService {
                 Collections.singletonList(Constants.AI_AGENT_CHAT_LMT + agentId + ":" + clientId),
                 dayLmtPerClient,
                 (int) TimeUnit.DAYS.toSeconds(1));
-        return !StringUtils.isNull(number) && number.intValue() <= dayLmtPerClient;
+        return number.intValue() <= dayLmtPerClient;
     }
 
     @Override
