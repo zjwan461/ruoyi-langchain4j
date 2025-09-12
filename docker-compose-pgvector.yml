@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres:
-    image: pgvector
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/immich-app/postgres:15-vectorchord0.4.2-pgvectors0.3.0
     container_name: pgvector
     restart: always
     environment:
