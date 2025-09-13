@@ -301,6 +301,9 @@ export default {
           match(this.testForm).then(response=>{
             this.loadingMatch = false
             this.matchList = response.data
+            if (this.matchList.length === 0) {
+              this.$modal.alertError("未找到匹配项")
+            }
           })
         }
       })
@@ -315,6 +318,7 @@ export default {
         minScore: 0.70,
         maxResult: 3
       }
+      this.matchList = []
       this.resetForm("testForm")
     },
   }
