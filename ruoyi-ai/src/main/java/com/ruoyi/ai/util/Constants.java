@@ -28,4 +28,6 @@ public interface Constants {
 
     String USER_MSG_TEMPLATE = "{question}";
 
+    int EMBEDDING_DIMENSION = 768;
+
 }

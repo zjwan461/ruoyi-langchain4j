@@ -9,7 +9,6 @@ import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -73,11 +72,9 @@ public class ModelServiceImpl implements IModelService {
     private void checkModelConfig(Model model) {
         ModelProvider modelProvider = ModelProvider.fromValue(model.getProvider());
         if (modelProvider == ModelProvider.LOCAL) {
-            EmbeddingModel embeddingModel = langChain4jService.checkLocalEmbeddingModel(model.getSaveDir());
-            if (embeddingModel == null) {
+            if (!langChain4jService.checkLocalEmbeddingModel(model.getSaveDir())) {
                 throw new ServiceException("模型验证失败");
             }
-            langChain4jService.initPgEmbeddingStore(embeddingModel, aiConfig.getPgVector());
             return;
         }
         if (!langChain4jService.checkModelConfig(model.getBaseUrl(), model.getApiKey(), model.getName(),

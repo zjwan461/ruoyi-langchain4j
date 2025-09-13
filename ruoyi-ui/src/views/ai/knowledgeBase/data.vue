@@ -4,33 +4,38 @@
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd"
-          v-hasPermi="['ai:knowledgeBase:list']">新增</el-button>
+                   v-hasPermi="['ai:knowledgeBase:list']">新增
+        </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" plain icon="el-icon-edit" size="mini" :disabled="single" @click="handleUpdate"
-          v-hasPermi="['ai:knowledgeBase:list']">修改</el-button>
+                   v-hasPermi="['ai:knowledgeBase:list']">修改
+        </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="multiple" @click="handleDelete"
-          v-hasPermi="['ai:knowledgeBase:list']">删除</el-button>
+                   v-hasPermi="['ai:knowledgeBase:list']">删除
+        </el-button>
       </el-col>
     </el-row>
     <el-table v-loading="loading" :data="segmentList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="ID" align="center" prop="embeddingId" />
-      <el-table-column label="文本分块" align="center" prop="text" />
+      <el-table-column type="selection" width="55" align="center"/>
+      <el-table-column label="ID" align="center" prop="embeddingId"/>
+      <el-table-column label="文本分块" align="center" prop="text"/>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['ai:knowledgeBase:edit']">修改</el-button>
+                     v-hasPermi="['ai:knowledgeBase:edit']">修改
+          </el-button>
           <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['ai:knowledgeBase:remove']">删除</el-button>
+                     v-hasPermi="['ai:knowledgeBase:remove']">删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <pagination v-show="total > 0" :total="total" :page.sync="pageNum" :limit.sync="pageSize"
-      @pagination="listSegment" />
+                @pagination="listSegment"/>
 
     <el-dialog :title="title" :visible.sync="showDialog" width="1000px" append-to-body>
       <el-row>
@@ -39,7 +44,7 @@
             <el-form-item label="向量模型" prop="embeddingModelId">
               <el-select v-model="formData.embeddingModelId">
                 <el-option v-for="item in embeddingModelList" :key="item.id" :value="item.id"
-                  :label="item.name"></el-option>
+                           :label="item.name"></el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="最大分段数" prop="maxSegmentSize">
@@ -50,8 +55,8 @@
             </el-form-item>
             <el-form-item label="上传文档" prop="fileList">
               <el-upload ref="file" name="file" :file-list="formData.fileList" :action="fileAction" drag
-                :before-upload="fileBeforeUpload" :headers="tokenHeader" :limit="1" :on-error="errorHandle"
-                :on-success="successHandle" :on-change="changeHandle" :on-remove="removeHandle">
+                         :before-upload="fileBeforeUpload" :headers="tokenHeader" :limit="1" :on-error="errorHandle"
+                         :on-success="successHandle" :on-change="changeHandle" :on-remove="removeHandle">
                 <i class="el-icon-upload"></i>
                 <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
                 <div slot="tip" class="el-upload__tip">只能上传不超过 50MB 的文件</div>
@@ -80,7 +85,7 @@
         <el-form-item label="向量模型" prop="embeddingModelId">
           <el-select v-model="segmentForm.embeddingModelId">
             <el-option v-for="item in embeddingModelList" :key="item.id" :value="item.id"
-              :label="item.name"></el-option>
+                       :label="item.name"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="向量ID" prop="embeddingId">
@@ -99,9 +104,18 @@
   </div>
 </template>
 <script>
-import { getToken } from '@/utils/auth'
-import { documentSplit, embedding, segmentQuery, getSegment, delSegment, updateSegment } from '@/api/ai/knowledgeBaseData'
-import { listModel } from '@/api/ai/model'
+import {getToken} from '@/utils/auth'
+import {
+  documentSplit,
+  embedding,
+  segmentQuery,
+  getSegment,
+  delSegment,
+  updateSegment,
+  checkEmbeddingDimension
+} from '@/api/ai/knowledgeBaseData'
+import {listModel} from '@/api/ai/model'
+
 export default {
   components: {},
   props: [],
@@ -182,17 +196,19 @@ export default {
   watch: {},
   created() {
     this.formData.kbId = this.$route.params && this.$route.params.kbId
+    checkEmbeddingDimension()
     this.createHeader()
-    this.getEmbedingModel()
+    this.getEmbeddingModel()
     this.listSegment()
   },
-  mounted() { },
+  mounted() {
+  },
   methods: {
     submitUpdateForm() {
       this.$refs['segmentForm'].validate(valid => {
         if (!valid) return
 
-        const reqParams = { ...this.segmentForm }
+        const reqParams = {...this.segmentForm}
         reqParams.kbId = this.formData.kbId
         this.$modal.loading("修改中...")
         updateSegment(reqParams).then(response => {
@@ -241,15 +257,16 @@ export default {
       }).then(() => {
         this.listSegment()
         this.$modal.msgSuccess("删除成功")
-      }).catch(() => { })
+      }).catch(() => {
+      })
     },
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.embeddingId)
       this.single = selection.length !== 1
       this.multiple = !selection.length
     },
-    getEmbedingModel() {
-      listModel({ pageNum: 1, pageSize: 1000, type: 1 }).then(response => {
+    getEmbeddingModel() {
+      listModel({pageNum: 1, pageSize: 1000, type: 1}).then(response => {
         this.embeddingModelList = response.rows
       })
     },
@@ -305,7 +322,7 @@ export default {
       })
     },
     listSegment() {
-      const reqParams = { ...this.formData }
+      const reqParams = {...this.formData}
       reqParams.pageNum = this.pageNum
       reqParams.pageSize = this.pageSize
       this.loading = true

@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 // 文档分段
-export function documentSplit (data) {
+export function documentSplit(data) {
   return request({
     url: '/ai/knowledgeBase/doc-split',
     method: 'post',
@@ -9,7 +9,7 @@ export function documentSplit (data) {
   })
 }
 
-export function embedding (data) {
+export function embedding(data) {
   return request({
     url: '/ai/knowledgeBase/embedding',
     method: 'post',
@@ -17,7 +17,7 @@ export function embedding (data) {
   })
 }
 
-export function segmentQuery (query) {
+export function segmentQuery(query) {
   return request({
     url: '/ai/knowledgeBase/segment-query',
     method: 'get',
@@ -25,24 +25,31 @@ export function segmentQuery (query) {
   })
 }
 
-export function getSegment (id) {
+export function getSegment(id) {
   return request({
     url: '/ai/knowledgeBase/segment-query/' + id,
     method: 'get'
   })
 }
 
-export function delSegment (id) {
+export function delSegment(id) {
   return request({
     url: '/ai/knowledgeBase/segment-del/' + id,
     method: 'delete'
   })
 }
 
-export function updateSegment (data) {
+export function updateSegment(data) {
   return request({
     url: '/ai/knowledgeBase/segment-update',
     method: 'put',
     data: data
+  })
+}
+
+export function checkEmbeddingDimension() {
+  return request({
+    url: 'ai/knowledgeBase/check-embedding-dimension',
+    method: 'GET'
   })
 }

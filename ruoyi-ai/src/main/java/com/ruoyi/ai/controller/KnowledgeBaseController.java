@@ -9,6 +9,7 @@ import com.ruoyi.ai.controller.model.EmbeddingReq;
 import com.ruoyi.ai.controller.model.TextEmbeddingReq;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
+import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.IKnowledgeBaseService;
 import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.ai.service.LangChain4jService;
@@ -22,6 +23,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.framework.manager.AsyncManager;
@@ -201,6 +203,28 @@ public class KnowledgeBaseController extends BaseController {
                 .put("segmentSize", segments.size())
                 .build();
         return success(res);
+    }
+
+    @GetMapping("/check-embedding-dimension")
+    @PreAuthorize("@ss.hasPermi('ai:knowledgeBase:list')")
+    public AjaxResult checkEmbeddingDimension() {
+        String value = sysConfigService.selectConfigByKey("ai.model.embedding");
+        if (StringUtils.isEmpty(value)) {
+            throw new ServiceException("尚未配置默认Embedding模型");
+        }
+
+        Model model = modelService.selectModelById(Long.parseLong(value));
+        ModelType modelType = ModelType.fromValue(model.getType());
+        if (modelType != ModelType.EMBEDDING) {
+            throw new ServiceException("错误的模型类型，应为Embedding模型，实际为" + modelType);
+        }
+
+        EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
+        int dimension = embeddingModel.embed("test").content().dimension();
+        if (dimension != Constants.EMBEDDING_DIMENSION) {
+            throw new ServiceException("当前向量模型维度为" + dimension + "和向量数据库维度" + Constants.EMBEDDING_DIMENSION + "不匹配");
+        }
+        return success();
     }
 
 

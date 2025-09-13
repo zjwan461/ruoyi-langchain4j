@@ -1,7 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.config.AiConfig.PgVector;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.LangChain4jService;
@@ -53,6 +52,7 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     @Resource
     private ISysConfigService sysConfigService;
 
+    @Resource
     private PgVectorEmbeddingStore embeddingStore;
 
     @Override
@@ -151,27 +151,6 @@ public class LangChain4jServiceImpl implements LangChain4jService {
         return embeddingStore.addAll(embeddings, textSegments);
     }
 
-    /**
-     * 用于向量搜索
-     *
-     * @param embeddingModel
-     * @param pgVector
-     * @return
-     */
-    @Override
-    public void initPgEmbeddingStore(EmbeddingModel embeddingModel,
-                                                       PgVector pgVector) {
-        this.embeddingStore = PgVectorEmbeddingStore.builder()
-                .host(pgVector.getHost())
-                .port(pgVector.getPort())
-                .database(pgVector.getDatabase())
-                .user(pgVector.getUser())
-                .password(pgVector.getPassword())
-                .table(pgVector.getTable())
-                .dimension(embeddingModel.dimension())
-                .build();
-    }
-
 
     @Override
     public List<Map<String, Object>> querySegmentTextEqualsByMetaData(
@@ -211,17 +190,17 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     }
 
     @Override
-    public EmbeddingModel checkLocalEmbeddingModel(String saveDir) {
+    public boolean checkLocalEmbeddingModel(String saveDir) {
         try {
             String pathToModel = saveDir + Constants.LOCAL_EMBEDDING_MODEL_FILE;
             String pathToTokenizer = saveDir + Constants.LOCAL_EMBEDDING_TOKENIZER_FILE;
             PoolingMode poolingMode = PoolingMode.MEAN;
             EmbeddingModel embeddingModel = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
             embeddingModel.embed(Constants.TEST_EMBEDDING_TEXT);
-            return embeddingModel;
+            return true;
         } catch (Exception e) {
             log.error("检查本地模型失败", e);
-            return null;
+            return false;
         }
     }
 }
