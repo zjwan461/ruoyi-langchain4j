@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service;
 
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
 import dev.langchain4j.data.segment.TextSegment;
@@ -12,6 +13,10 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public interface LangChain4jService {
+
+
+    void initPgEmbeddingStore(EmbeddingModel embeddingModel,
+                              AiConfig.PgVector pgVector);
 
     boolean checkModelConfig(String baseUrl, String apiKey, String modelName, ModelProvider provider,
                              ModelType type);
@@ -28,5 +33,5 @@ public interface LangChain4jService {
 
     List<EmbeddingMatch<TextSegment>> search(EmbeddingModel embeddingModel, String query, int maxResult, double minScore, Filter filter);
 
-    boolean checkLocalEmbeddingModel(String saveDir);
+    EmbeddingModel checkLocalEmbeddingModel(String saveDir);
 }

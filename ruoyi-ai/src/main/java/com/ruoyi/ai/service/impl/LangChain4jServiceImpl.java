@@ -53,6 +53,8 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     @Resource
     private ISysConfigService sysConfigService;
 
+    private PgVectorEmbeddingStore embeddingStore;
+
     @Override
     public boolean checkModelConfig(String baseUrl, String apiKey, String modelName,
                                     ModelProvider provider, ModelType type) {
@@ -145,9 +147,6 @@ public class LangChain4jServiceImpl implements LangChain4jService {
 
     private List<String> doEmbedding(EmbeddingModel embeddingModel, List<TextSegment> textSegments) {
         Response<List<Embedding>> response = embeddingModel.embedAll(textSegments);
-        PgVector pgVector = aiConfig.getPgVector();
-        PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(
-                embeddingModel, pgVector);
         List<Embedding> embeddings = response.content();
         return embeddingStore.addAll(embeddings, textSegments);
     }
@@ -159,9 +158,10 @@ public class LangChain4jServiceImpl implements LangChain4jService {
      * @param pgVector
      * @return
      */
-    public PgVectorEmbeddingStore buildPgEmbeddingStore(EmbeddingModel embeddingModel,
-                                                        PgVector pgVector) {
-        return PgVectorEmbeddingStore.builder()
+    @Override
+    public void initPgEmbeddingStore(EmbeddingModel embeddingModel,
+                                                       PgVector pgVector) {
+        this.embeddingStore = PgVectorEmbeddingStore.builder()
                 .host(pgVector.getHost())
                 .port(pgVector.getPort())
                 .database(pgVector.getDatabase())
@@ -169,25 +169,6 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                 .password(pgVector.getPassword())
                 .table(pgVector.getTable())
                 .dimension(embeddingModel.dimension())
-                .build();
-    }
-
-    /**
-     * 用于元数据查询
-     *
-     * @param pgVector
-     * @return
-     */
-    public PgVectorEmbeddingStore buildPgEmbeddingStore(
-            PgVector pgVector) {
-        return PgVectorEmbeddingStore.builder()
-                .host(pgVector.getHost())
-                .port(pgVector.getPort())
-                .database(pgVector.getDatabase())
-                .user(pgVector.getUser())
-                .password(pgVector.getPassword())
-                .table(pgVector.getTable())
-                .dimension(1)
                 .build();
     }
 
@@ -200,7 +181,6 @@ public class LangChain4jServiceImpl implements LangChain4jService {
 
     @Override
     public void removeSegment(List<String> ids) {
-        PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(aiConfig.getPgVector());
         embeddingStore.removeAll(ids);
     }
 
@@ -209,8 +189,6 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                               String embeddingId) {
         Response<Embedding> response = embeddingModel.embed(textSegment);
         Embedding embedding = response.content();
-        PgVectorEmbeddingStore embeddingStore = this.buildPgEmbeddingStore(embeddingModel,
-                aiConfig.getPgVector());
         embeddingStore.removeAll(Collections.singletonList(embeddingId));
         embeddingStore.addAll(Collections.singletonList(embeddingId),
                 Collections.singletonList(embedding), Collections.singletonList(textSegment));
@@ -220,13 +198,12 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     public List<EmbeddingMatch<TextSegment>> search(EmbeddingModel embeddingModel, String query,
                                                     int maxResult, double minScore, Filter filter) {
         Response<Embedding> response = embeddingModel.embed(query);
-        PgVectorEmbeddingStore embeddingStore = buildPgEmbeddingStore(embeddingModel, aiConfig.getPgVector());
 
         EmbeddingSearchRequestBuilder searchBuilder = EmbeddingSearchRequest.builder();
         searchBuilder.queryEmbedding(response.content())
                 .maxResults(maxResult)
                 .minScore(minScore);
-        if (filter!=null) {
+        if (filter != null) {
             searchBuilder.filter(filter);
         }
         EmbeddingSearchResult<TextSegment> result = embeddingStore.search(searchBuilder.build());
@@ -234,17 +211,17 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     }
 
     @Override
-    public boolean checkLocalEmbeddingModel(String saveDir) {
+    public EmbeddingModel checkLocalEmbeddingModel(String saveDir) {
         try {
             String pathToModel = saveDir + Constants.LOCAL_EMBEDDING_MODEL_FILE;
             String pathToTokenizer = saveDir + Constants.LOCAL_EMBEDDING_TOKENIZER_FILE;
             PoolingMode poolingMode = PoolingMode.MEAN;
             EmbeddingModel embeddingModel = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
             embeddingModel.embed(Constants.TEST_EMBEDDING_TEXT);
+            return embeddingModel;
         } catch (Exception e) {
             log.error("检查本地模型失败", e);
-            return false;
+            return null;
         }
-        return true;
     }
 }

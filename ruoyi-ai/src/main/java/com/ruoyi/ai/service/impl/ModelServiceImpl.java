@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
@@ -8,9 +9,11 @@ import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -27,6 +30,9 @@ public class ModelServiceImpl implements IModelService {
 
     @Autowired
     private LangChain4jService langChain4jService;
+
+    @Resource
+    private AiConfig aiConfig;
 
 
     /**
@@ -67,9 +73,11 @@ public class ModelServiceImpl implements IModelService {
     private void checkModelConfig(Model model) {
         ModelProvider modelProvider = ModelProvider.fromValue(model.getProvider());
         if (modelProvider == ModelProvider.LOCAL) {
-            // if (!langChain4jService.checkLocalEmbeddingModel(model.getSaveDir())) {
-            //     throw new ServiceException("模型验证失败");
-            // }
+            EmbeddingModel embeddingModel = langChain4jService.checkLocalEmbeddingModel(model.getSaveDir());
+            if (embeddingModel == null) {
+                throw new ServiceException("模型验证失败");
+            }
+            langChain4jService.initPgEmbeddingStore(embeddingModel, aiConfig.getPgVector());
             return;
         }
         if (!langChain4jService.checkModelConfig(model.getBaseUrl(), model.getApiKey(), model.getName(),

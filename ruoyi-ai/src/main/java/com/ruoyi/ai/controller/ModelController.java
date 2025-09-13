@@ -131,6 +131,7 @@ public class ModelController extends BaseController {
     public AjaxResult checkEmbeddingModel() {
         Model req = new Model();
         req.setType(ModelType.EMBEDDING.getValue());
+        req.setProvider(ModelProvider.LOCAL.getValue() );
         List<Model> res = modelService.selectModelList(req);
         return success(CollUtil.isNotEmpty(res) ? "success" : "fail");
     }

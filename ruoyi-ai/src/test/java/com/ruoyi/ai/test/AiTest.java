@@ -288,8 +288,8 @@ public class AiTest {
 //    Response<Embedding> response = embeddingModel.embed("test");
 //    System.out.println(response.content());
 
-    String pathToModel = "D:\\workspaces\\java\\ruoyi-langchain4j\\models\\onnx\\model.onnx";
-    String pathToTokenizer = "D:\\workspaces\\java\\ruoyi-langchain4j\\models\\onnx\\tokenizer.json";
+    String pathToModel = "F:\\workspaces\\ruoyi-langchain4j\\models\\onnx\\model.onnx";
+    String pathToTokenizer = "F:\\workspaces\\ruoyi-langchain4j\\models\\onnx\\tokenizer.json";
     PoolingMode poolingMode = PoolingMode.MEAN;
     EmbeddingModel embeddingModel = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
 
@@ -297,7 +297,7 @@ public class AiTest {
     Embedding embedding = response.content();
 
     PgVectorEmbeddingStore embeddingStore = PgVectorEmbeddingStore.builder()
-            .host("10.100.216.70")
+            .host("localhost")
             .port(5432)
             .database("embedding")
             .user("root")
