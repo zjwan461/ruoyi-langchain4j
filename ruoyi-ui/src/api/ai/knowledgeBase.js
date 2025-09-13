@@ -42,3 +42,12 @@ export function delKnowledgeBase (id) {
     method: 'delete'
   })
 }
+
+
+export function match(query) {
+  return request({
+    url: 'ai/knowledgeBase/match',
+    method: "get",
+    params: query
+  })
+}

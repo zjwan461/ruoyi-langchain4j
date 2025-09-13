@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.controller.model.DocSplitReq;
 import com.ruoyi.ai.controller.model.EmbeddingReq;
+import com.ruoyi.ai.controller.model.KbMatchReq;
 import com.ruoyi.ai.controller.model.TextEmbeddingReq;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
@@ -34,6 +35,9 @@ import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -85,6 +89,9 @@ public class KnowledgeBaseController extends BaseController {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private PgVectorEmbeddingStore embeddingStore;
 
     /**
      * 查询知识库列表
@@ -285,5 +292,23 @@ public class KnowledgeBaseController extends BaseController {
         langChain4jService.updateSegment(embeddingModel, textSegment,
                 textEmbeddingReq.getEmbeddingId());
         return success();
+    }
+
+    @GetMapping("/match")
+    public AjaxResult match(@Valid KbMatchReq kbMatchReq) {
+
+        String value = sysConfigService.selectConfigByKey("ai.model.embedding");
+        if (StringUtils.isBlank(value)) {
+            throw new ServiceException("未设置默认Embedding模型");
+        }
+        Model model = modelService.selectModelById(Long.parseLong(value));
+        EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
+        List<EmbeddingMatch<TextSegment>> result = langChain4jService.search(embeddingModel, kbMatchReq.getContent(), kbMatchReq.getMaxResult(), kbMatchReq.getMinScore(), new IsEqualTo(Constants.KB_ID, kbMatchReq.getKbId()));
+        List<Map<String, Object>> res = result.stream().map(x -> MapUtil.<String, Object>builder()
+                .put("segment", x.embedded().text())
+                .put("score", x.score())
+                .build()).collect(Collectors.toList());
+        return success(res);
+
     }
 }
