@@ -185,8 +185,14 @@ public class ModelController extends BaseController {
 
     @PreAuthorize("@ss.hasPermi('ai:model:list')")
     @PostMapping("/set-default-embedding/{id}")
-    public AjaxResult setDefaultEmbeddingModel(@PathVariable("id") Long embeddingId) {
+    public AjaxResult setDefaultEmbeddingModel(@PathVariable("id") Long embeddingId) throws JsonProcessingException {
+        String old = sysConfigService.selectConfigByKey("ai.model.embedding");
         sysConfigService.updateConfigByKeyValue("ai.model.embedding", String.valueOf(embeddingId));
+        if (old != null && !Long.valueOf(old).equals(embeddingId)) {
+            String token = tokenService.getToken(request);
+            Session session = WebSocketUsers.getSessionByToken(token);
+            WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.warn("系统检测到默认embedding模型已改变，向量内容需要重新向量化，否则会影响查询结果")));
+        }
         return success();
     }
 }

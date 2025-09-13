@@ -31,6 +31,7 @@ public class WebSocketServer {
 
     private final static Semaphore socketSemaphore = new Semaphore(socketMaxOnlineCount);
 
+
     /**
      * 连接建立成功调用的方法
      */
@@ -39,10 +40,11 @@ public class WebSocketServer {
         boolean semaphoreFlag = false;
         // 尝试获取信号量
         semaphoreFlag = SemaphoreUtils.tryAcquire(socketSemaphore);
+        ObjectMapper objectMapper = SpringUtils.getBean(ObjectMapper.class);
         if (!semaphoreFlag) {
             // 未获取到信号量
             LOGGER.error("\n 当前在线人数超过限制数- {}", socketMaxOnlineCount);
-            WebSocketUsers.sendMessageToUserByText(session, "当前在线人数超过限制数：" + socketMaxOnlineCount);
+            WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.error("当前在线人数超过限制数：" + socketMaxOnlineCount)));
             session.close();
         } else {
             // 添加用户
@@ -50,7 +52,7 @@ public class WebSocketServer {
             LOGGER.info("\n 建立连接 - {}", session);
             LOGGER.info("\n 当前人数 - {}", WebSocketUsers.getUsers().size());
             SocketMessage msg = SocketMessage.success("推送服务已连接");
-            ObjectMapper objectMapper = SpringUtils.getBean(ObjectMapper.class);
+
             WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(msg));
         }
     }
