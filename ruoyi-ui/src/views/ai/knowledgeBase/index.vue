@@ -113,7 +113,8 @@
         <el-button type="primary" @click="submitTestForm">确 定</el-button>
         <el-button @click="cancelTest">取 消</el-button>
       </div>
-      <div style="max-height: 500px; overflow: auto" v-show="matchList.length > 0">
+      <h3 style="text-align: center">命中结果</h3>
+      <div style="max-height: 500px; overflow: auto">
         <el-table v-loading="loadingMatch" :data="matchList">
           <el-table-column label="分段内容" align="center" prop="segment"/>
           <el-table-column label="得分" align="center" prop="score"/>
