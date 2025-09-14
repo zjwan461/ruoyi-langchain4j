@@ -284,17 +284,21 @@ public class KnowledgeBaseController extends BaseController {
         Long embeddingModelId = textEmbeddingReq.getEmbeddingModelId();
         Model model = modelService.selectModelById(embeddingModelId);
         EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
-        Metadata metadata = new Metadata();
-        metadata.put(Constants.KB_ID, textEmbeddingReq.getKbId());
-        metadata.put("update_ts", LocalDateTime.now().toString());
-        metadata.put("update_by", getUsername());
-        TextSegment textSegment = TextSegment.from(textEmbeddingReq.getText(), metadata);
-        langChain4jService.updateSegment(embeddingModel, textSegment,
-                textEmbeddingReq.getEmbeddingId());
+        String embeddingId = textEmbeddingReq.getEmbeddingId();
+        Map<String, Object> segment = pgVectorUtil.selectById(embeddingId);
+        if (segment != null) {
+            Metadata metadata = (Metadata) segment.get("metadata");
+            metadata.put("update_ts", LocalDateTime.now().toString());
+            metadata.put("update_by", getUsername());
+            TextSegment textSegment = TextSegment.from(textEmbeddingReq.getText(), metadata);
+            langChain4jService.updateSegment(embeddingModel, textSegment,
+                    embeddingId);
+        }
         return success();
     }
 
     @GetMapping("/match")
+    @PreAuthorize("@ss.hasPermi('ai:knowledgeBase:list')")
     public AjaxResult match(@Valid KbMatchReq kbMatchReq) {
 
         String value = sysConfigService.selectConfigByKey("ai.model.embedding");
@@ -310,5 +314,44 @@ public class KnowledgeBaseController extends BaseController {
                 .build()).collect(Collectors.toList());
         return success(res);
 
+    }
+
+    @PostMapping("/re-embedding/{kbId}")
+    @PreAuthorize("@ss.hasPermi('ai:knowledgeBase:list')")
+    public AjaxResult reEmbedding(@PathVariable Long kbId) {
+        String value = sysConfigService.selectConfigByKey("ai.model.embedding");
+        if (StringUtils.isBlank(value)) {
+            throw new ServiceException("未设置默认Embedding模型");
+        }
+        Model model = modelService.selectModelById(Long.parseLong(value));
+        EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
+        Map<String, Object> req = new HashMap<>();
+        req.put(Constants.KB_ID, kbId);
+        final List<Map<String, Object>> result = langChain4jService.querySegmentTextEqualsByMetaData(req);
+        final String token = tokenService.getToken(request);
+        final String username = getUsername();
+        AsyncManager.me().execute(new TimerTask() {
+            @Override
+            public void run() {
+                result.forEach(item -> {
+                    String embeddingId = (String) item.get("embeddingId");
+                    Metadata metadata = (Metadata) item.get("metadata");
+                    metadata.put("update_ts", LocalDateTime.now().toString());
+                    metadata.put("update_by", username);
+                    String text = (String) item.get("text");
+                    TextSegment textSegment = TextSegment.from(text, metadata);
+                    langChain4jService.updateSegment(embeddingModel, textSegment, embeddingId);
+                });
+                Session session = WebSocketUsers.getSessionByToken(token);
+                if (session != null) {
+                    try {
+                        WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("知识库重新向量化完成！")));
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
+        return success();
     }
 }

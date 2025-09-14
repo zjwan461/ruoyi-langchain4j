@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 // 查询知识库列表
-export function listKnowledgeBase (query) {
+export function listKnowledgeBase(query) {
   return request({
     url: '/ai/knowledgeBase/list',
     method: 'get',
@@ -10,7 +10,7 @@ export function listKnowledgeBase (query) {
 }
 
 // 查询知识库详细
-export function getKnowledgeBase (id) {
+export function getKnowledgeBase(id) {
   return request({
     url: '/ai/knowledgeBase/' + id,
     method: 'get'
@@ -18,7 +18,7 @@ export function getKnowledgeBase (id) {
 }
 
 // 新增知识库
-export function addKnowledgeBase (data) {
+export function addKnowledgeBase(data) {
   return request({
     url: '/ai/knowledgeBase',
     method: 'post',
@@ -27,7 +27,7 @@ export function addKnowledgeBase (data) {
 }
 
 // 修改知识库
-export function updateKnowledgeBase (data) {
+export function updateKnowledgeBase(data) {
   return request({
     url: '/ai/knowledgeBase',
     method: 'put',
@@ -36,7 +36,7 @@ export function updateKnowledgeBase (data) {
 }
 
 // 删除知识库
-export function delKnowledgeBase (id) {
+export function delKnowledgeBase(id) {
   return request({
     url: '/ai/knowledgeBase/' + id,
     method: 'delete'
@@ -49,5 +49,12 @@ export function match(query) {
     url: 'ai/knowledgeBase/match',
     method: "get",
     params: query
+  })
+}
+
+export function reEmbedding(kbId) {
+  return request({
+    url: 'ai/knowledgeBase/re-embedding/' + kbId,
+    method: "post"
   })
 }

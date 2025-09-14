@@ -67,6 +67,9 @@
           <el-button size="mini" type="text" icon="el-icon-info" @click="handleTest(scope.row)"
                      v-hasPermi="['ai:knowledgeBase:list']">测试
           </el-button>
+          <el-button size="mini" type="text" icon="el-icon-refresh" @click="handleEmbed(scope.row)"
+                     v-hasPermi="['ai:knowledgeBase:list']">向量
+          </el-button>
           <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)"
                      v-hasPermi="['ai:knowledgeBase:edit']">修改
           </el-button>
@@ -131,7 +134,8 @@ import {
   delKnowledgeBase,
   addKnowledgeBase,
   updateKnowledgeBase,
-  match
+  match,
+  reEmbedding
 } from "@/api/ai/knowledgeBase"
 
 export default {
@@ -321,6 +325,13 @@ export default {
       }
       this.matchList = []
       this.resetForm("testForm")
+    },
+    handleEmbed(row) {
+      this.$modal.loading("正在重新向量化中...")
+      reEmbedding(row.id).then(response=>{
+        this.$modal.closeLoading()
+        this.$modal.alertSuccess("后台向量化中，请留意站内推送")
+      })
     },
   }
 }
