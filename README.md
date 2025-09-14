@@ -1,7 +1,7 @@
 ## 平台简介
 
 * 前端采用Vue、Element UI。
-* 后端采用Spring Boot、Spring Security、activiti、Redis & Jwt、websocket、Langchain4j、pgvector
+* 后端采用Spring Boot、Spring Security、Redis & Jwt、websocket、Langchain4j、pgvector
 * 权限认证使用Jwt，支持多终端认证系统。
 * 支持加载动态权限菜单，多方式轻松权限控制。
 * 高效率开发，使用代码生成器可以一键生成前后端代码。
@@ -35,6 +35,8 @@ v1.0
 3.  新增智能体管理。智能体支持多知识库 ；系统提示词；用户提示词模板功能；记忆功能；客户端限流功能；
 4.  新增AI聊天功能。支持深度思考UI渲染；支持删除聊天历史功能。
 5.  新增推送服务功能。支持异步下载本地向量模型结果推送；支持异步文档分段向量化处理结果推送。
+6.  新增向量模型维度检测功能。
+7.  新增知识库重向量功能
 
 
 
