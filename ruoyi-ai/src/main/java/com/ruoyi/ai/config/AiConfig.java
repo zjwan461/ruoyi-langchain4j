@@ -1,5 +1,6 @@
 package com.ruoyi.ai.config;
 
+import com.ruoyi.ai.util.Constants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +38,7 @@ public class AiConfig {
         private String user;
         private String password;
         private String table;
+        private int dimension = Constants.EMBEDDING_DIMENSION;
 
         public String getHost() {
             return host;
@@ -84,6 +86,14 @@ public class AiConfig {
 
         public void setTable(String table) {
             this.table = table;
+        }
+
+        public int getDimension() {
+            return dimension;
+        }
+
+        public void setDimension(int dimension) {
+            this.dimension = dimension;
         }
     }
 

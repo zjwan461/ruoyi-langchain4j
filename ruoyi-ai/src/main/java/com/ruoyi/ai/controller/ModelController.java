@@ -8,6 +8,7 @@ import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.IModelService;
+import com.ruoyi.ai.service.impl.ModelBuilder;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.ModelScopeUtil;
 import com.ruoyi.common.annotation.Log;
@@ -21,6 +22,9 @@ import com.ruoyi.framework.web.service.TokenService;
 import com.ruoyi.framework.websocket.SocketMessage;
 import com.ruoyi.framework.websocket.WebSocketUsers;
 import com.ruoyi.system.service.ISysConfigService;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -60,6 +64,8 @@ public class ModelController extends BaseController {
 
     @Resource
     private AiConfig aiConfig;
+    @Autowired
+    private ModelBuilder modelBuilder;
 
 
     /**
@@ -194,5 +200,14 @@ public class ModelController extends BaseController {
             WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.warn("系统检测到默认embedding模型已改变，向量内容需要重新向量化，否则会影响查询结果")));
         }
         return success();
+    }
+
+    @PreAuthorize("@ss.hasPermi('ai:model:list')")
+    @GetMapping("/get-dimension/{id}")
+    public AjaxResult get(@PathVariable Long id) {
+        Model model = modelService.selectModelById(id);
+        EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
+        Response<Embedding> response = embeddingModel.embed(Constants.TEST_EMBEDDING_TEXT);
+        return success(response.content().dimension());
     }
 }

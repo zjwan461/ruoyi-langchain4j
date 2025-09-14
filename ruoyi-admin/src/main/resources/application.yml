@@ -145,3 +145,4 @@ ai:
     user: root
     password: root
     table: embedding
+    dimension: 768

@@ -71,3 +71,10 @@ export function setDefaultEmbeddingModel(id){
     method: 'post'
   })
 }
+
+export function getDimension(id) {
+  return request({
+    url: '/ai/model/get-dimension/' + id,
+    method: 'get'
+  })
+}

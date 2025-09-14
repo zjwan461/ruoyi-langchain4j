@@ -2,15 +2,16 @@
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="68px">
       <el-form-item label="模型名称" prop="name">
-        <el-input v-model="queryParams.name" placeholder="请输入模型名称" clearable @keyup.enter.native="handleQuery" />
+        <el-input v-model="queryParams.name" placeholder="请输入模型名称" clearable @keyup.enter.native="handleQuery"/>
       </el-form-item>
       <el-form-item label="base url" prop="baseUrl">
-        <el-input v-model="queryParams.baseUrl" placeholder="请输入base url" clearable @keyup.enter.native="handleQuery" />
+        <el-input v-model="queryParams.baseUrl" placeholder="请输入base url" clearable
+                  @keyup.enter.native="handleQuery"/>
       </el-form-item>
       <el-form-item label="类型" prop="type">
         <el-select v-model="queryParams.type" placeholder="请选择类型" clearable>
           <el-option v-for="dict in dict.type.ai_model_type" :key="dict.value" :label="dict.label"
-            :value="dict.value" />
+                     :value="dict.value"/>
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -22,64 +23,67 @@
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
         <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd"
-          v-hasPermi="['ai:model:add']">新增
+                   v-hasPermi="['ai:model:add']">新增
         </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="success" plain icon="el-icon-edit" size="mini" :disabled="single" @click="handleUpdate"
-          v-hasPermi="['ai:model:edit']">修改
+                   v-hasPermi="['ai:model:edit']">修改
         </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="multiple" @click="handleDelete"
-          v-hasPermi="['ai:model:remove']">删除
+                   v-hasPermi="['ai:model:remove']">删除
         </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="warning" plain icon="el-icon-download" size="mini" @click="handleExport"
-          v-hasPermi="['ai:model:export']">导出
+                   v-hasPermi="['ai:model:export']">导出
         </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button type="info" plain icon="el-icon-edit" size="mini" @click="handleSetting"
-          v-hasPermi="['ai:model:list']">向量模型设置
+                   v-hasPermi="['ai:model:list']">向量模型设置
         </el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="modelList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="模型ID" align="center" prop="id" />
-      <el-table-column label="模型名称" align="center" prop="name" />
-      <el-table-column label="base url" align="center" prop="baseUrl" />
-      <el-table-column label="api key" align="center" prop="apiKey" />
-      <el-table-column label="temperature" align="center" prop="temperature" />
-      <el-table-column label="token最大生成数" align="center" prop="maxOutputToken" />
+      <el-table-column type="selection" width="55" align="center"/>
+      <el-table-column label="模型ID" align="center" prop="id"/>
+      <el-table-column label="模型名称" align="center" prop="name"/>
+      <el-table-column label="base url" align="center" prop="baseUrl"/>
+      <el-table-column label="api key" align="center" prop="apiKey"/>
+      <el-table-column label="temperature" align="center" prop="temperature"/>
+      <el-table-column label="token最大生成数" align="center" prop="maxOutputToken"/>
       <el-table-column label="类型" align="center" prop="type">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.ai_model_type" :value="scope.row.type" />
+          <dict-tag :options="dict.type.ai_model_type" :value="scope.row.type"/>
         </template>
       </el-table-column>
       <el-table-column label="提供商" align="center" prop="provider">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.ai_model_provider" :value="scope.row.provider" />
+          <dict-tag :options="dict.type.ai_model_provider" :value="scope.row.provider"/>
         </template>
       </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)"
-            v-hasPermi="['ai:model:edit']" :disabled="scope.row.provider === 'local'">修改
+                     v-hasPermi="['ai:model:edit']" v-show="scope.row.provider !== 'local'">修改
           </el-button>
           <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)"
-            v-hasPermi="['ai:model:remove']" :disabled="scope.row.provider === 'local'">删除
+                     v-hasPermi="['ai:model:remove']" v-show="scope.row.provider !== 'local'">删除
+          </el-button>
+          <el-button size="mini" type="text" icon="el-icon-info" @click="handleDimension(scope.row)"
+                     v-hasPermi="['ai:model:list']" v-show="scope.row.type === 1">维度检查
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
     <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
-      @pagination="getList" />
+                @pagination="getList"/>
 
     <!-- 添加或修改模型管理对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="800px" append-to-body>
@@ -87,29 +91,30 @@
         <el-form-item label="类型" prop="type">
           <el-select v-model="form.type" placeholder="请选择类型">
             <el-option v-for="dict in dict.type.ai_model_type" :key="dict.value" :label="dict.label"
-              :value="parseInt(dict.value)"></el-option>
+                       :value="parseInt(dict.value)"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="提供商" prop="provider">
           <el-select v-model="form.provider" placeholder="请选择提供商">
             <el-option v-for="dict in dict.type.ai_model_provider" :key="dict.value" :label="dict.label"
-              :value="dict.value"></el-option>
+                       :value="dict.value"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="模型名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入模型名称" />
+          <el-input v-model="form.name" placeholder="请输入模型名称"/>
         </el-form-item>
         <el-form-item label="base url" prop="baseUrl">
-          <el-input v-model="form.baseUrl" placeholder="请输入base url" />
+          <el-input v-model="form.baseUrl" placeholder="请输入base url"/>
         </el-form-item>
         <el-form-item label="api key" prop="apiKey">
-          <el-input v-model="form.apiKey" placeholder="请输入api key" />
+          <el-input v-model="form.apiKey" placeholder="请输入api key"/>
         </el-form-item>
         <el-form-item label="temperature" prop="temperature">
-          <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
+          <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1"
+                           placeholder="请输入temperature"/>
         </el-form-item>
         <el-form-item label="token最大生成数" prop="maxOutputToken">
-          <el-input-number v-model="form.maxOutputToken" :step="100" :min="200" placeholder="请输入token最大生成数" />
+          <el-input-number v-model="form.maxOutputToken" :step="100" :min="200" placeholder="请输入token最大生成数"/>
         </el-form-item>
 
       </el-form>
@@ -125,13 +130,16 @@
         <el-form-item label="默认Embedding模型" prop="embeddingModelId">
           <el-select v-model="embeddingForm.embeddingModelId">
             <el-option v-for="item in embeddingModelList" :key="item.id" :value="item.id"
-              :label="item.name"></el-option>
+                       :label="item.name"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="本地Embedding模型" prop="saveDir">
-          <el-input v-model="embeddingForm.saveDir" placeholder="本地模型下载目录，为空说明未下载本地向量模型" readonly disabled></el-input>
+          <el-input v-model="embeddingForm.saveDir" placeholder="本地模型下载目录，为空说明未下载本地向量模型" readonly
+                    disabled></el-input>
           <i>
-            <el-button type="text" icon="el-icon-refresh" title="支持断点续传" @click="handleDownloadLocal">下载模型</el-button>
+            <el-button type="text" icon="el-icon-refresh" title="支持断点续传" @click="handleDownloadLocal">
+              下载本地向量模型
+            </el-button>
           </i>
         </el-form-item>
       </el-form>
@@ -144,7 +152,18 @@
 </template>
 
 <script>
-import { listModel, getModel, delModel, addModel, updateModel, checkEmbeddingModel, downloadEmbeddingModel, localEmbeddingModel, setDefaultEmbeddingModel } from "@/api/ai/model"
+import {
+  listModel,
+  getModel,
+  delModel,
+  addModel,
+  updateModel,
+  checkEmbeddingModel,
+  downloadEmbeddingModel,
+  localEmbeddingModel,
+  setDefaultEmbeddingModel,
+  getDimension
+} from "@/api/ai/model"
 
 export default {
   name: "Model",
@@ -191,21 +210,21 @@ export default {
       // 表单校验
       rules: {
         name: [
-          { required: true, message: "模型名称不能为空", trigger: "blur" }
+          {required: true, message: "模型名称不能为空", trigger: "blur"}
         ],
         baseUrl: [
-          { required: true, message: "base url不能为空", trigger: "blur" }
+          {required: true, message: "base url不能为空", trigger: "blur"}
         ],
         type: [
-          { required: true, message: "类型不能为空", trigger: "change" }
+          {required: true, message: "类型不能为空", trigger: "change"}
         ],
         provider: [
-          { required: true, message: "提供商不能为空", trigger: "change" }
+          {required: true, message: "提供商不能为空", trigger: "change"}
         ]
       },
       embeddingRules: {
         embeddingModelId: [
-          { required: true, message: "必须选择一个向量模型", trigger: "blur" }
+          {required: true, message: "必须选择一个向量模型", trigger: "blur"}
         ]
       }
     }
@@ -231,8 +250,8 @@ export default {
         })
       }
     },
-    getEmbedingModel() {
-      listModel({ pageNum: 1, pageSize: 1000, type: 1 }).then(response => {
+    getEmbeddingModel() {
+      listModel({pageNum: 1, pageSize: 1000, type: 1}).then(response => {
         this.embeddingModelList = response.rows
 
         this.getConfigKey("ai.model.embedding").then(response => {
@@ -381,7 +400,7 @@ export default {
     },
     handleSetting() {
       this.openEmbedding = true
-      this.getEmbedingModel()
+      this.getEmbeddingModel()
 
 
     },
@@ -390,9 +409,17 @@ export default {
         return downloadEmbeddingModel()
       }).then(() => {
         this.$modal.msgSuccess("开始下载本地embedding模型，请留意系统推送")
-      }).catch(err => { })
+      }).catch(err => {
+      })
 
-    }
+    },
+    handleDimension(row) {
+      this.$modal.loading("检查维度中...")
+      getDimension(row.id).then(response => {
+        this.$modal.closeLoading()
+        this.$modal.alertSuccess("向量维度为：" + response.data)
+      })
+    },
   }
 }
 </script>

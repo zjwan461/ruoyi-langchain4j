@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.controller.model.DocSplitReq;
 import com.ruoyi.ai.controller.model.EmbeddingReq;
 import com.ruoyi.ai.controller.model.KbMatchReq;
@@ -37,7 +38,6 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
-import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -91,7 +91,7 @@ public class KnowledgeBaseController extends BaseController {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private PgVectorEmbeddingStore embeddingStore;
+    private AiConfig aiConfig;
 
     /**
      * 查询知识库列表
@@ -228,8 +228,8 @@ public class KnowledgeBaseController extends BaseController {
 
         EmbeddingModel embeddingModel = modelBuilder.getEmbeddingModel(model);
         int dimension = embeddingModel.embed("test").content().dimension();
-        if (dimension != Constants.EMBEDDING_DIMENSION) {
-            throw new ServiceException("当前向量模型维度为" + dimension + "和向量数据库维度" + Constants.EMBEDDING_DIMENSION + "不匹配");
+        if (dimension != aiConfig.getPgVector().getDimension()) {
+            throw new ServiceException("当前向量模型维度为" + dimension + "和向量数据库维度" + aiConfig.getPgVector().getDimension() + "不匹配");
         }
         return success();
     }

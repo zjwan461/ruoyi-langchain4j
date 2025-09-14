@@ -1,6 +1,5 @@
 package com.ruoyi.ai.config;
 
-import com.ruoyi.ai.util.Constants;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +26,7 @@ public class Langchain4jConfig {
                 .user(pgVector.getUser())
                 .password(pgVector.getPassword())
                 .table(pgVector.getTable())
-                .dimension(Constants.EMBEDDING_DIMENSION)
+                .dimension(pgVector.getDimension())
                 .build();
     }
 
