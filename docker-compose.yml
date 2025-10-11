@@ -81,7 +81,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - ./ui/dist:/ruoyi-ui
+      - ./ruoyi-ui/dist:/ruoyi-ui
     depends_on:
       - redis
       - mysql
