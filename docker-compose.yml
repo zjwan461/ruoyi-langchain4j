@@ -19,6 +19,7 @@ services:
       - "3306:3306"  # 映射MySQL端口
     environment:
       - MYSQL_ROOT_PASSWORD=root  # 设置root用户密码
+      - MYSQL_DATABASE=ry-vue
     volumes:
       - ./mysql-data:/var/lib/mysql  # 挂载数据目录，实现数据持久化
       - ./sql:/docker-entrypoint-initdb.d
