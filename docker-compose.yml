@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  redis:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - app-net
+  mysql:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/mysql:8.0.39
+    container_name: mysql
+    restart: unless-stopped  # 可选：异常退出时自动重启
+    ports:
+      - "3306:3306"  # 映射MySQL端口
+    environment:
+      - MYSQL_ROOT_PASSWORD=root  # 设置root用户密码
+    volumes:
+      - ./mysql-data:/var/lib/mysql  # 挂载数据目录，实现数据持久化
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+  postgres:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/immich-app/postgres:15-vectorchord0.4.2-pgvectors0.3.0
+    container_name: pgvector
+    restart: unless-stopped
+    environment:
+      # 设置管理员账号为root（PostgreSQL中的超级用户）
+      POSTGRES_USER: root
+      # 管理员（root）密码
+      POSTGRES_PASSWORD: root
+      # 初始创建的数据库名称
+      POSTGRES_DB: embedding
+      # 字符集设置，支持中文
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate=C --lc-ctype=C
+      # 时区设置
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      # 可选：初始化脚本目录
+      # - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - app-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    command: >
+      postgres
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=1310kB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+  ruoyi-ui:
+    image: ruoyi-ui
+    container_name: ruoyi-ui
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./ui/dist:/ruoyi-ui
+    depends_on:
+      - redis
+      - mysql
+    networks:
+      - app-net
+  ruoyi-admin:
+    image: ruoyi-admin
+    container_name: ruoyi-admin
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./uploadPath:/uploadPath
+    depends_on:
+      - redis
+      - mysql
+    networks:
+      - app-net
+
+
+networks:
+  app-net:
+    driver: bridge
