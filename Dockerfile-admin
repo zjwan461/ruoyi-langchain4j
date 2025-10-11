@@ -1,4 +1,4 @@
 FROM eclipse-temurin:21.0.4_7-jre as BE
-COPY ruoyi-admin.jar app.jar
+COPY ruoyi-admin/target/ruoyi-admin.jar app.jar
 RUN sh -c 'touch app.jar'
 ENTRYPOINT [ "sh", "-c", "java -Druoyi.profile=/uploadPath -jar app.jar $SPRING_OPTS" ]
