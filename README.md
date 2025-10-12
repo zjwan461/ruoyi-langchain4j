@@ -71,7 +71,8 @@ v1.0
 - admin/admin123  
 - 陆陆续续收到一些打赏，为了更好的体验已用于演示服务器升级。谢谢各位小伙伴。
 
-演示地址：http://204.141.218.130/
+演示地址：http://204.141.218.130
+
 文档地址：
 
 ## 演示图
@@ -107,8 +108,15 @@ v1.0
     </tr>
 </table>
 
+## 支持项目
 
+ruoyi-langchain4j的源码全部开源免费，如果你觉得这个项目帮助到了你，您可以通过如下方式支持我：
 
-## RuoYi-Langchain4j交流群
+- 向您的朋友推荐或分享🌹
+- 打开项目页面后右上角(Star)关注一下 ⭐
+- 通过以下二维码进行捐赠，请作者喝杯咖啡表示鼓励 ☕️
 
-QQ群： 暂无
+<div style="display: flex; justify-content: center; gap: 10px;">
+<img src="https://jerrysu232.oss-cn-shenzhen.aliyuncs.com/img/%E6%94%AF%E4%BB%98%E5%AE%9D%E6%94%B6%E6%AC%BE%E7%A0%81.jpg" width="300">
+<img src="https://jerrysu232.oss-cn-shenzhen.aliyuncs.com/img/%E5%BE%AE%E4%BF%A1%E6%94%B6%E6%AC%BE%E7%A0%81.jpg" width="300">
+</div>
