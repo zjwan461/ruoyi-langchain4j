@@ -216,11 +216,14 @@ public class KnowledgeBaseController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:knowledgeBase:list')")
     public AjaxResult checkEmbeddingDimension() {
         String value = sysConfigService.selectConfigByKey("ai.model.embedding");
-        if (StringUtils.isEmpty(value)) {
+        if (StringUtils.isEmpty(value) || "#".equals(value)) {
             throw new ServiceException("尚未配置默认Embedding模型");
         }
 
         Model model = modelService.selectModelById(Long.parseLong(value));
+        if (model == null) {
+            throw new ServiceException("id=" + value + "的向量模型不存在");
+        }
         ModelType modelType = ModelType.fromValue(model.getType());
         if (modelType != ModelType.EMBEDDING) {
             throw new ServiceException("错误的模型类型，应为Embedding模型，实际为" + modelType);
