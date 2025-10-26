@@ -63,7 +63,7 @@
 
         <dependency>
             <groupId>com.ruoyi</groupId>
-            <artifactId>ruoyi-ai</artifactId>
+            <artifactId>ruoyi-ai-core</artifactId>
         </dependency>
     </dependencies>
 
