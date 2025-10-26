@@ -5,17 +5,21 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.ruoyi</groupId>
-        <artifactId>ruoyi-langchain4j</artifactId>
+        <artifactId>ruoyi-ai</artifactId>
         <version>3.9.0</version>
     </parent>
 
-    <artifactId>ruoyi-ai</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>ruoyi-ai-dify</artifactId>
 
-
-    <modules>
-        <module>ruoyi-ai-core</module>
-        <module>ruoyi-ai-dify</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
