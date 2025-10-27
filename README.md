@@ -38,12 +38,12 @@ v1.0
 6.  新增向量模型维度检测功能。
 7.  新增知识库重向量功能
 
+## 本地构建
 
+提供了docker容器化构建方法：
 
-### 测试账号
-
-> 管理账号：admin / admin123
->
+1. 项目根目录下有一个<a href="build.sh"> build.sh</a>脚本，Linux下直接运行此脚本后会构建出`ruoyi-admin`和`ruoyi-ui`两个**docker**镜像。
+2. 构建镜像成功后，执行**docker-compose up -d** 启动项目
 
 ## 内置功能
 
