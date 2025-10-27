@@ -1,6 +1,8 @@
 SET NAMES utf8mb4;
-SET CHARACTER SET utf8mb4;
-use ry-vue;
+SET
+CHARACTER SET utf8mb4;
+use
+ry-vue;
 -- ----------------------------
 -- 1、部门表
 -- ----------------------------
@@ -742,9 +744,9 @@ create table sys_oper_log
     oper_time      datetime comment '操作时间',
     cost_time      bigint(20)    default 0 comment '消耗时间',
     primary key (oper_id),
-    key idx_sys_oper_log_bt (business_type),
-    key idx_sys_oper_log_s (status),
-    key idx_sys_oper_log_ot (oper_time)
+    key            idx_sys_oper_log_bt (business_type),
+    key            idx_sys_oper_log_s (status),
+    key            idx_sys_oper_log_ot (oper_time)
 ) engine = innodb
   auto_increment = 100 comment = '操作日志记录';
 
@@ -937,8 +939,8 @@ create table sys_logininfor
     msg            varchar(255) default '' comment '提示消息',
     login_time     datetime comment '访问时间',
     primary key (info_id),
-    key idx_sys_logininfor_s (status),
-    key idx_sys_logininfor_lt (login_time)
+    key            idx_sys_logininfor_s (status),
+    key            idx_sys_logininfor_lt (login_time)
 ) engine = innodb
   auto_increment = 100 comment = '系统访问记录';
 
@@ -1095,17 +1097,17 @@ drop table if exists model;
 create table model
 (
     id               bigint unsigned auto_increment not null comment 'id',
-    name             varchar(100)                   not null comment '模型名称',
-    base_url         varchar(255)                   not null comment 'base_url',
-    api_key          varchar(100)                   null comment 'api  key',
-    temperature      double       default 0.7       not null comment '温度',
+    name             varchar(100)                  not null comment '模型名称',
+    base_url         varchar(255)                  not null comment 'base_url',
+    api_key          varchar(100) null comment 'api  key',
+    temperature double default 0.7       not null comment '温度',
     max_output_token int unsigned default 2048      not null comment '最大输出token',
-    create_by        varchar(100)                   null comment '创建人',
-    create_time      datetime                       null comment '创建时间',
-    update_by        varchar(100)                   null comment '更新人',
-    update_time      datetime                       null comment '更新时间',
+    create_by        varchar(100) null comment '创建人',
+    create_time      datetime null comment '创建时间',
+    update_by        varchar(100) null comment '更新人',
+    update_time      datetime null comment '更新时间',
     `type`           int unsigned default 0         not null comment '模型类型',
-    provider         varchar(100) default 'ollama'  not null comment '模型提供商',
+    provider         varchar(100) default 'ollama' not null comment '模型提供商',
     save_dir         varchar(255) default null comment '模型保存目录',
     primary key (id)
 ) engine = innodb
@@ -1118,7 +1120,7 @@ drop table if exists knowledge_base;
 create table knowledge_base
 (
     id          bigint unsigned not null auto_increment comment 'id',
-    name        varchar(100)    not null comment '知识库名称',
+    name        varchar(100) not null comment '知识库名称',
     create_by   varchar(100) default null comment '创建人',
     create_time datetime     default null comment '创建时间',
     update_by   varchar(100) default null comment '更新人',
@@ -1136,21 +1138,21 @@ create table ai_agent
 (
     id                 bigint unsigned auto_increment    not null comment 'id',
     name               varchar(100)                      not null comment '智能体名称',
-    kb_ids             varchar(255)                      null comment '知识库id',
+    kb_ids             varchar(255) null comment '知识库id',
     system_message     varchar(500)                      not null comment '系统提示词',
     memory_count       int unsigned default 3            not null comment '记忆轮次',
     model_id           bigint unsigned                   not null comment '模型id',
-    create_by          varchar(100)                      null comment '创建人',
-    create_time        datetime                          null comment '创建时间',
-    update_by          varchar(100)                      null comment '更新人',
-    update_time        datetime                          null comment '更新时间',
+    create_by          varchar(100) null comment '创建人',
+    create_time        datetime null comment '创建时间',
+    update_by          varchar(100) null comment '更新人',
+    update_time        datetime null comment '更新时间',
     status             int unsigned default 0            not null comment '状态',
-    visit_url          varchar(255)                      null comment '访问链接',
+    visit_url          varchar(255) null comment '访问链接',
     day_lmt_per_client int          default -1           not null comment '单客户端1天内最大访问次数',
-    temperature        double       default 0.7          not null comment '温度',
+    temperature double default 0.7          not null comment '温度',
     max_output_token   int unsigned default 2048         not null comment '最大输出token',
     prompt_template    varchar(500) default '{question}' not null comment '提示词模板',
-    min_score          double unsigned                   null comment '知识库查询最小得分',
+    min_score double unsigned                   null comment '知识库查询最小得分',
     max_result         int unsigned                      null comment '知识库查询最多条数',
     primary key (id)
 ) engine = innodb
@@ -1309,21 +1311,63 @@ VALUES ('首页介绍信息', 'homePage.desc.showInfo',
        ('首页信息量限制', 'homePage.msg.limit', '5', 'Y', 'admin', '2025-09-07 14:27:34', 'admin',
         '2025-09-07 14:30:32', NULL),
        ('本地模型保存文件夹', 'ai.model.saveDir', './models', 'Y', 'admin', '2025-09-07 14:57:15', '', NULL, NULL),
-       ('默认向量模型','ai.model.embedding','#','Y','admin','2025-09-10 13:57:44','admin','2025-09-10 13:58:20',NULL),
-	   ('分段向量化批量大小','ai.embedding.batchSize','5','Y','admin','2025-09-11 11:44:45','',NULL,'向量化文档时，一次向量几个分段的内容'),
-	   ('智能体显示会话数','ai.agent.sessionNum','10','Y','admin','2025-09-11 13:37:47','admin','2025-09-11 13:38:49','每个客户端一个智能体最多显示数会话数量（根据时间倒序排列）');
+       ('默认向量模型', 'ai.model.embedding', '#', 'Y', 'admin', '2025-09-10 13:57:44', 'admin', '2025-09-10 13:58:20',
+        NULL),
+       ('分段向量化批量大小', 'ai.embedding.batchSize', '5', 'Y', 'admin', '2025-09-11 11:44:45', '', NULL,
+        '向量化文档时，一次向量几个分段的内容'),
+       ('智能体显示会话数', 'ai.agent.sessionNum', '10', 'Y', 'admin', '2025-09-11 13:37:47', 'admin',
+        '2025-09-11 13:38:49', '每个客户端一个智能体最多显示数会话数量（根据时间倒序排列）');
 
 
 drop table if exists chat_message;
 create table chat_message
 (
     id          bigint unsigned not null auto_increment comment 'id',
-    role        varchar(100)    not null comment '角色',
-    content     longtext        not null comment '消息内容',
-    client_id   varchar(100)    not null comment '客户端id',
-    session_id  varchar(100)    not null comment '会话id',
+    role        varchar(100) not null comment '角色',
+    content     longtext     not null comment '消息内容',
+    client_id   varchar(100) not null comment '客户端id',
+    session_id  varchar(100) not null comment '会话id',
     agent_id    bigint unsigned not null comment '智能体id',
     create_time datetime default null comment '创建时间',
     primary key (`id`),
-    key chat_message_client_id_idx (client_id)
+    key         chat_message_client_id_idx (client_id)
 ) engine = innodb auto_increment = 1 comment ='聊天信息表';
+
+
+-- ----------------------------
+-- AI工具箱字典-Dify
+-- ----------------------------
+INSERT INTO sys_dict_type (dict_name, dict_type, status, create_by, create_time, update_by, update_time, remark)
+VALUES ('Dify响应类型', 'dify_response_type', '0', 'admin', '2025-10-27 22:35:27', '', NULL, NULL);
+108, 0, '阻塞', 'blocking', 'dify_response_type', NULL, 'info', 'N', '0', 'admin', '2025-10-27 22:36:49', '', NULL, NULL);
+
+INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default,
+                           status, create_by, create_time, update_by, update_time, remark)
+VALUES (0, '流式', 'streaming', 'dify_response_type', NULL, 'primary', 'N', '0', 'admin', '2025-10-27 22:36:31', '',
+        NULL, NULL),
+       (0, '阻塞', 'blocking', 'dify_response_type', NULL, 'info', 'N', '0', 'admin', '2025-10-27 22:36:49', '', NULL,
+        NULL);
+
+
+-- 菜单 SQL
+insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+values('Dify API', '2000', '1', 'apiApi', 'ruoyi-ai-dify/apiApi/index', 1, 0, 'C', '0', '0', 'ruoyi-ai-dify:apiApi:list', 'link', 'admin', sysdate(), '', null, 'Dify API菜单');
+
+-- 按钮父菜单ID
+SELECT @parentId := LAST_INSERT_ID();
+
+-- 按钮 SQL
+insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+values('Dify API查询', @parentId, '1',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:query',        '#', 'admin', sysdate(), '', null, '');
+
+insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+values('Dify API新增', @parentId, '2',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:add',          '#', 'admin', sysdate(), '', null, '');
+
+insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+values('Dify API修改', @parentId, '3',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:edit',         '#', 'admin', sysdate(), '', null, '');
+
+insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+values('Dify API删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:remove',       '#', 'admin', sysdate(), '', null, '');
+
+insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
+values('Dify API导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:export',       '#', 'admin', sysdate(), '', null, '');

@@ -233,6 +233,12 @@
             </dependency>
 
             <dependency>
+                <groupId>com.ruoyi</groupId>
+                <artifactId>ruoyi-ai-dify</artifactId>
+                <version>${ruoyi.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j</artifactId>
                 <version>${langchain4j.version}</version>
