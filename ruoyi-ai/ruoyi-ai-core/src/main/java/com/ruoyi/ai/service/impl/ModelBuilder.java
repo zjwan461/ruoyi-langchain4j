@@ -114,17 +114,18 @@ public class ModelBuilder {
         Model model = SpringUtils.getBean(IModelService.class).selectModelById(aiAgent.getModelId());
         ModelProvider provider = ModelProvider.fromValue(model.getProvider());
         ChatRequestParameters parameters = null;
+        Integer maxOutputToken = aiAgent.getMaxOutputToken() == null || aiAgent.getMaxOutputToken() == -1 ? null : aiAgent.getMaxOutputToken();
         if (provider == ModelProvider.OLLAMA) {
-            parameters = OpenAiChatRequestParameters.builder()
-                    .modelName(model.getName())
-                    .temperature(aiAgent.getTemperature())
-                    .maxOutputTokens(aiAgent.getMaxOutputToken())
-                    .build();
-        } else {
             parameters = OllamaChatRequestParameters.builder()
                     .modelName(model.getName())
                     .temperature(aiAgent.getTemperature())
-                    .maxOutputTokens(aiAgent.getMaxOutputToken())
+                    .maxOutputTokens(maxOutputToken)
+                    .build();
+        } else {
+            parameters = OpenAiChatRequestParameters.builder()
+                    .modelName(model.getName())
+                    .temperature(aiAgent.getTemperature())
+                    .maxOutputTokens(maxOutputToken)
                     .build();
         }
 

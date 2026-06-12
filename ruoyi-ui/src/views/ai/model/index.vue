@@ -114,7 +114,9 @@
                            placeholder="请输入temperature"/>
         </el-form-item>
         <el-form-item label="token最大生成数" prop="maxOutputToken">
-          <el-input-number v-model="form.maxOutputToken" :step="100" :min="200" placeholder="请输入token最大生成数"/>
+          <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数"/>
+          <i class="color: grey">Tips: <b
+            style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
         </el-form-item>
 
       </el-form>
@@ -205,7 +207,7 @@ export default {
       // 表单参数
       form: {
         temperature: 0.7,
-        maxOutputToken: 2048,
+        maxOutputToken: -1,
       },
       // 表单校验
       rules: {
@@ -299,7 +301,7 @@ export default {
         baseUrl: null,
         apiKey: null,
         temperature: 0.7,
-        maxOutputToken: 2048,
+        maxOutputToken: -1,
         createBy: null,
         createTime: null,
         updateBy: null,

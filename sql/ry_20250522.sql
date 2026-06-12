@@ -1371,3 +1371,14 @@ values('Dify API删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-a
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
 values('Dify API导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:export',       '#', 'admin', sysdate(), '', null, '');
+
+-- 修改api_key长度为255
+ALTER TABLE model
+    MODIFY COLUMN api_key varchar(255) NULL COMMENT 'api key';
+
+-- 修改max_output_token可以为null
+ALTER TABLE model
+    MODIFY COLUMN max_output_token int NULL COMMENT '最大输出token';
+
+ALTER TABLE ai_agent
+    MODIFY COLUMN max_output_token int NULL COMMENT '最大输出token';

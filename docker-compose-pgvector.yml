@@ -19,7 +19,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       # 可选：初始化脚本目录
       # - ./init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
