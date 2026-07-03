@@ -86,7 +86,9 @@
           <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
         </el-form-item>
         <el-form-item label="token最大生成数" prop="maxOutputToken">
-          <el-input-number v-model="form.maxOutputToken" :step="100" :min="200" placeholder="请输入token最大生成数" />
+          <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数" />
+          <i class="color: grey">Tips: <b
+            style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
         </el-form-item>
         <el-form-item label="知识库" prop="kbIds">
           <el-select v-model="form.kbIds" filterable multiple>
@@ -113,8 +115,8 @@
         <el-form-item label="记忆轮次" prop="memoryCount">
           <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容" />
         </el-form-item>
-        <el-form-item label="IP LMT" prop="dayLmtPerClient">
-          <el-input-number v-model="form.dayLmtPerClient" :max="1000" :min="1" :step="1" placeholder="请输入内容" />
+        <el-form-item label="Client LMT" prop="dayLmtPerClient">
+          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -172,7 +174,7 @@ export default {
         modelId: null,
         status: null,
         temperature: null,
-        maxOutputToken: null,
+        maxOutputToken: -1,
       },
       // 表单参数
       form: {
@@ -189,15 +191,13 @@ export default {
         status: [
           { required: true, message: "状态不能为空", trigger: "change" }
         ],
-        dayLmtPerIp: [
+        dayLmtPerClient: [
           { required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur" }
         ],
         temperature: [
           { required: true, message: "模型温度不能为空", trigger: "blur" }
         ],
-        maxOutputToken: [
-          { required: true, message: "最大输出token数不能为空", trigger: "blur" }
-        ],
+
         promptTemplate: [
           { required: true, message: "提示词模板不能为空", trigger: "blur" }
         ]
@@ -247,9 +247,9 @@ export default {
         updateTime: null,
         status: 0,
         visitUrl: null,
-        dayLmtPerIp: 100,
+        dayLmtPerClient: 100,
         temperature: 0.7,
-        maxOutputToken: 2048,
+        maxOutputToken: -1,
         promptTemplate: "已知信息：{data}\n用户问题：{question}\n回答要求：\n- 请使用中文回答用户问题",
         minScore: 0.7,
         maxResult: 3

@@ -1,0 +1,105 @@
+version: '3.8'
+
+# 本地开发使用的中间件编排：包含 MySQL、Redis、PostgreSQL(pgvector)
+# 启动方式：docker compose -f docker-compose-middleware.yml up -d
+# 停止方式：docker compose -f docker-compose-middleware.yml down
+
+services:
+  # MySQL 8.0 主库，用于存储 ruoyi-vue 业务数据
+  mysql:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/mysql:8.0.39
+    container_name: mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=ry-vue
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+      - ./my.cnf:/etc/my.cnf
+    command: >
+      mysqld --character-set-server=utf8mb4
+             --collation-server=utf8mb4_general_ci
+             --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - middleware-net
+
+  # Redis 缓存数据库
+  redis:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/redis:alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - middleware-net
+
+  # PostgreSQL 15 + pgvector 向量数据库，用于 AI 知识库 embedding 存储
+  postgres:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/ghcr.io/immich-app/postgres:15-vectorchord0.4.2-pgvectors0.3.0
+    container_name: pgvector
+    restart: unless-stopped
+    environment:
+      # 设置管理员账号为 root，PostgreSQL 中的超级用户名
+      POSTGRES_USER: root
+      # 管理员 root 的密码
+      POSTGRES_PASSWORD: root
+      # 初始化创建的数据库名
+      POSTGRES_DB: embedding
+      # 字符集配置，支持中文
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate=C --lc-ctype=C
+      # 时区设置
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d embedding"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+    command: >
+      postgres
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=1310kB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+    networks:
+      - middleware-net
+
+networks:
+  middleware-net:
+    name: ruoyi-middleware
+    driver: bridge
