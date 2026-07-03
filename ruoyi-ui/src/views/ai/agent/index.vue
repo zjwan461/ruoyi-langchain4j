@@ -116,7 +116,7 @@
           <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="Client LMT" prop="dayLmtPerClient">
-          <el-input-number v-model="form.dayLmtPerClient" :max="1000" :min="1" :step="1" placeholder="请输入内容" />
+          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">

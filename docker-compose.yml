@@ -82,24 +82,12 @@ services:
       -c work_mem=1310kB
       -c min_wal_size=1GB
       -c max_wal_size=4GB
-  ruoyi-ui:
-    image: ruoyi-ui
-    container_name: ruoyi-ui
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    environment:
-      - TZ=Asia/Shanghai
-    volumes:
-      - ./ruoyi-ui/dist:/ruoyi-ui
-    depends_on:
-      - redis
-      - mysql
-      - postgres
-    networks:
-      - app-net
+  # 后端服务：使用 Maven 多阶段构建，运行基于 JRE 21
   ruoyi-admin:
-    image: ruoyi-admin
+    build:
+      context: .
+      dockerfile: Dockerfile-admin
+    image: ruoyi-admin:latest
     container_name: ruoyi-admin
     restart: unless-stopped
     ports:
@@ -109,9 +97,31 @@ services:
     volumes:
       - ./uploadPath:/uploadPath
     depends_on:
+      redis:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-net
+  # 前端服务：使用 Node 22.04 多阶段构建，运行基于 Nginx
+  ruoyi-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile-ui
+    image: ruoyi-ui:latest
+    container_name: ruoyi-ui
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
       - redis
       - mysql
       - postgres
+      - ruoyi-admin
     networks:
       - app-net
 

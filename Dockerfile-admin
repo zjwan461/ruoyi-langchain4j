@@ -1,4 +1,43 @@
-FROM eclipse-temurin:21.0.4_7-jre as BE
-COPY ruoyi-admin/target/ruoyi-admin.jar app.jar
+# =====================
+# Stage 1: 构建阶段，使用 Maven 镜像进行 jar 包构建
+# =====================
+FROM maven:3.9-eclipse-temurin-21 AS builder
+
+WORKDIR /build
+
+# 先复制根 pom.xml 以及各子模块的 pom.xml，最大化利用 Docker 缓存
+COPY pom.xml ./
+COPY ruoyi-admin/pom.xml ./ruoyi-admin/
+COPY ruoyi-common/pom.xml ./ruoyi-common/
+COPY ruoyi-framework/pom.xml ./ruoyi-framework/
+COPY ruoyi-quartz/pom.xml ./ruoyi-quartz/
+COPY ruoyi-system/pom.xml ./ruoyi-system/
+COPY ruoyi-generator/pom.xml ./ruoyi-generator/
+COPY ruoyi-ai/pom.xml ./ruoyi-ai/
+COPY ruoyi-ai/ruoyi-ai-core/pom.xml ./ruoyi-ai/ruoyi-ai-core/
+COPY ruoyi-ai/ruoyi-ai-dify/pom.xml ./ruoyi-ai/ruoyi-ai-dify/
+
+# 预下载依赖（利用 Docker 缓存加速后续构建）
+RUN mvn -B -q dependency:go-offline || true
+
+# 复制所有源码
+COPY . .
+
+# 构建 ruoyi-admin 模块及其依赖模块
+RUN mvn clean package -DskipTests -B -pl ruoyi-admin -am
+
+# =====================
+# Stage 2: 运行时阶段，使用轻量 JRE 镜像
+# =====================
+FROM eclipse-temurin:21.0.4_7-jre
+
+WORKDIR /app
+
+# 从构建阶段复制构建好的 jar
+COPY --from=builder /build/ruoyi-admin/target/ruoyi-admin.jar app.jar
+
 RUN sh -c 'touch app.jar'
+
+EXPOSE 8080
+
 ENTRYPOINT [ "sh", "-c", "java -Druoyi.profile=/uploadPath -jar app.jar $SPRING_OPTS" ]

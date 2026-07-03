@@ -1,4 +1,36 @@
-FROM nginx:latest as FE
+# =====================
+# Stage 1: 构建阶段，使用 node:22.04 镜像进行前端构建
+# =====================
+FROM node:22.04 AS builder
+
+WORKDIR /build
+
+# 复制 package.json 与 package-lock.json，优先缓存依赖
+COPY ruoyi-ui/package*.json ./
+
+# 安装依赖（若网络不佳可改为淘宝镜像：npm install --registry=https://registry.npmmirror.com）
+RUN npm install --registry=https://registry.npmmirror.com
+
+# 复制前端所有源码
+COPY ruoyi-ui/ ./
+
+# 执行生产环境构建，产物输出到 /build/dist
+RUN npm run build:prod
+
+# =====================
+# Stage 2: 运行时阶段，使用 nginx 镜像作为运行时
+# =====================
+FROM nginx:latest
+
+# 移除默认 nginx 配置
 RUN rm /etc/nginx/nginx.conf
+
+# 复制自定义 nginx 配置
 COPY nginx.conf /etc/nginx/
 
+# 从构建阶段复制前端构建产物到 /ruoyi-ui
+COPY --from=builder /build/dist /ruoyi-ui
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
