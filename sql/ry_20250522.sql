@@ -1372,6 +1372,33 @@ values('Dify API删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-a
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
 values('Dify API导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:export',       '#', 'admin', sysdate(), '', null, '');
 
+-- dify_api表
+drop table if exists dify_api;
+CREATE TABLE dify_api (
+                          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                          url_prefix VARCHAR(255) NOT NULL COMMENT 'Dify APl前缀',
+                          api_key VARCHAR(100) NULL DEFAULT NULL COMMENT 'api_key',
+                          response_type VARCHAR(100) NOT NULL DEFAULT 'streaming' COMMENT '响应类型',
+                          create_by VARCHAR(100) NULL DEFAULT NULL COMMENT '创建人',
+                          create_time DATETIME NULL DEFAULT NULL COMMENT '创建时间',
+                          update_by VARCHAR(100) NULL DEFAULT NULL COMMENT '更新人',
+                          update_time DATETIME NULL DEFAULT NULL COMMENT '更新时间',
+                          name VARCHAR(255) NOT NULL COMMENT '应用名',
+                          PRIMARY KEY (`id`) USING BTREE
+)engine = innodb auto_increment = 1 comment ='dify_api表';
+
+INSERT INTO sys_dict_type (dict_name, dict_type, status, create_by, create_time, update_by, update_time,
+                           remark)
+VALUES ('智能体类型', 'ai_agent_type', '0', 'admin', sysdate(), '', NULL, '智能体列表中的类型选项');
+
+INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default,
+                           status, create_by, create_time, update_by, update_time, remark)
+VALUES (0, 'origin', 'origin', 'ai_agent_type', NULL, 'primary', 'Y', '0', 'admin', sysdate(), '', NULL,
+        '原智能体'),
+       (0, 'dify', 'dify', 'ai_agent_type', NULL, 'success', 'N', '0', 'admin', sysdate(), '', NULL,
+        'Dify智能体');
+
+
 -- 修改api_key长度为255
 ALTER TABLE model
     MODIFY COLUMN api_key varchar(255) NULL COMMENT 'api key';
@@ -1380,5 +1407,41 @@ ALTER TABLE model
 ALTER TABLE model
     MODIFY COLUMN max_output_token int NULL COMMENT '最大输出token';
 
+-- ----------------------------
+-- 智能体表新增 agent_type 列(智能体类型:origin / dify),默认 origin 兼容历史数据
+-- ----------------------------
+ALTER TABLE ai_agent
+    ADD COLUMN agent_type varchar(20) DEFAULT 'origin' NOT NULL COMMENT '智能体类型';
+
 ALTER TABLE ai_agent
     MODIFY COLUMN max_output_token int NULL COMMENT '最大输出token';
+
+-- ----------------------------
+-- 智能体表改为可选 + 新增 dify_api_id(支持 dify 类型,仅需选择 dify 应用即可,其余字段放开可空)
+-- ----------------------------
+ALTER TABLE ai_agent
+    MODIFY COLUMN model_id bigint unsigned NULL COMMENT '模型id';
+
+ALTER TABLE ai_agent
+    MODIFY COLUMN system_message varchar(500) NULL COMMENT '系统提示词';
+
+ALTER TABLE ai_agent
+    MODIFY COLUMN day_lmt_per_client int NULL COMMENT '单客户端1天内最大访问次数';
+
+ALTER TABLE ai_agent
+    MODIFY COLUMN temperature double NULL COMMENT '温度';
+
+ALTER TABLE ai_agent
+    MODIFY COLUMN prompt_template varchar(500) NULL COMMENT '提示词模板';
+
+ALTER TABLE ai_agent
+    MODIFY COLUMN memory_count int unsigned NULL COMMENT '记忆轮次';
+
+ALTER TABLE ai_agent
+    ADD COLUMN dify_api_id bigint unsigned NULL COMMENT 'dify应用主键id';
+
+ALTER TABLE ai_agent
+    ADD COLUMN dify_api_name varchar(255) NULL COMMENT 'dify应用名称';
+
+ALTER TABLE ai_agent
+    ADD COLUMN model_name varchar(255) NULL COMMENT '模型名称';

@@ -16,6 +16,7 @@
     <modules>
         <module>ruoyi-ai-core</module>
         <module>ruoyi-ai-dify</module>
+        <module>ruoyi-ai-chat</module>
     </modules>
 
 </project>

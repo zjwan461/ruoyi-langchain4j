@@ -13,12 +13,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="createTime"    column="create_time"    />
         <result property="updateBy"    column="update_by"    />
         <result property="updateTime"    column="update_time"    />
-        <result property="dayLmtPerClient"    column="day_lmt_per_client"    />
         <result property="name"    column="name"    />
     </resultMap>
 
     <sql id="selectDifyApiVo">
-        select id, url_prefix, api_key, response_type, create_by, create_time, update_by, update_time, day_lmt_per_client, name from dify_api
+        select id, url_prefix, api_key, response_type, create_by, create_time, update_by, update_time, name from dify_api
     </sql>
 
     <select id="selectDifyApiList" parameterType="DifyApi" resultMap="DifyApiResult">
@@ -46,7 +45,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createTime != null">create_time,</if>
             <if test="updateBy != null">update_by,</if>
             <if test="updateTime != null">update_time,</if>
-            <if test="dayLmtPerClient != null">day_lmt_per_client,</if>
             <if test="name != null and name != ''">name,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -57,7 +55,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createTime != null">#{createTime},</if>
             <if test="updateBy != null">#{updateBy},</if>
             <if test="updateTime != null">#{updateTime},</if>
-            <if test="dayLmtPerClient != null">#{dayLmtPerClient},</if>
             <if test="name != null and name != ''">#{name},</if>
          </trim>
     </insert>
@@ -72,7 +69,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
-            <if test="dayLmtPerClient != null">day_lmt_per_client = #{dayLmtPerClient},</if>
             <if test="name != null and name != ''">name = #{name},</if>
         </trim>
         where id = #{id}

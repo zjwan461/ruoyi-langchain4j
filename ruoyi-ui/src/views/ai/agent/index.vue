@@ -44,6 +44,11 @@
       <!-- <el-table-column label="系统提示词" align="center" prop="systemMessage" /> -->
       <el-table-column label="记忆轮次" align="center" prop="memoryCount" />
       <el-table-column label="模型" align="center" prop="modelName" />
+      <el-table-column label="智能体类型" align="center" prop="agentType">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.ai_agent_type" :value="scope.row.agentType" />
+        </template>
+      </el-table-column>
       <el-table-column label="状态" align="center" prop="status">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.ai_agent_status" :value="scope.row.status" />
@@ -74,49 +79,68 @@
     <!-- 添加或修改AI智能体对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="800px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="130px">
+        <el-form-item label="智能体类型" prop="agentType">
+          <el-select v-model="form.agentType" placeholder="请选择智能体类型">
+            <el-option
+              v-for="dict in dict.type.ai_agent_type"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            ></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="应用名" prop="name">
           <el-input v-model="form.name" placeholder="请输入应用名" :maxlength="25" show-word-limit clearable />
         </el-form-item>
-        <el-form-item label="AI模型" prop="modelId">
-          <el-select v-model="form.modelId">
-            <el-option v-for="item in llms" :key="item.id" :value="item.id" :label="item.name"></el-option>
+        <!-- origin 类型专属字段:dify 类型时整块隐藏 -->
+        <template v-if="form.agentType !== 'dify'">
+          <el-form-item label="AI模型" prop="modelId">
+            <el-select v-model="form.modelId">
+              <el-option v-for="item in llms" :key="item.id" :value="item.id" :label="item.name"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="temperature" prop="temperature">
+            <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
+          </el-form-item>
+          <el-form-item label="token最大生成数" prop="maxOutputToken">
+            <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数" />
+            <i class="color: grey">Tips: <b
+              style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
+          </el-form-item>
+          <el-form-item label="知识库" prop="kbIds">
+            <el-select v-model="form.kbIds" filterable multiple>
+              <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="最小得分" prop="minScore"
+            v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+            <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
+          </el-form-item>
+          <el-form-item label="最大查询记录数" prop="maxResult"
+            v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+            <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
+          </el-form-item>
+          <el-form-item label="系统提示词" prop="systemMessage">
+            <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="100"
+              show-word-limit clearable />
+          </el-form-item>
+          <el-form-item label="提示词模板" prop="promptTemplate">
+            <el-input v-model="form.promptTemplate" type="textarea" rows="5" placeholder="请输入内容" :maxlength="100"
+              show-word-limit clearable /><i class="color: grey">Tips: 占位符<b
+                style="color: red;">{question}</b>表示用户输入的内容；占位符<b style="color: red;">{data}</b>表示知识库搜索出来的内容</i>
+          </el-form-item>
+          <el-form-item label="记忆轮次" prop="memoryCount">
+            <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容" />
+          </el-form-item>
+        </template>
+        <!-- dify 类型专属字段:dify flow 选择对应的 dify 应用 -->
+        <el-form-item v-else label="dify flow" prop="difyApiId">
+          <el-select v-model="form.difyApiId" placeholder="请选择dify应用" clearable>
+            <el-option v-for="item in difyApis" :key="item.id" :value="item.id" :label="item.name"></el-option>
           </el-select>
-        </el-form-item>
-        <el-form-item label="temperature" prop="temperature">
-          <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
-        </el-form-item>
-        <el-form-item label="token最大生成数" prop="maxOutputToken">
-          <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数" />
-          <i class="color: grey">Tips: <b
-            style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
-        </el-form-item>
-        <el-form-item label="知识库" prop="kbIds">
-          <el-select v-model="form.kbIds" filterable multiple>
-            <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="最小得分" prop="minScore"
-          v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
-          <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
-        </el-form-item>
-        <el-form-item label="最大查询记录数" prop="maxResult"
-          v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
-          <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
-        </el-form-item>
-        <el-form-item label="系统提示词" prop="systemMessage">
-          <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="100"
-            show-word-limit clearable />
-        </el-form-item>
-        <el-form-item label="提示词模板" prop="promptTemplate">
-          <el-input v-model="form.promptTemplate" type="textarea" rows="5" placeholder="请输入内容" :maxlength="100"
-            show-word-limit clearable /><i class="color: grey">Tips: 占位符<b
-              style="color: red;">{question}</b>表示用户输入的内容；占位符<b style="color: red;">{data}</b>表示知识库搜索出来的内容</i>
-        </el-form-item>
-        <el-form-item label="记忆轮次" prop="memoryCount">
-          <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="Client LMT" prop="dayLmtPerClient">
-          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容" />
+          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容"/>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -137,15 +161,17 @@
 import { listAgent, getAgent, delAgent, addAgent, updateAgent } from "@/api/ai/agent"
 import { listModel } from "@/api/ai/model"
 import { listKnowledgeBase } from "@/api/ai/knowledgeBase"
+import { listDifyApi } from "@/api/ai/difyApi"
 
 export default {
   name: "Agent",
-  dicts: ['ai_agent_status'],
+  dicts: ['ai_agent_status', 'ai_agent_type'],
   data() {
     return {
       baseUrl: window.location.host,
       llms: [],
       kbs: [],
+      difyApis: [],
       // 遮罩层
       loading: true,
       // 选中数组
@@ -178,30 +204,53 @@ export default {
       },
       // 表单参数
       form: {
-        status: 0
-      },
-      // 表单校验
-      rules: {
+        agentType: 'origin',
+        status: 0,
+        difyApiId: null
+      }
+      // 表单校验已移至 computed.rules(根据 agentType 动态切换)
+    }
+  },
+  computed: {
+    // 根据 agentType 动态生成 rules;origin 时原本必填字段必须填,dify 时只要求 difyApiId
+    rules() {
+      const isOrigin = this.form.agentType !== 'dify'
+      return {
         name: [
           { required: true, message: "应用名不能为空", trigger: "blur" }
         ],
-        modelId: [
-          { required: true, message: "AI模型不能为空", trigger: "blur" }
+        agentType: [
+          { required: true, message: "智能体类型不能为空", trigger: "change" }
         ],
         status: [
           { required: true, message: "状态不能为空", trigger: "change" }
         ],
-        dayLmtPerClient: [
-          { required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur" }
-        ],
-        temperature: [
+        modelId: isOrigin ? [
+          { required: true, message: "AI模型不能为空", trigger: "blur" }
+        ] : [],
+        temperature: isOrigin ? [
           { required: true, message: "模型温度不能为空", trigger: "blur" }
+        ] : [],
+        dayLmtPerClient: [
+          {required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur"}
         ],
-
-        promptTemplate: [
+        promptTemplate: isOrigin ? [
           { required: true, message: "提示词模板不能为空", trigger: "blur" }
-        ]
+        ] : [],
+        difyApiId: !isOrigin ? [
+          { required: true, message: "请选择dify应用", trigger: "change" }
+        ] : []
       }
+    }
+  },
+  watch: {
+    // 切换 agentType 时清掉校验状态,避免旧错误提示残留在已隐藏/已替换的字段上
+    'form.agentType'() {
+      this.$nextTick(() => {
+        if (this.$refs.form) {
+          this.$refs.form.clearValidate()
+        }
+      })
     }
   },
   created() {
@@ -245,9 +294,11 @@ export default {
         createTime: null,
         updateBy: null,
         updateTime: null,
+        agentType: 'origin',
         status: 0,
         visitUrl: null,
-        dayLmtPerClient: 100,
+        difyApiId: null,
+        dayLmtPerClient: 1000,
         temperature: 0.7,
         maxOutputToken: -1,
         promptTemplate: "已知信息：{data}\n用户问题：{question}\n回答要求：\n- 请使用中文回答用户问题",
@@ -279,6 +330,7 @@ export default {
       this.title = "添加AI智能体"
       this.listLLM()
       this.listKbs()
+      this.listDifyApis()
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -286,6 +338,7 @@ export default {
       const id = row.id || this.ids
       this.listLLM()
       this.listKbs()
+      this.listDifyApis()
       getAgent(id).then(response => {
         this.form = response.data
         if (this.form) {
@@ -344,6 +397,11 @@ export default {
     listKbs() {
       listKnowledgeBase().then(res => {
         this.kbs = res.rows
+      })
+    },
+    listDifyApis() {
+      listDifyApi({ pageNum: 1, pageSize: 9999 }).then(res => {
+        this.difyApis = res.rows
       })
     }
   }

@@ -57,7 +57,9 @@
             </svg>
           </div>
           <div class="agent-details">
-            <h1>{{ agentInfo.name || 'AI 助手' }}</h1>
+            <h1>{{ agentInfo.name || 'AI 助手' }}
+              <el-tag v-if="agentInfo" type="info" size="medium" effect="plain" style="margin-left: 10px;">{{ agentInfo.agentType === 'dify' ? 'Dify 智能体' : (agentInfo.agentType || 'origin') }}</el-tag>
+            </h1>
             <p v-if="agentInfo.description">{{ agentInfo.description }}</p>
           </div>
         </div>
@@ -267,7 +269,7 @@ export default {
     getSessionList() {
       listChatSession(this.clientId, this.agentInfo.id).then(res => {
         this.sessionList = res.data
-        if (this.sessionList.length === 0) {
+        if (!this.sessionList || this.sessionList.length === 0) {
           this.newSession()
         }
       })

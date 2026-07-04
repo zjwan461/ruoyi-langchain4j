@@ -1,9 +1,11 @@
 package com.ruoyi.ai.dify.api;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DifyChatBlockingResponse {
     private String event;
     @JsonProperty("task_id")
@@ -20,9 +22,19 @@ public class DifyChatBlockingResponse {
     private Long createdAt;
 
     public static class Metadata {
+        @JsonProperty("annotation_reply")
+        private String annotationReply;
         private Usage usage;
         @JsonProperty("retriever_resources")
         private List<RetrieverResource> retrieverResources;
+
+        public String getAnnotationReply() {
+            return annotationReply;
+        }
+
+        public void setAnnotationReply(String annotationReply) {
+            this.annotationReply = annotationReply;
+        }
 
         // Getters and Setters
         public Usage getUsage() {
@@ -40,12 +52,21 @@ public class DifyChatBlockingResponse {
         public void setRetrieverResources(List<RetrieverResource> retrieverResources) {
             this.retrieverResources = retrieverResources;
         }
+
+        @Override
+        public String toString() {
+            return "Metadata{" +
+                    "annotationReply='" + annotationReply + '\'' +
+                    ", usage=" + usage +
+                    ", retrieverResources=" + retrieverResources +
+                    '}';
+        }
     }
 
     public static class Usage {
         @JsonProperty("prompt_tokens")
         private Integer promptTokens;
-        @JsonProperty("prompt_price")
+        @JsonProperty("prompt_unit_price")
         private String promptUnitPrice;
         @JsonProperty("prompt_price_unit")
         private String promptPriceUnit;
@@ -53,7 +74,7 @@ public class DifyChatBlockingResponse {
         private String promptPrice;
         @JsonProperty("completion_tokens")
         private Integer completionTokens;
-        @JsonProperty("completion_price")
+        @JsonProperty("completion_unit_price")
         private String completionUnitPrice;
         @JsonProperty("completion_price_unit")
         private String completionPriceUnit;
@@ -65,6 +86,10 @@ public class DifyChatBlockingResponse {
         private String totalPrice;
         private String currency;
         private Double latency;
+        @JsonProperty("time_to_first_token")
+        private Double timeToFirstToken;
+        @JsonProperty("time_to_generate")
+        private Double timeToGenerate;
 
         // Getters and Setters
         public Integer getPromptTokens() {
@@ -162,6 +187,42 @@ public class DifyChatBlockingResponse {
         public void setLatency(Double latency) {
             this.latency = latency;
         }
+
+        public Double getTimeToFirstToken() {
+            return timeToFirstToken;
+        }
+
+        public void setTimeToFirstToken(Double timeToFirstToken) {
+            this.timeToFirstToken = timeToFirstToken;
+        }
+
+        public Double getTimeToGenerate() {
+            return timeToGenerate;
+        }
+
+        public void setTimeToGenerate(Double timeToGenerate) {
+            this.timeToGenerate = timeToGenerate;
+        }
+
+        @Override
+        public String toString() {
+            return "Usage{" +
+                    "promptTokens=" + promptTokens +
+                    ", promptUnitPrice='" + promptUnitPrice + '\'' +
+                    ", promptPriceUnit='" + promptPriceUnit + '\'' +
+                    ", promptPrice='" + promptPrice + '\'' +
+                    ", completionTokens=" + completionTokens +
+                    ", completionUnitPrice='" + completionUnitPrice + '\'' +
+                    ", completionPriceUnit='" + completionPriceUnit + '\'' +
+                    ", completionPrice='" + completionPrice + '\'' +
+                    ", totalTokens=" + totalTokens +
+                    ", totalPrice='" + totalPrice + '\'' +
+                    ", currency='" + currency + '\'' +
+                    ", latency=" + latency +
+                    ", timeToFirstToken=" + timeToFirstToken +
+                    ", timeToGenerate=" + timeToGenerate +
+                    '}';
+        }
     }
 
     public static class RetrieverResource {
@@ -243,6 +304,20 @@ public class DifyChatBlockingResponse {
         public void setContent(String content) {
             this.content = content;
         }
+
+        @Override
+        public String toString() {
+            return "RetrieverResource{" +
+                    "position=" + position +
+                    ", datasetId='" + datasetId + '\'' +
+                    ", datasetName='" + datasetName + '\'' +
+                    ", documentId='" + documentId + '\'' +
+                    ", documentName='" + documentName + '\'' +
+                    ", segmentId='" + segmentId + '\'' +
+                    ", score=" + score +
+                    ", content='" + content + '\'' +
+                    '}';
+        }
     }
 
     // Getters and Setters for EventMessage
@@ -316,5 +391,20 @@ public class DifyChatBlockingResponse {
 
     public void setCreatedAt(Long createdAt) {
         this.createdAt = createdAt;
+    }
+
+    @Override
+    public String toString() {
+        return "DifyChatBlockingResponse{" +
+                "event='" + event + '\'' +
+                ", taskId='" + taskId + '\'' +
+                ", id='" + id + '\'' +
+                ", messageId='" + messageId + '\'' +
+                ", conversationId='" + conversationId + '\'' +
+                ", mode='" + mode + '\'' +
+                ", answer='" + answer + '\'' +
+                ", metadata=" + metadata +
+                ", createdAt=" + createdAt +
+                '}';
     }
 }

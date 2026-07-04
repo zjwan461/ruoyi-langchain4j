@@ -11,7 +11,7 @@ public class DifyInfoResponse {
     private String name;
     private String description;
     private List<String> tags;
-    private String model;
+    private String mode;
     @JsonProperty("author_name")
     private String authorName;
 }

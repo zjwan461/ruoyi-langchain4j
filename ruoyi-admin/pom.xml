@@ -70,6 +70,11 @@
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-ai-dify</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-ai-chat</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
