@@ -1,7 +1,7 @@
 # =====================
 # Stage 1: 构建阶段，使用 Maven 镜像进行 jar 包构建
 # =====================
-FROM maven:3.9-eclipse-temurin-21 AS builder
+FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
@@ -29,7 +29,7 @@ RUN mvn clean package -DskipTests -B -pl ruoyi-admin -am
 # =====================
 # Stage 2: 运行时阶段，使用轻量 JRE 镜像
 # =====================
-FROM eclipse-temurin:21.0.4_7-jre
+FROM eclipse-temurin:17.0.19_10-jre
 
 WORKDIR /app
 
