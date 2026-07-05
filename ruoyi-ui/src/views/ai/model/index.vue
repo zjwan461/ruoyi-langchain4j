@@ -54,7 +54,6 @@
       <el-table-column label="模型ID" align="center" prop="id"/>
       <el-table-column label="模型名称" align="center" prop="name"/>
       <el-table-column label="base url" align="center" prop="baseUrl"/>
-      <el-table-column label="api key" align="center" prop="apiKey"/>
       <el-table-column label="temperature" align="center" prop="temperature"/>
       <el-table-column label="token最大生成数" align="center" prop="maxOutputToken"/>
       <el-table-column label="类型" align="center" prop="type">
