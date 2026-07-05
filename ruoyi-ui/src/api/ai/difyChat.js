@@ -8,9 +8,9 @@ export function getAgent(agentId) {
   })
 }
 
-export function createSession(clientId) {
+export function createSession(clientId, agentId) {
   return request({
-    url: '/dify-chat/create-session/' + clientId,
+    url: '/dify-chat/create-session/' + clientId + "/" + agentId,
     method: 'post',
   })
 }
@@ -31,7 +31,7 @@ export function listChatMessage(sessionId, agentId) {
 }
 
 export function deleteSession(sessionId) {
-  return  request({
+  return request({
     url: '/dify-chat/delete-session/' + sessionId,
     method: 'delete',
   })

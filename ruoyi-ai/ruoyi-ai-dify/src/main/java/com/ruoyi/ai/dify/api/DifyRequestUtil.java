@@ -19,6 +19,8 @@ import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -124,6 +126,150 @@ public class DifyRequestUtil {
         } catch (JsonProcessingException e) {
             log.error("format dify response to json fail...", e);
             throw new ServiceException("format dify response to json fail...");
+        }
+    }
+
+    /**
+     * 获取会话列表。
+     *
+     * <p>对应 Dify API：<code>GET /v1/conversations?user=...&last_id=...&limit=...</code>。
+     * 与 {@link #info(String, String)} / {@link #chatBlocking(String, String, DifyChatRequest)}
+     * 一样使用 Hutool 的 {@link HttpRequest} 同步阻塞调用。</p>
+     *
+     * @param urlPrefix Dify 服务地址前缀，例如 {@code http://localhost/v1}
+     * @param apiKey    Dify API Key；为空时不设置 {@code Authorization} 头
+     * @param user      用户标识（必填）
+     * @param lastId    分页游标；传 {@code null} 或空字符串表示首页
+     * @param limit     单页条数；传 {@code null} 时使用 Dify 默认值 20
+     * @return 会话列表响应
+     * @throws ServiceException 当参数不合法或 HTTP 状态非 2xx 时抛出
+     */
+    public DifyConversationsResponse getConversations(String urlPrefix, String apiKey,
+                                                      String user, String lastId, Integer limit) {
+        if (StringUtils.isBlank(urlPrefix)) {
+            throw new ServiceException("dify url prefix is empty");
+        }
+        if (StringUtils.isBlank(user)) {
+            throw new ServiceException("dify user is empty");
+        }
+        urlPrefix = handleUrlPrefix(urlPrefix);
+
+        HttpRequest httpRequest = HttpUtil.createRequest(Method.GET, urlPrefix + "/conversations")
+                .form("user", user)
+                .form("last_id", lastId == null ? "" : lastId)
+                .form("limit", limit == null ? "20" : limit.toString());
+        if (StringUtils.isNotBlank(apiKey)) {
+            httpRequest.header("Authorization", "Bearer " + apiKey);
+        }
+        HttpResponse response = httpRequest.execute();
+        if (!response.isOk()) {
+            throw new ServiceException("request dify return http status=" + response.getStatus());
+        }
+        String body = response.body();
+        try {
+            return objectMapper.readValue(body, DifyConversationsResponse.class);
+        } catch (JsonProcessingException e) {
+            log.error("format dify response to json fail...", e);
+            throw new ServiceException("format dify response to json fail...");
+        }
+    }
+
+    /**
+     * 获取会话历史消息。
+     *
+     * <p>对应 Dify API：<code>GET /v1/messages?user=...&conversation_id=...</code>。
+     * 与 {@link #info(String, String)} / {@link #chatBlocking(String, String, DifyChatRequest)}
+     * 一样使用 Hutool 的 {@link HttpRequest} 同步阻塞调用。</p>
+     *
+     * @param urlPrefix      Dify 服务地址前缀，例如 {@code http://localhost/v1}
+     * @param apiKey         Dify API Key；为空时不设置 {@code Authorization} 头
+     * @param user           用户标识（必填）
+     * @param conversationId 会话 ID（必填）
+     * @return 历史消息响应
+     * @throws ServiceException 当参数不合法或 HTTP 状态非 2xx 时抛出
+     */
+    public DifyMessagesResponse getMessages(String urlPrefix, String apiKey,
+                                            String user, String conversationId, String lastId, Integer limit) {
+        if (StringUtils.isBlank(urlPrefix)) {
+            throw new ServiceException("dify url prefix is empty");
+        }
+        if (StringUtils.isBlank(user)) {
+            throw new ServiceException("dify user is empty");
+        }
+        if (StringUtils.isBlank(conversationId)) {
+            throw new ServiceException("dify conversationId is empty");
+        }
+        urlPrefix = handleUrlPrefix(urlPrefix);
+
+        HttpRequest httpRequest = HttpUtil.createRequest(Method.GET, urlPrefix + "/messages")
+                .form("user", user)
+                .form("conversation_id", conversationId)
+                .form("last_id", lastId == null ? "" : lastId)
+                .form("limit", limit == null ? "20" : limit.toString());
+        if (StringUtils.isNotBlank(apiKey)) {
+            httpRequest.header("Authorization", "Bearer " + apiKey);
+        }
+        HttpResponse response = httpRequest.execute();
+        if (!response.isOk()) {
+            throw new ServiceException("request dify return http status=" + response.getStatus());
+        }
+        String body = response.body();
+        try {
+            return objectMapper.readValue(body, DifyMessagesResponse.class);
+        } catch (JsonProcessingException e) {
+            log.error("format dify response to json fail...", e);
+            throw new ServiceException("format dify response to json fail...");
+        }
+    }
+
+    /**
+     * 删除会话。
+     *
+     * <p>对应 Dify API：<code>DELETE /v1/conversations/{conversation_id}</code>，
+     * 请求体为 JSON <code>{"user":"..."}</code>，成功响应 204 No Content。
+     * 与 {@link #info(String, String)} / {@link #chatBlocking(String, String, DifyChatRequest)}
+     * 一样使用 Hutool 的 {@link HttpRequest} 同步阻塞调用。</p>
+     *
+     * @param urlPrefix      Dify 服务地址前缀，例如 {@code http://localhost/v1}
+     * @param apiKey         Dify API Key；为空时不设置 {@code Authorization} 头
+     * @param conversationId 待删除的会话 ID（必填，作为路径参数）
+     * @param user           用户标识（必填，作为请求体字段）
+     * @throws ServiceException 当参数不合法或 HTTP 状态非 2xx 时抛出
+     */
+    public void deleteConversation(String urlPrefix, String apiKey,
+                                   String conversationId, String user) {
+        if (StringUtils.isBlank(urlPrefix)) {
+            throw new ServiceException("dify url prefix is empty");
+        }
+        if (StringUtils.isBlank(conversationId)) {
+            throw new ServiceException("dify conversationId is empty");
+        }
+        if (StringUtils.isBlank(user)) {
+            throw new ServiceException("dify user is empty");
+        }
+        urlPrefix = handleUrlPrefix(urlPrefix);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("user", user);
+        String content;
+        try {
+            content = objectMapper.writeValueAsString(requestBody);
+        } catch (JsonProcessingException e) {
+            log.error("format dify request to json fail...", e);
+            throw new ServiceException("format dify request to json fail...");
+        }
+
+        HttpRequest httpRequest = HttpUtil.createRequest(Method.DELETE,
+                        urlPrefix + "/conversations/" + conversationId)
+                .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .body(content);
+        if (StringUtils.isNotBlank(apiKey)) {
+            httpRequest.header("Authorization", "Bearer " + apiKey);
+        }
+        HttpResponse response = httpRequest.execute();
+        if (!response.isOk()) {
+            throw new ServiceException("request dify return http status=" + response.getStatus());
         }
     }
 

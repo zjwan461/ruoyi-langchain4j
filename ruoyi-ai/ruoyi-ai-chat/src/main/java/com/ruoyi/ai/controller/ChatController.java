@@ -22,8 +22,7 @@ public class ChatController extends BaseController {
             throw new ServiceException("当前Agent未启用");
         }
         //检查每个客户端每日请求限额是否超限
-        if (!aiChatService.checkIfOverLmtRequest(aiAgent.getId(), aiAgent.getDayLmtPerClient(),
-                chatReq.getClientId())) {
+        if (!aiChatService.checkIfOverLmtRequest(aiAgent.getId(), aiAgent.getDayLmtPerClient(), chatReq.getClientId())) {
             throw new ServiceException("客户端当日请求已达上限");
         }
         //检查客户端id和当前激活的sessionId是否匹配

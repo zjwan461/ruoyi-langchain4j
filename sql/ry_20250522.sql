@@ -1445,3 +1445,15 @@ ALTER TABLE ai_agent
 
 ALTER TABLE ai_agent
     ADD COLUMN model_name varchar(255) NULL COMMENT '模型名称';
+
+drop table if exists dify_session_mapping;
+create table dify_session_mapping
+(
+    session_id      char(36) not null comment 'agent chat session_id',
+    client_id       char(36) not null comment 'agent chat client_id',
+    agent_id        bigint unsigned not null comment 'agent id',
+    conversation_id char(36) null comment 'dify chat conversation_id',
+    create_time     DATETIME NULL DEFAULT NULL COMMENT '创建时间',
+    primary key (session_id, client_id)
+) engine = innodb
+comment ='dify chatflow conversation_id和sessionid的mapping表';

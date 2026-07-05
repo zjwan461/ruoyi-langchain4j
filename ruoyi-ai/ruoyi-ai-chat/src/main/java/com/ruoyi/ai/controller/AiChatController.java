@@ -11,15 +11,12 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/ai-chat")
 public class AiChatController extends ChatController {
 
-    @Resource
-    HttpServletRequest request;
 
     @Resource
     IAiAgentService aiAgentService;

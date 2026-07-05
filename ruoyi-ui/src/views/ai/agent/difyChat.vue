@@ -290,7 +290,7 @@ export default {
       this.getChatHistoryMessage()
     },
     newSession() {
-      createSession(this.clientId).then(res => {
+      createSession(this.clientId, this.agentInfo.id).then(res => {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
         this.messages = []
