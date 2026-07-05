@@ -1,7 +1,7 @@
 # =====================
 # Stage 1: 构建阶段，使用 node:22.04 镜像进行前端构建
 # =====================
-FROM node:22.04 AS builder
+FROM node:22 AS builder
 
 WORKDIR /build
 
