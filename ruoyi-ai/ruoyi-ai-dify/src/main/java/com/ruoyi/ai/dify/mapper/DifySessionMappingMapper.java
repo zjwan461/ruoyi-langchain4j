@@ -1,6 +1,7 @@
 package com.ruoyi.ai.dify.mapper;
 
 import com.ruoyi.ai.dify.domain.DifySessionMapping;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -10,8 +11,7 @@ import java.util.List;
  * @author ruoyi
  * @date 2025-10-27
  */
-public interface DifySessionMappingMapper
-{
+public interface DifySessionMappingMapper {
     /**
      * 查询Dify 会话映射
      *
@@ -24,10 +24,10 @@ public interface DifySessionMappingMapper
      * 查询Dify 会话映射
      *
      * @param sessionId 主键
-     * @param clientId client_id
+     * @param clientId  client_id
      * @return Dify 会话映射
      */
-    public DifySessionMapping selectDifySessionMappingBySessionIdAndClientId(String sessionId, String clientId);
+    public DifySessionMapping selectDifySessionMappingBySessionIdAndClientId(@Param("sessionId") String sessionId, @Param("clientId") String clientId);
 
     /**
      * 查询Dify 会话映射列表

@@ -1,7 +1,10 @@
 package com.ruoyi.ai.controller;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.thread.ThreadUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.controller.model.ChatReq;
 import com.ruoyi.ai.dify.api.DifyChatRequest;
 import com.ruoyi.ai.dify.api.DifyConversationsResponse;
@@ -49,6 +52,9 @@ public class DifyChatController extends ChatController {
     @Resource
     private IDifySessionMappingService difySessionMappingService;
 
+    @Resource
+    private ObjectMapper objectMapper;
+
     public DifyChatController(IAiChatService aiChatService) {
         super(aiChatService);
     }
@@ -77,7 +83,14 @@ public class DifyChatController extends ChatController {
                             if (StringUtils.isNotBlank(conversationId) && StringUtils.isBlank(mapping.getConversationId())) {
                                 mapping.setConversationId(conversationId);
                             }
-                            fluxSink.next(answer);
+                            Map<String, String> msg = MapUtil.<String, String>builder()
+                                    .put("msg", answer)
+                                    .build();
+                            try {
+                                fluxSink.next(objectMapper.writeValueAsString(msg));
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
                     });
                 } catch (Exception e) {
@@ -114,6 +127,9 @@ public class DifyChatController extends ChatController {
         AiAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
         DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
         List<DifySessionMapping> mappings = difySessionMappingService.selectDifySessionMappingByClientId(clientId);
+        if (CollUtil.isEmpty(mappings)) {
+            return success();
+        }
         String value = sysConfigService.selectConfigByKey("ai.agent.sessionNum");
         Integer limit = null;
         if (StringUtils.isNotEmpty(value)) {
@@ -126,7 +142,10 @@ public class DifyChatController extends ChatController {
         for (DifyConversationsResponse.Conversation datum : data) {
             String conversationId = datum.getId();
             Optional<DifySessionMapping> first = mappings.stream().filter(mapping -> mapping.getConversationId().equals(conversationId)).findFirst();
-            DifySessionMapping mapping = first.orElseThrow(() -> new ServiceException("未找到此conversationId=" + conversationId + "对应的sessionId"));
+            DifySessionMapping mapping = first.orElse(null);
+            if (mapping == null) {
+                continue;
+            }
             Map<String, Object> res = MapUtil.<String, Object>builder()
                     .put("sessionId", mapping.getSessionId())
                     .put("title", datum.getName())
@@ -146,7 +165,7 @@ public class DifyChatController extends ChatController {
         AiAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
         DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
         DifyMessagesResponse messages = difyRequestUtil.getMessages(difyApi.getUrlPrefix(), difyApi.getApiKey(), mapping.getClientId() + ":" + Constants.DIFY_USER,
-                mapping.getConversationId(), "", 9999);
+                mapping.getConversationId(), "", 100);
         List<DifyMessagesResponse.Message> data = messages.getData();
         for (DifyMessagesResponse.Message datum : data) {
             ChatMessage userChatMessage = new ChatMessage();
@@ -156,8 +175,8 @@ public class DifyChatController extends ChatController {
             userChatMessage.setSessionId(mapping.getSessionId());
             userChatMessage.setContent(datum.getQuery());
             userChatMessage.setClientId(mapping.getClientId());
-            userChatMessage.setCreateTime(new Date(datum.getCreatedAt()));
-            BeanUtils.copyBeanProp(userChatMessage, assistantChatMessage);
+            userChatMessage.setCreateTime(new Date(datum.getCreatedAt() * 1000));
+            BeanUtils.copyProperties(userChatMessage, assistantChatMessage);
             assistantChatMessage.setRole("assistant");
             assistantChatMessage.setContent(datum.getAnswer());
             list.add(userChatMessage);
