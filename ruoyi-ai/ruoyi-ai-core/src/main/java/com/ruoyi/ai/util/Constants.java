@@ -30,4 +30,6 @@ public interface Constants {
 
     int EMBEDDING_DIMENSION = 768;
 
+    String DIFY_USER = "RY_AI_DIFY_USER";
+
 }

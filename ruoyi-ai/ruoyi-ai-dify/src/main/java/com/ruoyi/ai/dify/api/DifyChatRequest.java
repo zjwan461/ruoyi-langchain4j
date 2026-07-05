@@ -2,18 +2,20 @@ package com.ruoyi.ai.dify.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 public class DifyChatRequest {
-    private Map<String, Object> inputs;
+    private Map<String, Object> inputs = new LinkedHashMap<>();
     private String query;
     @JsonProperty("response_mode")
     private ResponseModel responseMode;
     @JsonProperty("conversation_id")
     private String conversationId;
     private String user;
-    private List<FileInfo> files;
+    private List<FileInfo> files = new LinkedList<>();
 
     public static class FileInfo {
         private FileType type;

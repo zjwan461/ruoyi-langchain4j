@@ -20,6 +20,29 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
+        </dependency>
+
+        <!--
+            Reactor Netty：WebClient 的默认 ClientHttpConnector 实现。
+            单独引入 spring-webflux 不会传递依赖 reactor-netty，
+            WebClient.builder().build() 会抛出
+            "No suitable default ClientHttpConnector found"。
+            版本由 spring-boot-dependencies BOM 统一管理。
+        -->
+        <dependency>
+            <groupId>io.projectreactor.netty</groupId>
+            <artifactId>reactor-netty</artifactId>
+        </dependency>
+        <!-- Spring Boot Test（包含 JUnit / Spring Test / Mockito 等） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

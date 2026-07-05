@@ -99,6 +99,6 @@ public class AiAgentServiceImpl implements IAiAgentService
 
     @Override
     public AiAgent selectByVisitId(String visitId) {
-        return aiAgentMapper.selectAiAgentByVisitUrl("/ai-chat/" + visitId);
+        return aiAgentMapper.selectAiAgentByVisitUrl(visitId);
     }
 }

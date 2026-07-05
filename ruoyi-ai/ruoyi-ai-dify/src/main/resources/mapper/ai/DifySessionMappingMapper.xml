@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ai.dify.mapper.DifySessionMappingMapper">
+
+    <resultMap type="DifySessionMapping" id="DifySessionMappingResult">
+        <result property="sessionId"      column="session_id"      />
+        <result property="clientId"       column="client_id"       />
+        <result property="conversationId" column="conversation_id" />
+        <result property="agentId"        column="agent_id" />
+        <result property="createTime"     column="create_time"     />
+    </resultMap>
+
+    <sql id="selectDifySessionMappingVo">
+        select session_id, client_id, conversation_id, agent_id, create_time
+        from dify_session_mapping
+    </sql>
+
+    <select id="selectDifySessionMappingList" parameterType="DifySessionMapping" resultMap="DifySessionMappingResult">
+        <include refid="selectDifySessionMappingVo"/>
+        <where>
+            <if test="sessionId != null  and sessionId != ''"> and session_id = #{sessionId}</if>
+            <if test="clientId != null  and clientId != ''"> and client_id = #{clientId}</if>
+            <if test="agentId != null  and agentId != ''"> and agent_id = #{agentId}</if>
+            <if test="conversationId != null  and conversationId != ''"> and conversation_id = #{conversationId}</if>
+        </where>
+    </select>
+
+    <select id="selectDifySessionMappingBySessionId" parameterType="String" resultMap="DifySessionMappingResult">
+        <include refid="selectDifySessionMappingVo"/>
+        where session_id = #{sessionId}
+    </select>
+
+    <select id="selectDifySessionMappingByClientId" parameterType="String" resultMap="DifySessionMappingResult">
+        <include refid="selectDifySessionMappingVo"/>
+        where client_id = #{clientId}
+    </select>
+
+    <select id="selectDifySessionMappingBySessionIdAndClientId" resultMap="DifySessionMappingResult">
+        <include refid="selectDifySessionMappingVo"/>
+        where session_id = #{sessionId} and client_id = #{clientId}
+    </select>
+
+    <insert id="insertDifySessionMapping" parameterType="DifySessionMapping">
+        insert into dify_session_mapping
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="sessionId != null and sessionId != ''">session_id,</if>
+            <if test="clientId != null and clientId != ''">client_id,</if>
+            <if test="conversationId != null and conversationId != ''">conversation_id,</if>
+            <if test="agentId != null and agentId != ''">agent_id,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
+            <if test="clientId != null and clientId != ''">#{clientId},</if>
+            <if test="conversationId != null and conversationId != ''">#{conversationId},</if>
+            <if test="agentId != null and agentId != ''">#{agentId},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateDifySessionMapping" parameterType="DifySessionMapping">
+        update dify_session_mapping
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
+            <if test="agentId != null and agentId != ''">agent_id = #{agentId},</if>
+            <if test="conversationId != null and conversationId != ''">conversation_id = #{conversationId},</if>
+        </trim>
+        where session_id = #{sessionId}
+    </update>
+
+    <delete id="deleteDifySessionMappingBySessionId" parameterType="String">
+        delete from dify_session_mapping where session_id = #{sessionId}
+    </delete>
+
+    <delete id="deleteDifySessionMappingByClientIdAndEmptyConversationId" parameterType="String">
+        delete from dify_session_mapping where client_id = #{clientId} and conversation_id is null
+    </delete>
+
+    <delete id="deleteDifySessionMappingBySessionIds" parameterType="String">
+        delete from dify_session_mapping where session_id in
+        <foreach item="sessionId" collection="array" open="(" separator="," close=")">
+            #{sessionId}
+        </foreach>
+    </delete>
+</mapper>

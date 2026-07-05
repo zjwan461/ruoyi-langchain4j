@@ -97,7 +97,6 @@
           <dict-tag :options="dict.type.dify_response_type" :value="scope.row.responseType"/>
         </template>
       </el-table-column>
-      <el-table-column label="单个Client每日访问限制次数" align="center" prop="dayLmtPerClient" />
       <el-table-column label="应用名" align="center" prop="name" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
@@ -148,9 +147,6 @@
         </el-form-item>
         <el-form-item label="应用名" prop="name">
           <el-input v-model="form.name" placeholder="请输入应用名" />
-        </el-form-item>
-        <el-form-item label="Client LMT" prop="dayLmtPerClient">
-          <el-input-number v-model="form.dayLmtPerClient" :max="1000" :min="1" :step="1" placeholder="请输入内容" />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -206,9 +202,6 @@ export default {
         responseType: [
           { required: true, message: "响应类型不能为空", trigger: "change" }
         ],
-        dayLmtPerClient: [
-          { required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur" }
-        ],
         name: [
           { required: true, message: "应用名不能为空", trigger: "blur" }
         ]
@@ -244,7 +237,6 @@ export default {
         createTime: null,
         updateBy: null,
         updateTime: null,
-        dayLmtPerClient: 1000,
         name: null
       }
       this.resetForm("form")

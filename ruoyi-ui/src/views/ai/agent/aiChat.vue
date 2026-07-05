@@ -57,7 +57,9 @@
             </svg>
           </div>
           <div class="agent-details">
-            <h1>{{ agentInfo.name || 'AI 助手' }}</h1>
+            <h1>{{ agentInfo.name || 'AI 助手' }}
+              <el-tag v-if="agentInfo" type="info" size="medium" effect="plain" style="margin-left: 10px;">{{ agentInfo.agentType === 'dify' ? 'Dify 智能体' : (agentInfo.agentType || 'origin') }}</el-tag>
+            </h1>
             <p v-if="agentInfo.description">{{ agentInfo.description }}</p>
           </div>
         </div>
@@ -197,11 +199,34 @@ const md = new MarkdownIt({
   linkify: true,
   typographer: true,
   highlight: function (str, lang) {
-    if (lang && hljs.getLanguage(lang)) {
+    // 防御性处理：从 lang 中提取真正的语言标识符
+    // 某些情况下（例如 AI 返回的代码块格式异常），
+    // markdown-it 可能传入包含空白/换行符的字符串作为 lang，
+    // 直接传给 highlight.js 会抛出 "Could not find the language" 错误。
+    // 这里只取第一个空白分隔的子串作为语言名，确保传入安全。
+    let validLang = ''
+    if (lang && typeof lang === 'string') {
+      const trimmed = lang.trim()
+      if (trimmed) {
+        validLang = trimmed.split(/\s+/)[0]
+      }
+    }
+
+    if (validLang && hljs.getLanguage(validLang)) {
       try {
-        return '<pre class="code-block"><code class="hljs language-' + lang + '">' + hljs.highlight(str, {language: lang, ignoreIllegals: true}).value + '</code></pre>'
+        return '<pre class="code-block"><code class="hljs language-' + validLang + '">' + hljs.highlight(str, {language: validLang, ignoreIllegals: true}).value + '</code></pre>'
       } catch (__) {}
     }
+
+    // fallback：尝试自动检测语言
+    try {
+      const auto = hljs.highlightAuto(str)
+      if (auto && auto.value) {
+        return '<pre class="code-block"><code class="hljs">' + auto.value + '</code></pre>'
+      }
+    } catch (__) {}
+
+    // 最终 fallback：转义后直接输出原始内容
     return '<pre class="code-block"><code class="hljs">' + md.utils.escapeHtml(str) + '</code></pre>'
   }
 })
@@ -267,7 +292,7 @@ export default {
     getSessionList() {
       listChatSession(this.clientId, this.agentInfo.id).then(res => {
         this.sessionList = res.data
-        if (this.sessionList.length === 0) {
+        if (!this.sessionList || this.sessionList.length === 0) {
           this.newSession()
         }
       })
@@ -477,7 +502,19 @@ export default {
     formatTime(isoString) {
       if (!isoString) return ''
       const date = new Date(isoString)
-      return date.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})
+      const now = new Date()
+      const pad = (n) => String(n).padStart(2, '0')
+      const y = date.getFullYear()
+      const m = pad(date.getMonth() + 1)
+      const d = pad(date.getDate())
+      const hh = pad(date.getHours())
+      const mm = pad(date.getMinutes())
+      const isSameYear = date.getFullYear() === now.getFullYear()
+      // 当天：仅显示时分；当年非当天：显示 MM-DD HH:mm；跨年：显示 YYYY-MM-DD HH:mm
+      if (isSameYear && y === now.getFullYear() && m === pad(now.getMonth() + 1) && d === pad(now.getDate())) {
+        return `${hh}:${mm}`
+      }
+      return isSameYear ? `${m}-${d} ${hh}:${mm}` : `${y}-${m}-${d} ${hh}:${mm}`
     },
     scrollToBottom() {
       this.$nextTick(() => {

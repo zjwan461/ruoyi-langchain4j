@@ -57,6 +57,12 @@ public class AiAgent extends BaseEntity {
   private String modelName;
 
   /**
+   * 智能体类型
+   */
+  @Excel(name = "智能体类型")
+  private String agentType;
+
+  /**
    * 状态
    */
   @Excel(name = "状态")
@@ -67,6 +73,18 @@ public class AiAgent extends BaseEntity {
    */
   @Excel(name = "访问链接")
   private String visitUrl;
+
+  /**
+   * dify应用主键id(dify类型专用)
+   */
+  @Excel(name = "dify应用ID")
+  private Long difyApiId;
+
+  /**
+   * dify应用主名称(dify类型专用)
+   */
+  @Excel(name = "dify应用名称")
+  private String difyApiName;
 
   /**
    * 单个Client每日访问限制次数
@@ -137,6 +155,14 @@ public class AiAgent extends BaseEntity {
     return modelId;
   }
 
+  public String getAgentType() {
+    return agentType;
+  }
+
+  public void setAgentType(String agentType) {
+    this.agentType = agentType;
+  }
+
   public void setStatus(Integer status) {
     this.status = status;
   }
@@ -159,6 +185,14 @@ public class AiAgent extends BaseEntity {
 
   public void setDayLmtPerClient(Integer dayLmtPerClient) {
     this.dayLmtPerClient = dayLmtPerClient;
+  }
+
+  public Long getDifyApiId() {
+    return difyApiId;
+  }
+
+  public void setDifyApiId(Long difyApiId) {
+    this.difyApiId = difyApiId;
   }
 
   public String getKbIds() {
@@ -225,6 +259,14 @@ public class AiAgent extends BaseEntity {
     this.maxResult = maxResult;
   }
 
+  public String getDifyApiName() {
+    return difyApiName;
+  }
+
+  public void setDifyApiName(String difyApiName) {
+    this.difyApiName = difyApiName;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -243,9 +285,12 @@ public class AiAgent extends BaseEntity {
         .append("dayLmtPerClient", getDayLmtPerClient())
         .append("modelName", getModelName())
         .append("kbNames", getKbNames())
+        .append("agentType", getAgentType())
         .append("temperature", getTemperature())
         .append("maxOutputToken", getMaxOutputToken())
         .append("promptTemplate", getPromptTemplate())
+        .append("difyApiId", getDifyApiId())
+        .append("difyApiName", getDifyApiName())
         .append("minScore", getMinScore())
         .append("maxResult", getMaxResult())
         .toString();

@@ -1,5 +1,7 @@
 package com.ruoyi.ai.controller;
 
+import com.ruoyi.ai.dify.domain.DifyApi;
+import com.ruoyi.ai.dify.service.IDifyApiService;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
@@ -44,6 +46,9 @@ public class AiAgentController extends BaseController {
 
     @Autowired
     private IModelService modelService;
+
+    @Autowired
+    private IDifyApiService difyApiService;
 
     @Autowired
     private MessageSource messageSource;
@@ -116,19 +121,31 @@ public class AiAgentController extends BaseController {
     }
 
     private void constructInfo(AiAgent aiAgent) {
-        Model model = modelService.selectModelById(aiAgent.getModelId());
-        aiAgent.setModelName(model.getName());
-        if (StringUtils.isNotBlank(aiAgent.getKbIds())) {
-            List<Long> ids = Arrays.stream(aiAgent.getKbIds().split(",")).map(Long::valueOf)
-                    .collect(Collectors.toList());
-            List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
-            List<String> kbNames = kbs.stream().map(KnowledgeBase::getName).collect(Collectors.toList());
-            aiAgent.setKbNames(String.join(",", kbNames));
-        }
-        if (aiAgent.getVisitUrl() == null || "".equals(aiAgent.getVisitUrl())) {
-            String seed = IdUtils.fastSimpleUUID();
-            String visitUrl = "/ai-chat/" + seed;
-            aiAgent.setVisitUrl(visitUrl);
+        String difyType = DictUtils.getDictValue("ai_agent_type", "dify");
+        String originType = DictUtils.getDictValue("ai_agent_type", "origin");
+        if (StringUtils.equals(difyType, aiAgent.getAgentType())) {
+            DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
+            aiAgent.setDifyApiName(difyApi.getName());
+            if (aiAgent.getVisitUrl() == null || "".equals(aiAgent.getVisitUrl())) {
+                String seed = IdUtils.fastSimpleUUID();
+                String visitUrl = "/dify-chat/" + seed;
+                aiAgent.setVisitUrl(visitUrl);
+            }
+        } else if (StringUtils.equals(originType, aiAgent.getAgentType())) {
+            Model model = modelService.selectModelById(aiAgent.getModelId());
+            aiAgent.setModelName(model.getName());
+            if (StringUtils.isNotBlank(aiAgent.getKbIds())) {
+                List<Long> ids = Arrays.stream(aiAgent.getKbIds().split(",")).map(Long::valueOf)
+                        .collect(Collectors.toList());
+                List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
+                List<String> kbNames = kbs.stream().map(KnowledgeBase::getName).collect(Collectors.toList());
+                aiAgent.setKbNames(String.join(",", kbNames));
+            }
+            if (aiAgent.getVisitUrl() == null || "".equals(aiAgent.getVisitUrl())) {
+                String seed = IdUtils.fastSimpleUUID();
+                String visitUrl = "/ai-chat/" + seed;
+                aiAgent.setVisitUrl(visitUrl);
+            }
         }
     }
 
