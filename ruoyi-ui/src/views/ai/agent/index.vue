@@ -121,11 +121,11 @@
             <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
           </el-form-item>
           <el-form-item label="系统提示词" prop="systemMessage">
-            <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="100"
+            <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="3000"
               show-word-limit clearable />
           </el-form-item>
           <el-form-item label="提示词模板" prop="promptTemplate">
-            <el-input v-model="form.promptTemplate" type="textarea" rows="5" placeholder="请输入内容" :maxlength="100"
+            <el-input v-model="form.promptTemplate" type="textarea" rows="5" placeholder="请输入内容" :maxlength="1000"
               show-word-limit clearable /><i class="color: grey">Tips: 占位符<b
                 style="color: red;">{question}</b>表示用户输入的内容；占位符<b style="color: red;">{data}</b>表示知识库搜索出来的内容</i>
           </el-form-item>

@@ -1,6 +1,7 @@
 package com.ruoyi.ai.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -192,16 +193,23 @@ public class KnowledgeBaseController extends BaseController {
         AsyncManager.me().execute(new TimerTask() {
             @Override
             public void run() {
-                langChain4jService.embedTextSegments(embeddingModel, segments, textSegments -> {
-                    Session session = WebSocketUsers.getSessionByToken(token);
-                    if (session != null) {
-                        try {
-                            WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("文档分段向量化处理完成")));
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
+                Session session = WebSocketUsers.getSessionByToken(token);
+                try {
+                    langChain4jService.embedTextSegments(embeddingModel, segments, textSegments -> {
+                        if (session != null) {
+                            try {
+                                WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("文档分段向量化处理完成")));
+                            } catch (JsonProcessingException ignored) {
+                            }
                         }
+                    });
+                } catch (Exception e) {
+                    logger.error("embedding fail...", e);
+                    try {
+                        WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.error("embedding fail..." + ExceptionUtil.getRootCause(e).getMessage())));
+                    } catch (JsonProcessingException ignored) {
                     }
-                });
+                }
             }
         });
 

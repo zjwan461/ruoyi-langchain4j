@@ -36,6 +36,7 @@ public class ModelBuilder {
         } else if (provider == ModelProvider.OPEN_AI) {
             embeddingModel = OpenAiEmbeddingModel.builder()
                     .baseUrl(model.getBaseUrl())
+                    .apiKey(model.getApiKey())
                     .modelName(model.getName())
                     .build();
         } else if (provider == ModelProvider.LOCAL) {

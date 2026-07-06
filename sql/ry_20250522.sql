@@ -1434,6 +1434,9 @@ ALTER TABLE ai_agent
     MODIFY COLUMN memory_count int unsigned NULL COMMENT '记忆轮次';
 
 ALTER TABLE ai_agent
+    MODIFY COLUMN system_message varchar(5000) NULL COMMENT '系统提示词';
+
+ALTER TABLE ai_agent
     ADD COLUMN dify_api_id bigint unsigned NULL COMMENT 'dify应用主键id';
 
 ALTER TABLE ai_agent

@@ -27,6 +27,7 @@ public class Langchain4jConfig {
                 .password(pgVector.getPassword())
                 .table(pgVector.getTable())
                 .dimension(pgVector.getDimension())
+                .dropTableFirst(pgVector.getDropTableFirst())
                 .build();
     }
 

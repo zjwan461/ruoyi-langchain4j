@@ -146,3 +146,4 @@ ai:
     password: root
     table: embedding
     dimension: 768
+    drop-table-first: false

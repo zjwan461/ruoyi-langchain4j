@@ -1,5 +1,6 @@
 package com.ruoyi.ai.test;
 
+import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
@@ -34,6 +35,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -42,6 +44,7 @@ import java.util.Scanner;
 
 import static dev.langchain4j.rag.content.ContentMetadata.EMBEDDING_ID;
 
+@Slf4j
 public class AiTest {
 
     public static final String LLM_BASE_URL = "http://10.100.216.70:8000/v1";
@@ -332,5 +335,20 @@ public class AiTest {
         AllMiniLmL6V2EmbeddingModel embeddingModel2 = new AllMiniLmL6V2EmbeddingModel();
         Response<Embedding> response2 = embeddingModel2.embed("test");
         System.out.println(response2.content().dimension());
+    }
+
+    @Test
+    public void testLocalEmbeddingModel() {
+        String saveDir = "D:\\workspaces\\ruoyi-langchain4j\\models";
+        try {
+            String pathToModel = saveDir + Constants.LOCAL_EMBEDDING_MODEL_FILE;
+            String pathToTokenizer = saveDir + Constants.LOCAL_EMBEDDING_TOKENIZER_FILE;
+            PoolingMode poolingMode = PoolingMode.MEAN;
+            EmbeddingModel embeddingModel = new OnnxEmbeddingModel(pathToModel, pathToTokenizer, poolingMode);
+            Response<Embedding> response = embeddingModel.embed(Constants.TEST_EMBEDDING_TEXT);
+            System.out.println(response.content().toString());
+        } catch (Exception e) {
+            log.error("检查本地模型失败", e);
+        }
     }
 }

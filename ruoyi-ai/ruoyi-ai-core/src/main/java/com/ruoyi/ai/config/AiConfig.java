@@ -39,6 +39,7 @@ public class AiConfig {
         private String password;
         private String table;
         private int dimension = Constants.EMBEDDING_DIMENSION;
+        private Boolean dropTableFirst = false;
 
         public String getHost() {
             return host;
@@ -94,6 +95,14 @@ public class AiConfig {
 
         public void setDimension(int dimension) {
             this.dimension = dimension;
+        }
+
+        public Boolean getDropTableFirst() {
+            return dropTableFirst;
+        }
+
+        public void setDropTableFirst(Boolean dropTableFirst) {
+            this.dropTableFirst = dropTableFirst;
         }
     }
 
