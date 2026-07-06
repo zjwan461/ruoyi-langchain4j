@@ -1347,26 +1347,26 @@ VALUES (0, '流式', 'streaming', 'dify_response_type', NULL, 'primary', 'N', '0
 
 -- 菜单 SQL
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('Dify API', '2000', '1', 'apiApi', 'ruoyi-ai-dify/apiApi/index', 1, 0, 'C', '0', '0', 'ruoyi-ai-dify:apiApi:list', 'link', 'admin', sysdate(), '', null, 'Dify API菜单');
+values('Dify API', '2000', '1', 'apiApi', 'ai/difyApi/index', 1, 0, 'C', '0', '0', 'ai:difyApi:list', 'link', 'admin', sysdate(), '', null, 'Dify API菜单');
 
 -- 按钮父菜单ID
 SELECT @parentId := LAST_INSERT_ID();
 
 -- 按钮 SQL
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('Dify API查询', @parentId, '1',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:query',        '#', 'admin', sysdate(), '', null, '');
+values('Dify API查询', @parentId, '1',  '#', '', 1, 0, 'F', '0', '0', 'ai:difyApi:query',        '#', 'admin', sysdate(), '', null, '');
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('Dify API新增', @parentId, '2',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:add',          '#', 'admin', sysdate(), '', null, '');
+values('Dify API新增', @parentId, '2',  '#', '', 1, 0, 'F', '0', '0', 'ai:difyApi:add',          '#', 'admin', sysdate(), '', null, '');
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('Dify API修改', @parentId, '3',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:edit',         '#', 'admin', sysdate(), '', null, '');
+values('Dify API修改', @parentId, '3',  '#', '', 1, 0, 'F', '0', '0', 'ai:difyApi:edit',         '#', 'admin', sysdate(), '', null, '');
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('Dify API删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:remove',       '#', 'admin', sysdate(), '', null, '');
+values('Dify API删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'ai:difyApi:remove',       '#', 'admin', sysdate(), '', null, '');
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
-values('Dify API导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'ruoyi-ai-dify:apiApi:export',       '#', 'admin', sysdate(), '', null, '');
+values('Dify API导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'ai:difyApi:export',       '#', 'admin', sysdate(), '', null, '');
 
 -- dify_api表
 drop table if exists dify_api;
