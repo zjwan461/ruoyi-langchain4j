@@ -1,6 +1,5 @@
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
-use ry-vue;
 -- ----------------------------
 -- 1、部门表
 -- ----------------------------
@@ -1337,7 +1336,6 @@ create table chat_message
 -- ----------------------------
 INSERT INTO sys_dict_type (dict_name, dict_type, status, create_by, create_time, update_by, update_time, remark)
 VALUES ('Dify响应类型', 'dify_response_type', '0', 'admin', '2025-10-27 22:35:27', '', NULL, NULL);
-108, 0, '阻塞', 'blocking', 'dify_response_type', NULL, 'info', 'N', '0', 'admin', '2025-10-27 22:36:49', '', NULL, NULL);
 
 INSERT INTO sys_dict_data (dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default,
                            status, create_by, create_time, update_by, update_time, remark)
