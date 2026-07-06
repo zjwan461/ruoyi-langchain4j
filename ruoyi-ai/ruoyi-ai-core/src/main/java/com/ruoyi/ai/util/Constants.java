@@ -32,4 +32,8 @@ public interface Constants {
 
     String DIFY_USER = "RY_AI_DIFY_USER";
 
+    int MAX_MEMORY_MESSAGE_COUNT = 50;
+
+    int MEMORY_TTL_SECONDS = -1;
+
 }

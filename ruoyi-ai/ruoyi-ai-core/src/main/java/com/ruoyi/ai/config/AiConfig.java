@@ -12,6 +12,7 @@ public class AiConfig {
 
     private ModelScope modelScope;
 
+    private Agent agent;
 
     public PgVector getPgVector() {
         return pgVector;
@@ -29,6 +30,13 @@ public class AiConfig {
         this.modelScope = modelScope;
     }
 
+    public Agent getAgent() {
+        return agent;
+    }
+
+    public void setAgent(Agent agent) {
+        this.agent = agent;
+    }
 
     public static class PgVector {
 
@@ -128,4 +136,19 @@ public class AiConfig {
         }
     }
 
+    public static class Agent {
+        private MemoryStrategy memoryStrategy;
+
+        public MemoryStrategy getMemoryStrategy() {
+            return memoryStrategy;
+        }
+
+        public void setMemoryStrategy(MemoryStrategy memoryStrategy) {
+            this.memoryStrategy = memoryStrategy;
+        }
+
+        public enum MemoryStrategy {
+            MEMORY, REDIS
+        }
+    }
 }

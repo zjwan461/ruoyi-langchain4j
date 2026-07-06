@@ -205,3 +205,5 @@ ai:
     password: root
     table: embedding
     dimension: 768
+  agent:
+    memory-strategy: memory

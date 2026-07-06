@@ -1,10 +1,11 @@
 package com.ruoyi.ai.service.impl;
 
-import cn.hutool.cache.impl.TimedCache;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.thread.ThreadUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.domain.KnowledgeBase;
@@ -32,6 +33,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -77,8 +79,13 @@ public class AiChatServiceImpl implements IAiChatService {
     @Resource
     private ISysConfigService sysConfigService;
 
-    private static final TimedCache<String, ChatMemory> chatMemories = new TimedCache<>(
-            TimeUnit.DAYS.toMillis(1));
+    @Resource
+    private RedisMemoryChatMemoryStore redisMemoryChatMemoryStore;
+
+    @Resource
+    private AiConfig aiConfig;
+
+    private final InMemoryChatMemoryStore inMemoryChatMemoryStore = new InMemoryChatMemoryStore();
 
 
     @Override
@@ -116,15 +123,13 @@ public class AiChatServiceImpl implements IAiChatService {
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
-            chatMemory = chatMemories.get(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
-            if (chatMemory == null) {
-                chatMemory = MessageWindowChatMemory.builder()
-                        .chatMemoryStore(new InMemoryChatMemoryStore())
-                        .maxMessages(aiAgent.getMemoryCount())
-                        .id(sessionId)
-                        .build();
-                chatMemories.put(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId, chatMemory);
-            }
+            ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
+                    redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
+            chatMemory = MessageWindowChatMemory.builder()
+                    .chatMemoryStore(memoryStore)
+                    .maxMessages(aiAgent.getMemoryCount())
+                    .id(sessionId)
+                    .build();
         }
 
         SystemMessage systemMessage = null;
@@ -308,7 +313,8 @@ public class AiChatServiceImpl implements IAiChatService {
     @Override
     public void deleteSession(String sessionId) {
         if (chatMessageService.deleteBySessionId(sessionId) > 0) {
-            chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
+//            chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
+            log.debug("remove session id:{}", sessionId);
         }
     }
 }
