@@ -17,7 +17,7 @@ services:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=ry-vue
     volumes:
-      - ./mysql-data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
       - ./sql:/docker-entrypoint-initdb.d
       - ./my.cnf:/etc/my.cnf
     command: >
@@ -42,7 +42,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - ./redis-data:/data
+      - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -71,7 +71,7 @@ services:
     ports:
       - "35432:5432"
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U root -d embedding"]
       interval: 10s
@@ -121,6 +121,11 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8194/health" ]
     networks:
       - middleware-net
+
+volumes:
+  mysql-data:
+  redis-data:
+  postgres-data:
 
 networks:
   middleware-net:

@@ -9,6 +9,14 @@ services:
       - "6379:6379"
     environment:
       - TZ=Asia/Shanghai
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - app-net
   mysql:
@@ -21,7 +29,7 @@ services:
       - MYSQL_ROOT_PASSWORD=root  # 设置root用户密码
       - MYSQL_DATABASE=ry-vue
     volumes:
-      - ./mysql-data:/var/lib/mysql  # 挂载数据目录，实现数据持久化
+      - mysql-data:/var/lib/mysql  # 挂载数据目录，实现数据持久化
       - ./sql:/docker-entrypoint-initdb.d
       - ./my.cnf:/etc/my.cnf
     command: >
@@ -53,7 +61,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       # 可选：初始化脚本目录
       # - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
@@ -146,6 +154,10 @@ services:
     networks:
       - app-net
 
+volumes:
+  mysql-data:
+  redis-data:
+  postgres-data:
 
 networks:
   app-net:
