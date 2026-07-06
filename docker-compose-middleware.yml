@@ -11,7 +11,7 @@ services:
     container_name: mysql
     restart: unless-stopped
     ports:
-      - "13306:3306"
+      - "33306:3306"
     environment:
       - TZ=Asia/Shanghai
       - MYSQL_ROOT_PASSWORD=root
@@ -38,7 +38,7 @@ services:
     container_name: redis
     restart: unless-stopped
     ports:
-      - "16379:6379"
+      - "36379:6379"
     environment:
       - TZ=Asia/Shanghai
     volumes:
@@ -69,7 +69,7 @@ services:
       # 时区设置
       TZ: Asia/Shanghai
     ports:
-      - "15432:5432"
+      - "35432:5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -112,7 +112,7 @@ services:
       SANDBOX_PORT: 8194
       PIP_MIRROR_URL: https://pypi.tuna.tsinghua.edu.cn/simple
     ports:
-      - "8194:8194"
+      - "38194:8194"
     volumes:
       - ./sandbox/dependencies:/dependencies
       - ./sandbox/conf:/conf
