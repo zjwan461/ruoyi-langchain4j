@@ -1,8 +1,7 @@
 SET NAMES utf8mb4;
 SET
 CHARACTER SET utf8mb4;
-use
-ry-vue;
+use ry-vue;
 -- ----------------------------
 -- 1、部门表
 -- ----------------------------
