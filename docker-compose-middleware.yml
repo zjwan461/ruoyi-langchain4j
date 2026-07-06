@@ -11,7 +11,7 @@ services:
     container_name: mysql
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "13306:3306"
     environment:
       - TZ=Asia/Shanghai
       - MYSQL_ROOT_PASSWORD=root
@@ -38,7 +38,7 @@ services:
     container_name: redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "16379:6379"
     environment:
       - TZ=Asia/Shanghai
     volumes:
@@ -69,7 +69,7 @@ services:
       # 时区设置
       TZ: Asia/Shanghai
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     healthcheck:
