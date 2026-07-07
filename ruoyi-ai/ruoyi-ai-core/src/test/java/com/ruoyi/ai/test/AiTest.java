@@ -1,7 +1,13 @@
 package com.ruoyi.ai.test;
 
+import cn.hutool.core.util.RandomUtil;
+import com.ruoyi.ai.service.AIAssistant;
+import com.ruoyi.ai.tool.TimeUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
+import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -14,6 +20,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;
@@ -28,6 +35,8 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecution;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -35,19 +44,21 @@ import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import static dev.langchain4j.rag.content.ContentMetadata.EMBEDDING_ID;
 
 @Slf4j
 public class AiTest {
 
-    public static final String LLM_BASE_URL = "http://10.100.216.70:8000/v1";
+    public static final String LLM_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
     public static final String OLLAMA_BASE_URL = "http://10.100.217.2:11434";
 
     @Test
@@ -67,13 +78,14 @@ public class AiTest {
     private static OpenAiChatModel buildBlockModel() {
         return OpenAiChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
-                .modelName("qwen3-8b")
+                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
+                .modelName("qwen3.7-plus")
                 .build();
     }
 
     private static ChatRequestParameters buildParameters() {
         return OpenAiChatRequestParameters.builder()
-                .modelName("qwen3-8b")
+                .modelName("qwen3.7-plus")
                 .temperature(0.7)
 //        .topK(40)
 //        .topP(0.9)
@@ -116,7 +128,8 @@ public class AiTest {
     private static OpenAiStreamingChatModel buildStreamingModel() {
         OpenAiStreamingChatModel model = OpenAiStreamingChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
-                .modelName("qwen3-8b")
+                .modelName("qwen3.7-plus")
+                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
                 .build();
         return model;
     }
@@ -351,4 +364,47 @@ public class AiTest {
             log.error("检查本地模型失败", e);
         }
     }
+
+    @SneakyThrows
+    @Tool
+    public String getWeather(String city) {
+        TimeUnit.SECONDS.sleep(1);
+        return "当前" + city + "的气温是" + RandomUtil.randomNumbers(50) + "摄氏度";
+    }
+
+
+    @Test
+    public void testToolCall() throws Exception {
+        OpenAiStreamingChatModel model = buildStreamingModel();
+        ToolSpecification getWeather = ToolSpecifications.toolSpecificationFrom(AiTest.class.getDeclaredMethod("getWeather", String.class));
+        ChatRequest request = ChatRequest.builder()
+                .messages(UserMessage.from("你好，深圳的天气怎么样"))
+                .toolSpecifications(getWeather)
+                .build();
+
+        AIAssistant assistant = AiServices.builder(AIAssistant.class)
+                .streamingChatModel(model)
+                .systemMessageProvider(x -> {
+                    System.err.println(x);
+                    return "在必要的时候调用工具";
+                })
+                .tools(new TimeUtil())
+                .build();
+        TokenStream tokenStream = assistant.chatStream("今天的日期");
+        tokenStream
+                .onPartialResponse((String partialResponse) -> System.out.println(partialResponse))
+                .onPartialThinking((PartialThinking partialThinking) -> System.out.println(partialThinking))
+                .onRetrieved((List<Content> contents) -> System.out.println(contents))
+                .onIntermediateResponse((ChatResponse intermediateResponse) -> System.out.println(intermediateResponse))
+                // 这将在工具执行之前调用。BeforeToolExecution 包含 ToolExecutionRequest（例如工具名称、工具参数等）
+                .beforeToolExecution((beforeToolExecution) -> System.out.println(beforeToolExecution))
+                // 这将在工具执行之后调用。ToolExecution 包含 ToolExecutionRequest 和工具执行结果。
+                .onToolExecuted((ToolExecution toolExecution) -> System.out.println(toolExecution))
+                .onCompleteResponse((ChatResponse response) -> System.out.println(response))
+                .onError((Throwable error) -> error.printStackTrace())
+                .start();
+
+        System.in.read();
+    }
+
 }

@@ -30,7 +30,7 @@ services:
       - MYSQL_DATABASE=ry-vue
     volumes:
       - mysql-data:/var/lib/mysql  # 挂载数据目录，实现数据持久化
-      - ./sql:/docker-entrypoint-initdb.d
+#      - ./sql:/docker-entrypoint-initdb.d
       - ./my.cnf:/etc/my.cnf
     command: >
       mysqld --character-set-server=utf8mb4

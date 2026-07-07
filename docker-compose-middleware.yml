@@ -18,7 +18,7 @@ services:
       - MYSQL_DATABASE=ry-vue
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./sql:/docker-entrypoint-initdb.d
+#      - ./sql:/docker-entrypoint-initdb.d
       - ./my.cnf:/etc/my.cnf
     command: >
       mysqld --character-set-server=utf8mb4

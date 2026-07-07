@@ -1,6 +1,7 @@
 package com.ruoyi.ai.controller;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.exceptions.ExceptionUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.config.AiConfig;
@@ -154,6 +155,7 @@ public class ModelController extends BaseController {
         String token = tokenService.getToken(request);
         String repoId = aiConfig.getModelScope().getEmbeddingModelRepoId();
         saveDir = modelScopeUtil.downloadMultiThread(repoId, saveDir, Constants.ALL_ALLOW_PATTERN, modelDir -> {
+            Session session = WebSocketUsers.getSessionByToken(token);
             try {
                 Model model = new Model();
                 model.setName(repoId);
@@ -165,12 +167,18 @@ public class ModelController extends BaseController {
                 modelService.insertModel(model);
 
                 sysConfigService.updateConfigByKeyValue("ai.model.embedding", String.valueOf(model.getId()));
-                Session session = WebSocketUsers.getSessionByToken(token);
                 if (session != null) {
-                    WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("embedding模型已下载,保存位置：" + modelDir)));
+                    try {
+                        WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.success("embedding模型已下载,保存位置：" + modelDir)));
+                    } catch (Exception ignore) {
+                    }
                 }
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+            } catch (Exception e) {
+                logger.error("downloadDefaultEmbedding model fail...", e);
+                try {
+                    WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.error("embedding模型下载失败," + ExceptionUtil.getRootCause(e).getMessage())));
+                } catch (Exception ignore) {
+                }
             }
         });
 
