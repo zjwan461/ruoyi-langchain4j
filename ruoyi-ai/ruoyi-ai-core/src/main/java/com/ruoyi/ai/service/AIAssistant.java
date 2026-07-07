@@ -7,5 +7,5 @@ public interface AIAssistant {
 
     TokenStream chatStream(String message);
 
-    Flux<String> chat(String message);
+    Flux<String> chatFlux(String message);
 }
