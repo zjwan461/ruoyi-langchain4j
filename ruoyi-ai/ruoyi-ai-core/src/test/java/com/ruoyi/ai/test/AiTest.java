@@ -1,13 +1,9 @@
 package com.ruoyi.ai.test;
 
 import cn.hutool.core.util.RandomUtil;
-import com.ruoyi.ai.service.AIAssistant;
-import com.ruoyi.ai.tool.TimeUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.agent.tool.Tool;
-import dev.langchain4j.agent.tool.ToolSpecification;
-import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -20,7 +16,6 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;
@@ -35,8 +30,6 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.TokenStream;
-import dev.langchain4j.service.tool.ToolExecution;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -373,38 +366,5 @@ public class AiTest {
     }
 
 
-    @Test
-    public void testToolCall() throws Exception {
-        OpenAiStreamingChatModel model = buildStreamingModel();
-        ToolSpecification getWeather = ToolSpecifications.toolSpecificationFrom(AiTest.class.getDeclaredMethod("getWeather", String.class));
-        ChatRequest request = ChatRequest.builder()
-                .messages(UserMessage.from("你好，深圳的天气怎么样"))
-                .toolSpecifications(getWeather)
-                .build();
-
-        AIAssistant assistant = AiServices.builder(AIAssistant.class)
-                .streamingChatModel(model)
-                .systemMessageProvider(x -> {
-                    System.err.println(x);
-                    return "在必要的时候调用工具";
-                })
-                .tools(new TimeUtil())
-                .build();
-        TokenStream tokenStream = assistant.chatStream("今天的日期");
-        tokenStream
-                .onPartialResponse((String partialResponse) -> System.out.println(partialResponse))
-                .onPartialThinking((PartialThinking partialThinking) -> System.out.println(partialThinking))
-                .onRetrieved((List<Content> contents) -> System.out.println(contents))
-                .onIntermediateResponse((ChatResponse intermediateResponse) -> System.out.println(intermediateResponse))
-                // 这将在工具执行之前调用。BeforeToolExecution 包含 ToolExecutionRequest（例如工具名称、工具参数等）
-                .beforeToolExecution((beforeToolExecution) -> System.out.println(beforeToolExecution))
-                // 这将在工具执行之后调用。ToolExecution 包含 ToolExecutionRequest 和工具执行结果。
-                .onToolExecuted((ToolExecution toolExecution) -> System.out.println(toolExecution))
-                .onCompleteResponse((ChatResponse response) -> System.out.println(response))
-                .onError((Throwable error) -> error.printStackTrace())
-                .start();
-
-        System.in.read();
-    }
 
 }
