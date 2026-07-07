@@ -23,7 +23,7 @@ public class SandboxRequest {
     /**
      * 语言类型。当前 dify-sandbox 仅支持 {@code python}，此处保留扩展能力。
      */
-    private String language = "python";
+    private String language = "python3";
 
     public SandboxRequest() {
     }
