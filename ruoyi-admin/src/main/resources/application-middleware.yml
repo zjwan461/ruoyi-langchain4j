@@ -52,7 +52,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true  # 已有存量库自动创建基线（关键）
     baseline-version: 1  # 基线版本号（默认 1）
-    validate-on-migrate: true  # 启动时校验脚本完整性（推荐）
+    validate-on-migrate: false  # 启动时校验脚本完整性（推荐）开发环境经常改的话别开
     clean-disabled: true  # 生产环境必须开启：禁止清空数据库
     out-of-order: false  # 禁止乱序执行（推荐）
     encoding: UTF-8  # 脚本编码
