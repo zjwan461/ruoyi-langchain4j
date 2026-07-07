@@ -116,7 +116,7 @@ public class SandboxSdk {
      * 运行 Python 代码并返回完整响应。
      *
      * <p>即使 HTTP 返回 2xx，{@link SandboxResponse#getCode()} 非 0 也表示
-     * 沙箱内 Python 执行失败，可通过 {@link SandboxResponse#getError()} 获取错误信息。</p>
+     * 沙箱内 Python 执行失败，可通过 {@link SandboxResponse#getStderr()} 获取错误信息。</p>
      *
      * @param pythonCode Python 源码
      * @return Sandbox 响应（永远非空）
@@ -165,7 +165,7 @@ public class SandboxSdk {
             throw new ServiceException("sandbox code is empty");
         }
         if (StringUtils.isBlank(request.getLanguage())) {
-            request.setLanguage("python");
+            request.setLanguage("python3");
         }
 
         String url = buildUrl(PATH_RUN);
@@ -190,7 +190,7 @@ public class SandboxSdk {
         try (HttpResponse response = httpRequest.execute()) {
             if (!response.isOk()) {
                 throw new ServiceException("request dify-sandbox return http status="
-                        + response.getStatus());
+                        + response.getStatus() + ", response=" + response.body());
             }
             String respBody = response.body();
             try {
@@ -221,8 +221,8 @@ public class SandboxSdk {
      */
     private String buildFailureMessage(SandboxResponse response) {
         StringBuilder sb = new StringBuilder("dify-sandbox run fail, code=").append(response.getCode());
-        if (StringUtils.isNotBlank(response.getError())) {
-            sb.append(", error=").append(response.getError());
+        if (StringUtils.isNotBlank(response.getStderr())) {
+            sb.append(", error=").append(response.getStderr());
         }
         if (response.getData() != null) {
             if (StringUtils.isNotBlank(response.getStderr())) {

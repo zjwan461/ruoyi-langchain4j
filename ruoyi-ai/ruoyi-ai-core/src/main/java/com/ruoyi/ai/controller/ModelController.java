@@ -173,7 +173,7 @@ public class ModelController extends BaseController {
                     } catch (Exception ignore) {
                     }
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 logger.error("downloadDefaultEmbedding model fail...", e);
                 try {
                     WebSocketUsers.sendMessageToUserByText(session, objectMapper.writeValueAsString(SocketMessage.error("embedding模型下载失败," + ExceptionUtil.getRootCause(e).getMessage())));

@@ -1,5 +1,7 @@
 package com.ruoyi.ai.sandbox;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * dify-sandbox 执行响应体。
  *
@@ -16,6 +18,7 @@ package com.ruoyi.ai.sandbox;
  * }</pre>
  * </p>
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SandboxResponse {
 
     /**
@@ -31,10 +34,8 @@ public class SandboxResponse {
      */
     private Data data;
 
-    /**
-     * 失败时的错误信息；执行成功时为 {@code null}。
-     */
-    private String error;
+    private String message;
+
 
     public SandboxResponse() {
     }
@@ -57,7 +58,7 @@ public class SandboxResponse {
      * 获取标准错误输出（{@code stderr}），若执行失败返回 {@code null}。
      */
     public String getStderr() {
-        return data == null ? null : data.getStderr();
+        return data == null ? null : data.getError();
     }
 
     public int getCode() {
@@ -76,26 +77,27 @@ public class SandboxResponse {
         this.data = data;
     }
 
-    public String getError() {
-        return error;
+    public String getMessage() {
+        return message;
     }
 
-    public void setError(String error) {
-        this.error = error;
+    public void setMessage(String message) {
+        this.message = message;
     }
 
     @Override
     public String toString() {
         return "SandboxResponse{" +
                 "code=" + code +
+                ", message=" + message +
                 ", data=" + data +
-                ", error='" + error + '\'' +
                 '}';
     }
 
     /**
      * dify-sandbox 执行成功时的输出载荷。
      */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Data {
 
         /**
@@ -106,7 +108,7 @@ public class SandboxResponse {
         /**
          * Python 进程的标准错误输出。
          */
-        private String stderr;
+        private String error;
 
         public Data() {
         }
@@ -119,19 +121,19 @@ public class SandboxResponse {
             this.stdout = stdout;
         }
 
-        public String getStderr() {
-            return stderr;
+        public String getError() {
+            return error;
         }
 
-        public void setStderr(String stderr) {
-            this.stderr = stderr;
+        public void setError(String error) {
+            this.error = error;
         }
 
         @Override
         public String toString() {
             return "Data{" +
                     "stdout='" + stdout + '\'' +
-                    ", stderr='" + stderr + '\'' +
+                    ", error='" + error + '\'' +
                     '}';
         }
     }
