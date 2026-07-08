@@ -176,4 +176,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                  left join agent_tool c on b.tool_id = c.id
         where a.id = #{id}
     </select>
+
+    <insert id="insertAgentToolMapping" useGeneratedKeys="true" keyProperty="id">
+        insert into agent_tool_mapping (agent_id, tool_id)
+        values (#{agentId}, #{toolId})
+    </insert>
+
+    <insert id="batchInsertAgentToolMapping" useGeneratedKeys="true" keyProperty="id">
+        replace into agent_tool_mapping (agent_id, tool_id)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.agentId},
+            #{item.toolId}
+            )
+        </foreach>
+    </insert>
 </mapper>

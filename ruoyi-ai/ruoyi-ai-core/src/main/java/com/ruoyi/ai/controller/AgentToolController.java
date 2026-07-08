@@ -99,6 +99,9 @@ public class AgentToolController extends BaseController {
             if (StringUtils.isBlank(agentTool.getCode())) {
                 throw new ServiceException("sandbox tool 代码必填");
             }
+            if (StringUtils.isBlank(agentTool.getDescription())) {
+                throw new ServiceException("sandbox tool 工具描述必填");
+            }
             SimplePythonFuncParser.FuncInfo funcInfo = SimplePythonFuncParser.parsePythonCode(agentTool.getCode());
             List<SimplePythonFuncParser.Param> paramList = funcInfo.getParamList();
             try {

@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
+import com.ruoyi.ai.domain.AgentToolMapping;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.mapper.AiAgentMapper;
 import com.ruoyi.ai.service.IAiAgentService;
@@ -7,6 +8,7 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -112,5 +114,16 @@ public class AiAgentServiceImpl implements IAiAgentService
     @Override
     public AiAgent selectByVisitId(String visitId) {
         return aiAgentMapper.selectAiAgentByVisitUrl(visitId);
+    }
+
+    @Override
+    public int insertAgentToolMapping(Long agentId, Long toolId) {
+        return aiAgentMapper.insertAgentToolMapping(agentId, toolId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings) {
+        return aiAgentMapper.batchInsertAgentToolMapping(mappings);
     }
 }

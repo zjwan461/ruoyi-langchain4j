@@ -112,6 +112,11 @@
               <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
             </el-select>
           </el-form-item>
+          <el-form-item label="工具" prop="toolIds">
+            <el-select v-model="form.toolIds" filterable multiple>
+              <el-option v-for="item in tools" :key="item.id" :value="item.id" :label="item.toolName"></el-option>
+            </el-select>
+          </el-form-item>
           <el-form-item label="最小得分" prop="minScore"
             v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
             <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
@@ -162,6 +167,7 @@ import { listAgent, getAgent, delAgent, addAgent, updateAgent } from "@/api/ai/a
 import { listModel } from "@/api/ai/model"
 import { listKnowledgeBase } from "@/api/ai/knowledgeBase"
 import { listDifyApi } from "@/api/ai/difyApi"
+import { listAgent_tool } from "@/api/ai/agent_tool"
 
 export default {
   name: "Agent",
@@ -171,6 +177,7 @@ export default {
       baseUrl: window.location.host,
       llms: [],
       kbs: [],
+      tools: [],
       difyApis: [],
       // 遮罩层
       loading: true,
@@ -330,6 +337,7 @@ export default {
       this.title = "添加AI智能体"
       this.listLLM()
       this.listKbs()
+      this.listTools()
       this.listDifyApis()
     },
     /** 修改按钮操作 */
@@ -338,12 +346,20 @@ export default {
       const id = row.id || this.ids
       this.listLLM()
       this.listKbs()
+      this.listTools()
       this.listDifyApis()
       getAgent(id).then(response => {
         this.form = response.data
         if (this.form) {
           if (this.form.kbIds) {
             this.form.kbIds = this.form.kbIds.split(',').map(str => parseInt(str, 10))
+          }
+          if (this.form.agentTools) {
+            let toolIds = []
+            this.form.agentTools.forEach(item=>{
+              toolIds.push(item.id)
+            })
+            this.form.toolIds = toolIds
           }
         }
         this.open = true
@@ -357,18 +373,21 @@ export default {
           if (this.form.kbIds) {
             this.form.kbIds = this.form.kbIds.join(',')
           }
+          if (this.form.toolIds) {
+            this.form.toolIds = this.form.toolIds.join(',')
+          }
           if (this.form.id != null) {
             updateAgent(this.form).then(response => {
               this.$modal.msgSuccess("修改成功")
               this.open = false
               this.getList()
-            })
+            });
           } else {
             addAgent(this.form).then(response => {
               this.$modal.msgSuccess("新增成功")
               this.open = false
               this.getList()
-            })
+            });
           }
         }
       })
@@ -402,6 +421,11 @@ export default {
     listDifyApis() {
       listDifyApi({ pageNum: 1, pageSize: 9999 }).then(res => {
         this.difyApis = res.rows
+      })
+    },
+    listTools() {
+      listAgent_tool().then(res=>{
+        this.tools = res.rows
       })
     }
   }

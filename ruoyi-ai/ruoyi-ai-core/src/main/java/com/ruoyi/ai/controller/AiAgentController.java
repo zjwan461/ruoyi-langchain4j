@@ -1,7 +1,9 @@
 package com.ruoyi.ai.controller;
 
+import cn.hutool.core.collection.CollUtil;
 import com.ruoyi.ai.dify.domain.DifyApi;
 import com.ruoyi.ai.dify.service.IDifyApiService;
+import com.ruoyi.ai.domain.AgentToolMapping;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
@@ -140,6 +142,17 @@ public class AiAgentController extends BaseController {
                 List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
                 List<String> kbNames = kbs.stream().map(KnowledgeBase::getName).collect(Collectors.toList());
                 aiAgent.setKbNames(String.join(",", kbNames));
+            }
+            if (StringUtils.isNotBlank(aiAgent.getToolIds())) {
+                List<AgentToolMapping> mappings = Arrays.stream(aiAgent.getToolIds().split(",")).map(x -> {
+                    AgentToolMapping mapping = new AgentToolMapping();
+                    mapping.setAgentId(aiAgent.getId());
+                    mapping.setToolId(Long.valueOf(x));
+                    return mapping;
+                }).toList();
+                if (CollUtil.isNotEmpty(mappings)) {
+                    aiAgentService.batchInsertAgentToolMapping(mappings);
+                }
             }
             if (aiAgent.getVisitUrl() == null || "".equals(aiAgent.getVisitUrl())) {
                 String seed = IdUtils.fastSimpleUUID();

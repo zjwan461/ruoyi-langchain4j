@@ -115,6 +115,10 @@ public class AiAgent extends BaseEntity {
   @Excel(name = "知识库查询最多条数")
   private Integer maxResult;
 
+  private String toolIds;
+
+  private String toolNames;
+
   private List<AgentTool> agentTools;
 
   public void setId(Long id) {
@@ -132,8 +136,6 @@ public class AiAgent extends BaseEntity {
   public String getName() {
     return name;
   }
-
-
 
   public void setSystemMessage(String systemMessage) {
     this.systemMessage = systemMessage;
@@ -279,6 +281,22 @@ public class AiAgent extends BaseEntity {
     this.agentTools = agentTools;
   }
 
+  public String getToolIds() {
+    return toolIds;
+  }
+
+  public void setToolIds(String toolIds) {
+    this.toolIds = toolIds;
+  }
+
+  public String getToolNames() {
+    return toolNames;
+  }
+
+  public void setToolNames(String toolNames) {
+    this.toolNames = toolNames;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -306,6 +324,8 @@ public class AiAgent extends BaseEntity {
         .append("minScore", getMinScore())
         .append("maxResult", getMaxResult())
         .append("agentTools", getAgentTools())
+        .append("toolIds", getToolIds())
+        .append("toolNames", getToolNames())
         .toString();
   }
 

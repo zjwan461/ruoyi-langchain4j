@@ -75,6 +75,7 @@
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键ID" align="center" prop="id" />
       <el-table-column label="工具名称" align="center" prop="toolName" />
+      <el-table-column label="工具全类名" align="center" prop="clazz" />
       <el-table-column label="工具描述" align="center" prop="description" />
       <el-table-column label="工具类型" align="center" prop="toolType">
         <template slot-scope="scope">
@@ -126,7 +127,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="工具代码" prop="code">
-          <el-input v-model="form.code" type="textarea" placeholder="请输入内容" />
+          <el-input v-model="form.code" type="textarea" placeholder="请输入内容" rows="10" />
           <i>Tips: 工具代码仅在sandbox类型工具中被支持，当前仅支持python</i>
         </el-form-item>
         <el-form-item label="工具描述" prop="description">
