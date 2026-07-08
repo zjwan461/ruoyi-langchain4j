@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-public class SandboxToolProvider implements ToolProvider {
+public class JToolProvider implements ToolProvider {
 
     private final AiAgent aiAgent;
 
     private final ToolService toolService = new ToolService();
 
-    public SandboxToolProvider(AiAgent aiAgent) {
+    public JToolProvider(AiAgent aiAgent) {
         this.aiAgent = aiAgent;
     }
 
