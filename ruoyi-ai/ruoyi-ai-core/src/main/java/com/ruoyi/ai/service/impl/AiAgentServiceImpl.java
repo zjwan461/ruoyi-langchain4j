@@ -1,38 +1,39 @@
 package com.ruoyi.ai.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import com.ruoyi.ai.domain.AgentToolMapping;
 import com.ruoyi.ai.domain.AiAgent;
 import com.ruoyi.ai.mapper.AiAgentMapper;
 import com.ruoyi.ai.service.IAiAgentService;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.common.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * AI智能体Service业务层处理
- * 
+ *
  * @author jerry
  * @date 2025-09-02
  */
 @Service
-public class AiAgentServiceImpl implements IAiAgentService 
-{
+public class AiAgentServiceImpl implements IAiAgentService {
     @Autowired
     private AiAgentMapper aiAgentMapper;
 
     /**
      * 查询AI智能体
-     * 
+     *
      * @param id AI智能体主键
      * @return AI智能体
      */
     @Override
-    public AiAgent selectAiAgentById(Long id)
-    {
+    public AiAgent selectAiAgentById(Long id) {
         return aiAgentMapper.selectAiAgentById(id);
     }
 
@@ -49,65 +50,80 @@ public class AiAgentServiceImpl implements IAiAgentService
 
     /**
      * 查询AI智能体列表
-     * 
+     *
      * @param aiAgent AI智能体
      * @return AI智能体
      */
     @Override
-    public List<AiAgent> selectAiAgentList(AiAgent aiAgent)
-    {
+    public List<AiAgent> selectAiAgentList(AiAgent aiAgent) {
         return aiAgentMapper.selectAiAgentList(aiAgent);
     }
 
     /**
      * 新增AI智能体
-     * 
+     *
      * @param aiAgent AI智能体
      * @return 结果
      */
+    @Transactional(rollbackFor = Exception.class)
     @Override
-    public int insertAiAgent(AiAgent aiAgent)
-    {
+    public int insertAiAgent(AiAgent aiAgent) {
         aiAgent.setCreateTime(DateUtils.getNowDate());
         aiAgent.setCreateBy(SecurityUtils.getUsername());
-        return aiAgentMapper.insertAiAgent(aiAgent);
+        int insertCount = aiAgentMapper.insertAiAgent(aiAgent);
+        updateAgentToolMapping(aiAgent);
+        return insertCount;
     }
 
     /**
      * 修改AI智能体
-     * 
+     *
      * @param aiAgent AI智能体
      * @return 结果
      */
+    @Transactional(rollbackFor = Exception.class)
     @Override
-    public int updateAiAgent(AiAgent aiAgent)
-    {
+    public int updateAiAgent(AiAgent aiAgent) {
         aiAgent.setUpdateTime(DateUtils.getNowDate());
         aiAgent.setUpdateBy(SecurityUtils.getUsername());
-        return aiAgentMapper.updateAiAgent(aiAgent);
+        int updateCount = aiAgentMapper.updateAiAgent(aiAgent);
+        updateAgentToolMapping(aiAgent);
+        return updateCount;
+    }
+
+    private void updateAgentToolMapping(AiAgent aiAgent) {
+        if (StringUtils.isNotBlank(aiAgent.getToolIds())) {
+            List<AgentToolMapping> mappings = Arrays.stream(aiAgent.getToolIds().split(",")).map(x -> {
+                AgentToolMapping mapping = new AgentToolMapping();
+                mapping.setAgentId(aiAgent.getId());
+                mapping.setToolId(Long.valueOf(x));
+                return mapping;
+            }).toList();
+            if (CollUtil.isNotEmpty(mappings)) {
+                this.batchInsertAgentToolMapping(mappings);
+            }
+        }
     }
 
     /**
      * 批量删除AI智能体
-     * 
+     *
      * @param ids 需要删除的AI智能体主键
      * @return 结果
      */
     @Override
-    public int deleteAiAgentByIds(Long[] ids)
-    {
+    public int deleteAiAgentByIds(Long[] ids) {
         return aiAgentMapper.deleteAiAgentByIds(ids);
     }
 
     /**
      * 删除AI智能体信息
-     * 
+     *
      * @param id AI智能体主键
      * @return 结果
      */
     @Override
-    public int deleteAiAgentById(Long id)
-    {
+    public int deleteAiAgentById(Long id) {
         return aiAgentMapper.deleteAiAgentById(id);
     }
 
@@ -121,7 +137,6 @@ public class AiAgentServiceImpl implements IAiAgentService
         return aiAgentMapper.insertAgentToolMapping(agentId, toolId);
     }
 
-    @Transactional(rollbackFor = Exception.class)
     @Override
     public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings) {
         return aiAgentMapper.batchInsertAgentToolMapping(mappings);
