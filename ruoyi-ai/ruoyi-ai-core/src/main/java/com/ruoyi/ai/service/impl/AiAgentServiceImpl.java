@@ -1,13 +1,14 @@
 package com.ruoyi.ai.service.impl;
 
-import com.ruoyi.common.utils.SecurityUtils;
-import java.util.List;
+import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.mapper.AiAgentMapper;
+import com.ruoyi.ai.service.IAiAgentService;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.ruoyi.ai.mapper.AiAgentMapper;
-import com.ruoyi.ai.domain.AiAgent;
-import com.ruoyi.ai.service.IAiAgentService;
+
+import java.util.List;
 
 /**
  * AI智能体Service业务层处理
@@ -31,6 +32,17 @@ public class AiAgentServiceImpl implements IAiAgentService
     public AiAgent selectAiAgentById(Long id)
     {
         return aiAgentMapper.selectAiAgentById(id);
+    }
+
+    /**
+     * 查询AI智能体,含tool
+     *
+     * @param id AI智能体主键
+     * @return AI智能体
+     */
+    @Override
+    public AiAgent selectAiAgentWithToolById(Long id) {
+        return aiAgentMapper.selectAiAgentWithToolById(id);
     }
 
     /**

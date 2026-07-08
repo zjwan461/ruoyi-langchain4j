@@ -123,7 +123,7 @@ public class SandboxSdk {
      * @throws ServiceException 当 HTTP 非 2xx 或响应反序列化失败时抛出
      */
     public SandboxResponse runPython(String pythonCode) {
-        SandboxRequest request = new SandboxRequest(pythonCode, "python");
+        SandboxRequest request = new SandboxRequest(pythonCode, "python3");
         return run(request);
     }
 

@@ -10,6 +10,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="toolType"    column="tool_type"    />
         <result property="code"    column="code"    />
         <result property="clazz"    column="clazz"    />
+        <result property="parameters"    column="parameters"    />
+        <result property="description"    column="description"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
         <result property="createBy"    column="create_by"    />
@@ -17,7 +19,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAgentToolVo">
-        select id, tool_name, tool_type, code, clazz, create_time, update_time, create_by, update_by from agent_tool
+        select id, tool_name, tool_type, code, clazz, parameters, description, create_time, update_time, create_by, update_by from agent_tool
     </sql>
 
     <select id="selectAgentToolList" parameterType="AgentTool" resultMap="AgentToolResult">
@@ -41,6 +43,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="toolType != null and toolType != ''">tool_type,</if>
             <if test="code != null">code,</if>
             <if test="clazz != null">clazz,</if>
+            <if test="parameters != null">parameters,</if>
+            <if test="description != null">description,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="createBy != null">create_by,</if>
@@ -52,6 +56,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="toolType != null and toolType != ''">#{toolType},</if>
             <if test="code != null">#{code},</if>
             <if test="clazz != null">#{clazz},</if>
+            <if test="parameters != null">#{parameters},</if>
+            <if test="description != null">#{description},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -66,6 +72,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="toolType != null and toolType != ''">tool_type = #{toolType},</if>
             <if test="code != null">code = #{code},</if>
             <if test="clazz != null">clazz = #{clazz},</if>
+            <if test="parameters != null">parameters = #{parameters},</if>
+            <if test="description != null">description = #{description},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="createBy != null">create_by = #{createBy},</if>
@@ -84,4 +92,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             #{id}
         </foreach>
     </delete>
+
+    <select id="selectAgentToolByAgentId" parameterType="java.lang.Long" resultMap="AgentToolResult">
+        select a.* from agent_tool a join agent_tool_mapping b on a.id = b.tool_id join ai_agent c on b.agent_id = c.id
+        where c.agent_id = #{agentId}
+    </select>
 </mapper>

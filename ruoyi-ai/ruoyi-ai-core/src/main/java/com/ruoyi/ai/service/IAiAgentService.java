@@ -1,7 +1,8 @@
 package com.ruoyi.ai.service;
 
-import java.util.List;
 import com.ruoyi.ai.domain.AiAgent;
+
+import java.util.List;
 
 /**
  * AI智能体Service接口
@@ -18,6 +19,14 @@ public interface IAiAgentService
      * @return AI智能体
      */
     public AiAgent selectAiAgentById(Long id);
+
+    /**
+     * 查询AI智能体,含tool
+     *
+     * @param id AI智能体主键
+     * @return AI智能体
+     */
+    public AiAgent selectAiAgentWithToolById(Long id);
 
     /**
      * 查询AI智能体列表

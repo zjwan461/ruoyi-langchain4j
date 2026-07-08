@@ -17,7 +17,7 @@ import java.util.Date;
  * 4. 时区互相转换
  * 5. 根据日期计算星期几
  */
-public class TimeUtil {
+public class TimeTool {
     // 标准日期格式化器（本地时区）
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");

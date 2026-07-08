@@ -59,4 +59,12 @@ public interface AgentToolMapper
      * @return 结果
      */
     public int deleteAgentToolByIds(Long[] ids);
+
+
+    /**
+     * 根据agentId查询所属的agent tool
+     * @param agentId
+     * @return
+     */
+    public List<AgentTool> selectAgentToolByAgentId(Long agentId);
 }

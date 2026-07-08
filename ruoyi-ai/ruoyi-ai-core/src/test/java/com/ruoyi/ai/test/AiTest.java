@@ -71,7 +71,6 @@ public class AiTest {
     private static OpenAiChatModel buildBlockModel() {
         return OpenAiChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
-                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
                 .modelName("qwen3.7-plus")
                 .build();
     }

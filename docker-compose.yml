@@ -91,7 +91,7 @@ services:
       -c min_wal_size=1GB
       -c max_wal_size=4GB
   sandbox:
-    image: langgenius/dify-sandbox:0.2.12
+    image: langgenius/dify-sandbox:0.2.15
     restart: always
     environment:
       # The DifySandbox configurations
@@ -106,7 +106,6 @@ services:
     volumes:
       - ./sandbox/dependencies:/dependencies
       - ./sandbox/conf:/conf
-      - ./sandbox/storage:/var/sandbox/sandbox-python/tmp/storage
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8194/health" ]
     networks:

@@ -65,16 +65,23 @@ class SandBoxSdkTest {
     // ============================ info() 测试 ============================
 
     @Test
-    @DisplayName("info() 正常返回：解析响应并设置 Authorization 头")
     void testSandbox() {
         System.out.println(sandboxSdk.health());
         SandboxRequest req = new SandboxRequest();
         req.setLanguage("python3");
-        req.setCode("print(\"Hello, Dify-Sandbox!\")\n" +
-                "a = 1 + 2\n" +
-                "print(f\"1 + 2 = {a}\")");
+        req.setCode("""
+                import time
+                             
+                def get_weather(city: str):
+                    time.sleep(2)
+                    return f"当前{city}的天气是晴朗"
+                
+                result = get_weather("深圳")
+                print(result)
+                """);
         SandboxResponse sandboxResponse = sandboxSdk.run(req);
-        System.out.println(sandboxResponse);
+        System.out.println(sandboxResponse.getStdout());
+        System.out.println(sandboxResponse.getStderr());
     }
 
 

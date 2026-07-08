@@ -1,7 +1,11 @@
 package com.ruoyi.ai.controller;
 
+import cn.hutool.core.collection.CollUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.service.IAgentToolService;
+import com.ruoyi.ai.util.SimplePythonFuncParser;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
@@ -15,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
@@ -29,6 +34,9 @@ import java.util.List;
 public class AgentToolController extends BaseController {
     @Autowired
     private IAgentToolService agentToolService;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 查询agent_tool列表
@@ -90,6 +98,16 @@ public class AgentToolController extends BaseController {
         } else if (toolType.equals(sandbox)) {
             if (StringUtils.isBlank(agentTool.getCode())) {
                 throw new ServiceException("sandbox tool 代码必填");
+            }
+            SimplePythonFuncParser.FuncInfo funcInfo = SimplePythonFuncParser.parsePythonCode(agentTool.getCode());
+            List<SimplePythonFuncParser.Param> paramList = funcInfo.getParamList();
+            try {
+                if (CollUtil.isNotEmpty(paramList)) {
+                    agentTool.setParameters(objectMapper.writeValueAsString(paramList));
+                }
+            } catch (JsonProcessingException e) {
+                logger.error(e.getMessage(), e);
+                throw new ServiceException("处理代码参数失败");
             }
         }
     }

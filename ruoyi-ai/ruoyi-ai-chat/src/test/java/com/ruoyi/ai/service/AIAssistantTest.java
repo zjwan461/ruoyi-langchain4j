@@ -1,6 +1,6 @@
 package com.ruoyi.ai.service;
 
-import com.ruoyi.ai.tool.TimeUtil;
+import com.ruoyi.ai.tool.TimeTool;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -20,7 +20,6 @@ public class AIAssistantTest {
         OpenAiStreamingChatModel model = OpenAiStreamingChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
                 .modelName("qwen3.7-plus")
-                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
                 .build();
         return model;
     }
@@ -40,7 +39,7 @@ public class AIAssistantTest {
                     System.err.println(x);
                     return "在必要的时候调用工具";
                 })
-                .tools(new TimeUtil())
+                .tools(new TimeTool())
                 .build();
         TokenStream tokenStream = assistant.chatStream("今天的日期");
         tokenStream

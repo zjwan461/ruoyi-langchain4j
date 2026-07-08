@@ -1,7 +1,8 @@
 package com.ruoyi.ai.mapper;
 
-import java.util.List;
 import com.ruoyi.ai.domain.AiAgent;
+
+import java.util.List;
 
 /**
  * AI智能体Mapper接口
@@ -61,4 +62,6 @@ public interface AiAgentMapper
 
 
     public AiAgent selectAiAgentByVisitUrl(String visitUrl);
+
+    public AiAgent selectAiAgentWithToolById(Long id);
 }
