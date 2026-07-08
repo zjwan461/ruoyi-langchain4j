@@ -139,7 +139,7 @@ public class SandboxSdk {
      */
     public String runPythonAndGetStdout(String pythonCode) {
         SandboxResponse response = runPython(pythonCode);
-        if (!response.isSuccess()) {
+        if (!response.isSuccess() || StringUtils.isNotBlank(response.getStderr())) {
             String message = buildFailureMessage(response);
             log.error("dify-sandbox run python fail, code={}, message={}", response.getCode(), message);
             throw new ServiceException(message);
@@ -223,14 +223,6 @@ public class SandboxSdk {
         StringBuilder sb = new StringBuilder("dify-sandbox run fail, code=").append(response.getCode());
         if (StringUtils.isNotBlank(response.getStderr())) {
             sb.append(", error=").append(response.getStderr());
-        }
-        if (response.getData() != null) {
-            if (StringUtils.isNotBlank(response.getStderr())) {
-                sb.append(", stderr=").append(response.getStderr());
-            }
-            if (StringUtils.isNotBlank(response.getStdout())) {
-                sb.append(", stdout=").append(response.getStdout());
-            }
         }
         return sb.toString();
     }

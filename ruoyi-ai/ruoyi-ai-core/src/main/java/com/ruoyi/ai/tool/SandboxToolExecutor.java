@@ -1,9 +1,10 @@
 package com.ruoyi.ai.tool;
 
+import com.ruoyi.ai.sandbox.SandboxSdk;
+import com.ruoyi.common.utils.spring.SpringUtils;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.service.tool.ToolExecutor;
 
-// todo impl this executor
 public class SandboxToolExecutor implements ToolExecutor {
 
     private final String code;
@@ -18,6 +19,7 @@ public class SandboxToolExecutor implements ToolExecutor {
 
     @Override
     public String execute(ToolExecutionRequest toolExecutionRequest, Object memoryId) {
-        return "";
+        SandboxSdk sandboxSdk = SpringUtils.getBean(SandboxSdk.class);
+        return sandboxSdk.runPythonAndGetStdout(code);
     }
 }
