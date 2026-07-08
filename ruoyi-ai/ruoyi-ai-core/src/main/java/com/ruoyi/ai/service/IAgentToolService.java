@@ -54,9 +54,11 @@ public interface IAgentToolService
 
     /**
      * 删除agent_tool信息
-     * 
+     *
      * @param id agent_tool主键
      * @return 结果
      */
     public int deleteAgentToolById(Long id);
+
+    public List<AgentTool> selectAgentToolByAgentId(Long agentId);
 }

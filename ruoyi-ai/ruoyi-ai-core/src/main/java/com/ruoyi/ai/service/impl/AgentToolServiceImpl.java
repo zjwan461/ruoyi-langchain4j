@@ -94,4 +94,9 @@ public class AgentToolServiceImpl implements IAgentToolService
     {
         return agentToolMapper.deleteAgentToolById(id);
     }
+
+    @Override
+    public List<AgentTool> selectAgentToolByAgentId(Long agentId) {
+        return agentToolMapper.selectAgentToolByAgentId(agentId);
+    }
 }
