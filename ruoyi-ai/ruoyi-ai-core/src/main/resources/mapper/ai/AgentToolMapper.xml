@@ -95,6 +95,6 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectAgentToolByAgentId" parameterType="java.lang.Long" resultMap="AgentToolResult">
         select a.* from agent_tool a join agent_tool_mapping b on a.id = b.tool_id join ai_agent c on b.agent_id = c.id
-        where c.agent_id = #{agentId}
+        where c.id = #{agentId}
     </select>
 </mapper>

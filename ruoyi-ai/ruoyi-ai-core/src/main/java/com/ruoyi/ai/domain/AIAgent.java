@@ -13,7 +13,7 @@ import java.util.List;
  * @author jerry
  * @date 2025-09-02
  */
-public class AiAgent extends BaseEntity {
+public class AIAgent extends BaseEntity {
 
   private static final long serialVersionUID = 1L;
 

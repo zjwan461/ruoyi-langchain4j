@@ -1,8 +1,8 @@
 package com.ruoyi.ai.controller;
 
 import com.ruoyi.ai.controller.model.ChatReq;
-import com.ruoyi.ai.domain.AiAgent;
-import com.ruoyi.ai.service.IAiChatService;
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DictUtils;
@@ -10,13 +10,13 @@ import com.ruoyi.common.utils.StringUtils;
 
 public class ChatController extends BaseController {
 
-    protected final IAiChatService aiChatService;
+    protected final IAIChatService aiChatService;
 
-    public ChatController(IAiChatService aiChatService) {
+    public ChatController(IAIChatService aiChatService) {
         this.aiChatService = aiChatService;
     }
 
-    protected void preCheck(AiAgent aiAgent, ChatReq chatReq) {
+    protected void preCheck(AIAgent aiAgent, ChatReq chatReq) {
         String agentEnable = DictUtils.getDictValue("ai_agent_status", "已启用");
         if (!StringUtils.equals(agentEnable, String.valueOf(aiAgent.getStatus()))) {
             throw new ServiceException("当前Agent未启用");

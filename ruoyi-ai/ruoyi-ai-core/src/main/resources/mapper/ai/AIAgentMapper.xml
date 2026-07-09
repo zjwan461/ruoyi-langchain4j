@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ruoyi.ai.mapper.AiAgentMapper">
+<mapper namespace="com.ruoyi.ai.mapper.AIAgentMapper">
 
     <resultMap type="AiAgent" id="AiAgentResult">
         <result property="id"                  column="id"                  />
@@ -183,7 +183,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </insert>
 
     <insert id="batchInsertAgentToolMapping" useGeneratedKeys="true" keyProperty="id">
-        replace into agent_tool_mapping (agent_id, tool_id)
+        insert into agent_tool_mapping (agent_id, tool_id)
         values
         <foreach collection="list" item="item" separator=",">
             (
@@ -192,4 +192,8 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             )
         </foreach>
     </insert>
+
+    <delete id="deleteAgentToolMappingByAgentId" parameterType="Long">
+        delete from agent_tool_mapping where agent_id = #{agentId}
+    </delete>
 </mapper>

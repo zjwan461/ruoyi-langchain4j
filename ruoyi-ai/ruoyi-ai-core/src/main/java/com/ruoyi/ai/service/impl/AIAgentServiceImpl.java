@@ -2,9 +2,9 @@ package com.ruoyi.ai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import com.ruoyi.ai.domain.AgentToolMapping;
-import com.ruoyi.ai.domain.AiAgent;
-import com.ruoyi.ai.mapper.AiAgentMapper;
-import com.ruoyi.ai.service.IAiAgentService;
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.mapper.AIAgentMapper;
+import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -22,9 +22,9 @@ import java.util.List;
  * @date 2025-09-02
  */
 @Service
-public class AiAgentServiceImpl implements IAiAgentService {
+public class AIAgentServiceImpl implements IAIAgentService {
     @Autowired
-    private AiAgentMapper aiAgentMapper;
+    private AIAgentMapper aiAgentMapper;
 
     /**
      * 查询AI智能体
@@ -33,7 +33,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
      * @return AI智能体
      */
     @Override
-    public AiAgent selectAiAgentById(Long id) {
+    public AIAgent selectAiAgentById(Long id) {
         return aiAgentMapper.selectAiAgentById(id);
     }
 
@@ -44,7 +44,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
      * @return AI智能体
      */
     @Override
-    public AiAgent selectAiAgentWithToolById(Long id) {
+    public AIAgent selectAiAgentWithToolById(Long id) {
         return aiAgentMapper.selectAiAgentWithToolById(id);
     }
 
@@ -55,7 +55,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
      * @return AI智能体
      */
     @Override
-    public List<AiAgent> selectAiAgentList(AiAgent aiAgent) {
+    public List<AIAgent> selectAiAgentList(AIAgent aiAgent) {
         return aiAgentMapper.selectAiAgentList(aiAgent);
     }
 
@@ -67,7 +67,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public int insertAiAgent(AiAgent aiAgent) {
+    public int insertAiAgent(AIAgent aiAgent) {
         aiAgent.setCreateTime(DateUtils.getNowDate());
         aiAgent.setCreateBy(SecurityUtils.getUsername());
         int insertCount = aiAgentMapper.insertAiAgent(aiAgent);
@@ -83,7 +83,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public int updateAiAgent(AiAgent aiAgent) {
+    public int updateAiAgent(AIAgent aiAgent) {
         aiAgent.setUpdateTime(DateUtils.getNowDate());
         aiAgent.setUpdateBy(SecurityUtils.getUsername());
         int updateCount = aiAgentMapper.updateAiAgent(aiAgent);
@@ -91,7 +91,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
         return updateCount;
     }
 
-    private void updateAgentToolMapping(AiAgent aiAgent) {
+    private void updateAgentToolMapping(AIAgent aiAgent) {
         if (StringUtils.isNotBlank(aiAgent.getToolIds())) {
             List<AgentToolMapping> mappings = Arrays.stream(aiAgent.getToolIds().split(",")).map(x -> {
                 AgentToolMapping mapping = new AgentToolMapping();
@@ -100,8 +100,11 @@ public class AiAgentServiceImpl implements IAiAgentService {
                 return mapping;
             }).toList();
             if (CollUtil.isNotEmpty(mappings)) {
+                aiAgentMapper.deleteAgentToolMappingByAgentId(aiAgent.getId());
                 this.batchInsertAgentToolMapping(mappings);
             }
+        } else {
+            aiAgentMapper.deleteAgentToolMappingByAgentId(aiAgent.getId());
         }
     }
 
@@ -128,7 +131,7 @@ public class AiAgentServiceImpl implements IAiAgentService {
     }
 
     @Override
-    public AiAgent selectByVisitId(String visitId) {
+    public AIAgent selectByVisitId(String visitId) {
         return aiAgentMapper.selectAiAgentByVisitUrl(visitId);
     }
 

@@ -6,8 +6,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.domain.AiAgent;
-import com.ruoyi.ai.domain.ChatMessage;
+import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelType;
@@ -15,8 +14,6 @@ import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
-import com.ruoyi.common.utils.uuid.IdUtils;
-import com.ruoyi.framework.manager.AsyncManager;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
@@ -36,21 +33,25 @@ import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class AiChatServiceImpl implements IAiChatService {
+@Primary
+public class AIChatServiceImpl extends AIBaseChatServiceImpl {
 
     @Resource
     private LangChain4jService langChain4jService;
@@ -64,32 +65,27 @@ public class AiChatServiceImpl implements IAiChatService {
     @Resource
     private ModelBuilder modelBuilder;
 
-    @Resource
-    private RedisTemplate<Object, Object> redisTemplate;
-
-    @Resource
-    private RedisScript<Long> limitScript;
-
-    @Resource
-    private ObjectMapper objectMapper;
-
-    @Resource
-    private IChatMessageService chatMessageService;
-
-    @Resource
-    private ISysConfigService sysConfigService;
-
-    @Resource
-    private RedisMemoryChatMemoryStore redisMemoryChatMemoryStore;
-
-    @Resource
-    private AiConfig aiConfig;
-
-    private final InMemoryChatMemoryStore inMemoryChatMemoryStore = new InMemoryChatMemoryStore();
+    public AIChatServiceImpl(IChatMessageService chatMessageService,
+                             InMemoryChatMemoryStore inMemoryChatMemoryStore,
+                             RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
+                             AiConfig aiConfig,
+                             ObjectMapper objectMapper,
+                             RedisTemplate<Object, Object> redisTemplate,
+                             RedisScript<Long> limitScript,
+                             ISysConfigService sysConfigService) {
+        super(chatMessageService,
+                inMemoryChatMemoryStore,
+                redisMemoryChatMemoryStore,
+                aiConfig,
+                objectMapper,
+                redisTemplate,
+                limitScript,
+                sysConfigService);
+    }
 
 
     @Override
-    public Flux<String> chat(AiAgent aiAgent, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -242,79 +238,5 @@ public class AiChatServiceImpl implements IAiChatService {
 
     }
 
-    private void saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                                 ChatMessageType chatMessageType) {
-        AsyncManager.me().execute(new TimerTask() {
-            @Override
-            public void run() {
-                ChatMessage chatMessage = new ChatMessage();
-                chatMessage.setAgentId(agentId);
-                chatMessage.setContent(content);
-                if (chatMessageType == ChatMessageType.AI) {
-                    chatMessage.setRole("assistant");
-                } else if (chatMessageType == ChatMessageType.USER) {
-                    chatMessage.setRole("user");
-                } else {
-                    chatMessage.setRole("system");
-                }
-                chatMessage.setClientId(clientId);
-                chatMessage.setSessionId(sessionId);
-                chatMessage.setCreateBy("system");
-                chatMessageService.insertChatMessage(chatMessage);
-            }
-        });
 
-    }
-
-    @Override
-    public String createSession(String clientId) {
-        String sessionId = IdUtils.fastSimpleUUID();
-        redisTemplate.opsForValue().set(Constants.AI_CHAT_CLIENT_SESSION + clientId, sessionId);
-        return sessionId;
-    }
-
-    @Override
-    public boolean checkClientSession(String clientId, String sessionId) {
-        return sessionId.equals(redisTemplate.opsForValue().get(Constants.AI_CHAT_CLIENT_SESSION + clientId));
-    }
-
-    @Override
-    public boolean checkIfOverLmtRequest(Long agentId, Integer dayLmtPerClient, String clientId) {
-        Long number = redisTemplate.execute(limitScript,
-                Collections.singletonList(Constants.AI_AGENT_CHAT_LMT + agentId + ":" + clientId),
-                dayLmtPerClient,
-                (int) TimeUnit.DAYS.toSeconds(1));
-        return number.intValue() <= dayLmtPerClient;
-    }
-
-    @Override
-    public List<Map<String, String>> listClientSession(String clientId, Long agentId) {
-        String value = sysConfigService.selectConfigByKey("ai.agent.sessionNum");
-        Integer limit = null;
-        if (StringUtils.isNotEmpty(value)) {
-            limit = Integer.valueOf(value);
-        }
-        List<Map<String, String>> res = chatMessageService.selectSessionList(clientId, agentId, limit);
-        res.forEach(x -> {
-            String title = x.get("title");
-            if (title.length() > 5) {
-                title = title.substring(0, 5) + "...";
-            }
-            x.put("title", title);
-        });
-        return res;
-    }
-
-    @Override
-    public List<ChatMessage> listAgentChatMessageBySessionId(String sessionId, Long agentId) {
-        return chatMessageService.selectAgentChatMessageBySessionId(sessionId, agentId);
-    }
-
-    @Override
-    public void deleteSession(String sessionId) {
-        if (chatMessageService.deleteBySessionId(sessionId) > 0) {
-//            chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
-            log.debug("remove session id:{}", sessionId);
-        }
-    }
 }

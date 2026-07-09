@@ -1,6 +1,7 @@
 package com.ruoyi.ai.config;
 
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
+import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,6 +30,11 @@ public class Langchain4jConfig {
                 .dimension(pgVector.getDimension())
                 .dropTableFirst(pgVector.getDropTableFirst())
                 .build();
+    }
+
+    @Bean
+    public InMemoryChatMemoryStore inMemoryChatMemoryStore() {
+        return new InMemoryChatMemoryStore();
     }
 
 }

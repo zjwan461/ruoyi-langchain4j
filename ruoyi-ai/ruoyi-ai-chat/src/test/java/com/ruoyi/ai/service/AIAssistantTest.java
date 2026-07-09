@@ -1,5 +1,7 @@
 package com.ruoyi.ai.service;
 
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.tool.TimeTool;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
@@ -19,6 +21,7 @@ public class AIAssistantTest {
     private static OpenAiStreamingChatModel buildStreamingModel() {
         OpenAiStreamingChatModel model = OpenAiStreamingChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
+                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
                 .modelName("qwen3.7-plus")
                 .build();
         return model;
@@ -56,6 +59,15 @@ public class AIAssistantTest {
                 .start();
 
         System.in.read();
+    }
+
+    @Test
+    public void testAssistant() throws Exception {
+        AIAgent aiAgent = new AIAgent();
+        AiServices.builder(AIAssistant.class)
+                .streamingChatModel(buildStreamingModel())
+                .systemMessageProvider(x -> "在必要的时候调用工具")
+                .toolProvider(new JToolProvider(aiAgent));
     }
 
 }

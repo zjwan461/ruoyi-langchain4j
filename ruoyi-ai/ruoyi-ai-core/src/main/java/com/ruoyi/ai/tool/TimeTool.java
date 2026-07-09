@@ -1,12 +1,10 @@
 package com.ruoyi.ai.tool;
 
+import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 
 /**
  * 时间工具类
@@ -28,7 +26,7 @@ public class TimeTool {
     /**
      * 获取当前系统时间，格式 yyyy-MM-dd HH:mm:ss
      */
-    @Tool
+    @Tool("获取当前系统时间，格式 yyyy-MM-dd HH:mm:ss")
     public String getCurrentTime() {
         return LocalDateTime.now().format(DATE_TIME_FORMATTER);
     }
@@ -36,14 +34,14 @@ public class TimeTool {
     /**
      * 获取当前时间，自定义格式
      */
-    public String getCurrentTime(String pattern) {
+    public String getCurrentTime(@P("日期时间格式") String pattern) {
         return LocalDateTime.now().format(DateTimeFormatter.ofPattern(pattern));
     }
 
     /**
      * 获取当前 LocalDateTime 对象
      */
-    @Tool
+    @Tool("获取当前 LocalDateTime 对象")
     public LocalDateTime getCurrentLocalDateTime() {
         return LocalDateTime.now();
     }
@@ -53,7 +51,7 @@ public class TimeTool {
     /**
      * 获取当前毫秒时间戳（13位）
      */
-    @Tool
+    @Tool("获取当前毫秒时间戳（13位）")
     public long getCurrentMilliTimestamp() {
         return System.currentTimeMillis();
     }
@@ -61,7 +59,7 @@ public class TimeTool {
     /**
      * 获取当前秒时间戳（10位）
      */
-    @Tool
+    @Tool("获取当前秒时间戳（10位）")
     public long getCurrentSecondTimestamp() {
         return System.currentTimeMillis() / 1000;
     }
@@ -71,8 +69,8 @@ public class TimeTool {
      *
      * @param dateStr 日期字符串 yyyy-MM-dd HH:mm:ss
      */
-    @Tool
-    public long getMilliTimestamp(String dateStr) {
+    @Tool("指定日期字符串转毫秒时间戳")
+    public long getMilliTimestamp(@P("日期时间字符串 yyyy-MM-dd HH:mm:ss") String dateStr) {
         LocalDateTime localDateTime = LocalDateTime.parse(dateStr, DATE_TIME_FORMATTER);
         return localDateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
@@ -80,8 +78,8 @@ public class TimeTool {
     /**
      * 指定日期字符串转秒时间戳
      */
-    @Tool
-    public long getSecondTimestamp(String dateStr) {
+    @Tool("指定日期字符串转秒时间戳")
+    public long getSecondTimestamp(@P("日期时间字符串 yyyy-MM-dd HH:mm:ss") String dateStr) {
         return getMilliTimestamp(dateStr) / 1000;
     }
 
@@ -90,8 +88,8 @@ public class TimeTool {
     /**
      * 毫秒时间戳转标准日期字符串 yyyy-MM-dd HH:mm:ss
      */
-    @Tool
-    public String timestampToDateTime(long milliTs) {
+    @Tool("毫秒时间戳转标准日期字符串 yyyy-MM-dd HH:mm:ss")
+    public String timestampToDateTime(@P("毫秒时间戳") long milliTs) {
         Instant instant = Instant.ofEpochMilli(milliTs);
         LocalDateTime dateTime = instant.atZone(ZoneId.systemDefault()).toLocalDateTime();
         return dateTime.format(DATE_TIME_FORMATTER);
@@ -100,16 +98,16 @@ public class TimeTool {
     /**
      * 秒时间戳转标准日期字符串
      */
-    @Tool
-    public String secondTsToDateTime(long secondTs) {
+    @Tool("秒时间戳转标准日期字符串")
+    public String secondTsToDateTime(@P("秒时间戳") long secondTs) {
         return timestampToDateTime(secondTs * 1000);
     }
 
     /**
      * 时间戳转LocalDateTime
      */
-    @Tool
-    public LocalDateTime timestampToLocalDateTime(long milliTs) {
+    @Tool("时间戳转LocalDateTime")
+    public LocalDateTime timestampToLocalDateTime(@P("毫秒时间戳") long milliTs) {
         return Instant.ofEpochMilli(milliTs).atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
 
@@ -123,8 +121,9 @@ public class TimeTool {
      * @param targetZoneId   目标时区
      * @return 转换后时间字符串
      */
-    @Tool
-    public String convertTimeZone(String sourceDateTime, String sourceZoneId, String targetZoneId) {
+    @Tool("时区转换")
+    public String convertTimeZone(@P("源时间字符串 yyyy-MM-dd HH:mm:ss") String sourceDateTime, @P("源时区 例：Asia/Shanghai、UTC、America/New_York") String sourceZoneId,
+                                  @P("目标时区") String targetZoneId) {
         LocalDateTime sourceLocal = LocalDateTime.parse(sourceDateTime, DATE_TIME_FORMATTER);
         ZonedDateTime sourceZoned = ZonedDateTime.of(sourceLocal, ZoneId.of(sourceZoneId));
         ZonedDateTime targetZoned = sourceZoned.withZoneSameInstant(ZoneId.of(targetZoneId));
@@ -134,16 +133,16 @@ public class TimeTool {
     /**
      * 本地时区时间转UTC
      */
-    @Tool
-    public String localToUtc(String localDateTime) {
+    @Tool("本地时区时间转UTC")
+    public String localToUtc(@P("本地时区时间字符串") String localDateTime) {
         return convertTimeZone(localDateTime, ZoneId.systemDefault().getId(), "UTC");
     }
 
     /**
      * UTC时间转本地时区
      */
-    @Tool
-    public String utcToLocal(String utcDateTime) {
+    @Tool("UTC时间转本地时区")
+    public String utcToLocal(@P("UTC时间字符串") String utcDateTime) {
         return convertTimeZone(utcDateTime, "UTC", ZoneId.systemDefault().getId());
     }
 
@@ -152,8 +151,8 @@ public class TimeTool {
     /**
      * 根据日期字符串获取星期数字 1=周一 ... 7=周日
      */
-    @Tool
-    public int getWeekNum(String dateStr) {
+    @Tool("根据日期字符串获取星期数字 1=周一 ... 7=周日")
+    public int getWeekNum(@P("日期字符串 yyyy-MM-dd") String dateStr) {
         LocalDate date = LocalDate.parse(dateStr, DATE_FORMATTER);
         return date.getDayOfWeek().getValue();
     }
@@ -161,8 +160,8 @@ public class TimeTool {
     /**
      * 根据日期字符串获取中文星期
      */
-    @Tool
-    public String getWeekCn(String dateStr) {
+    @Tool("根据日期字符串获取中文星期")
+    public String getWeekCn(@P("日期字符串 yyyy-MM-dd") String dateStr) {
         int weekNum = getWeekNum(dateStr);
         return switch (weekNum) {
             case 1 -> "星期一";
@@ -179,22 +178,9 @@ public class TimeTool {
     /**
      * 根据时间戳获取中文星期
      */
-    @Tool
-    public String getWeekCnByTs(long milliTs) {
+    @Tool(value = "根据时间戳获取中文星期")
+    public String getWeekCnByTs(@P("时间戳毫秒值") long milliTs) {
         String dateTime = timestampToDateTime(milliTs);
         return getWeekCn(dateTime.substring(0, 10));
-    }
-
-    // 兼容旧 Date 工具方法（可选）
-    @Tool
-    public Date strToDate(String dateStr) throws ParseException {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return sdf.parse(dateStr);
-    }
-
-    @Tool
-    public String dateToStr(Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return sdf.format(date);
     }
 }

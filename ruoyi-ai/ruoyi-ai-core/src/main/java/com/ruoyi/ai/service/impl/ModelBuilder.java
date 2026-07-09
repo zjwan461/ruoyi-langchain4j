@@ -1,6 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
-import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.service.IModelService;
@@ -111,7 +111,7 @@ public class ModelBuilder {
         return parameters;
     }
 
-    public ChatRequestParameters getParameters(AiAgent aiAgent) {
+    public ChatRequestParameters getParameters(AIAgent aiAgent) {
         Model model = SpringUtils.getBean(IModelService.class).selectModelById(aiAgent.getModelId());
         ModelProvider provider = ModelProvider.fromValue(model.getProvider());
         ChatRequestParameters parameters = null;

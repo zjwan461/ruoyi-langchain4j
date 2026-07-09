@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.AgentTool;
-import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.service.IAgentToolService;
 import com.ruoyi.ai.util.SimplePythonFuncParser;
 import com.ruoyi.common.exception.ServiceException;
@@ -27,11 +27,9 @@ import java.util.Map;
 @Slf4j
 public class JToolProvider implements ToolProvider {
 
-    private final AiAgent aiAgent;
+    private final AIAgent aiAgent;
 
-    private final ToolService toolService = new ToolService();
-
-    public JToolProvider(AiAgent aiAgent) {
+    public JToolProvider(AIAgent aiAgent) {
         this.aiAgent = aiAgent;
     }
 

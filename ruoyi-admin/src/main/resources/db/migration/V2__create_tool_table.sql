@@ -16,6 +16,11 @@ create table agent_tool
 ) engine = innodb
     comment ='agent_tool表';
 
+-- 内置时间工具
+INSERT INTO agent_tool (id, tool_name, tool_type, code, clazz, description, parameters, create_time, update_time,
+                        create_by, update_by)
+VALUES (1, 'time_tool', 'builtin', null, 'com.ruoyi.ai.tool.TimeTool', null, null, sysdate(), null, 'admin', '');
+
 drop table if exists agent_tool_mapping;
 create table agent_tool_mapping
 (

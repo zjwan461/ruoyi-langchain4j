@@ -1,7 +1,7 @@
 package com.ruoyi.ai.service;
 
 import com.ruoyi.ai.domain.AgentToolMapping;
-import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.AIAgent;
 
 import java.util.List;
 
@@ -11,14 +11,14 @@ import java.util.List;
  * @author jerry
  * @date 2025-09-02
  */
-public interface IAiAgentService {
+public interface IAIAgentService {
     /**
      * 查询AI智能体
      *
      * @param id AI智能体主键
      * @return AI智能体
      */
-    public AiAgent selectAiAgentById(Long id);
+    public AIAgent selectAiAgentById(Long id);
 
     /**
      * 查询AI智能体,含tool
@@ -26,7 +26,7 @@ public interface IAiAgentService {
      * @param id AI智能体主键
      * @return AI智能体
      */
-    public AiAgent selectAiAgentWithToolById(Long id);
+    public AIAgent selectAiAgentWithToolById(Long id);
 
     /**
      * 查询AI智能体列表
@@ -34,7 +34,7 @@ public interface IAiAgentService {
      * @param aiAgent AI智能体
      * @return AI智能体集合
      */
-    public List<AiAgent> selectAiAgentList(AiAgent aiAgent);
+    public List<AIAgent> selectAiAgentList(AIAgent aiAgent);
 
     /**
      * 新增AI智能体
@@ -42,7 +42,7 @@ public interface IAiAgentService {
      * @param aiAgent AI智能体
      * @return 结果
      */
-    public int insertAiAgent(AiAgent aiAgent);
+    public int insertAiAgent(AIAgent aiAgent);
 
     /**
      * 修改AI智能体
@@ -50,7 +50,7 @@ public interface IAiAgentService {
      * @param aiAgent AI智能体
      * @return 结果
      */
-    public int updateAiAgent(AiAgent aiAgent);
+    public int updateAiAgent(AIAgent aiAgent);
 
     /**
      * 批量删除AI智能体
@@ -68,7 +68,7 @@ public interface IAiAgentService {
      */
     public int deleteAiAgentById(Long id);
 
-    public AiAgent selectByVisitId(String visitId);
+    public AIAgent selectByVisitId(String visitId);
 
     public int insertAgentToolMapping(Long agentId, Long toolId);
 
