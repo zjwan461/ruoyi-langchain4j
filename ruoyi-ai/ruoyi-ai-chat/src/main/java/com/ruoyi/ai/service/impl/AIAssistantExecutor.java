@@ -139,6 +139,8 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                 fluxSink.next(objectMapper.writeValueAsString(msg));
                             } catch (JsonProcessingException ignored) {
                             }
+                        }).onRetrieved(contents -> {
+                            //todo
                         })
                         .onError(fluxSink::error)
                         .start();
