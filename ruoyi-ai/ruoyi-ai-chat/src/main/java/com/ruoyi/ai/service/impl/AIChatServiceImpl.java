@@ -9,10 +9,11 @@ import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
-import com.ruoyi.ai.enums.ModelType;
-import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.service.IChatMessageService;
+import com.ruoyi.ai.service.IKnowledgeBaseService;
+import com.ruoyi.ai.service.IModelService;
+import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.ai.util.Constants;
-import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
@@ -56,15 +57,6 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
     @Resource
     private LangChain4jService langChain4jService;
 
-    @Resource
-    private IModelService modelService;
-
-    @Resource
-    private IKnowledgeBaseService knowledgeBaseService;
-
-    @Resource
-    private ModelBuilder modelBuilder;
-
     public AIChatServiceImpl(IChatMessageService chatMessageService,
                              InMemoryChatMemoryStore inMemoryChatMemoryStore,
                              RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
@@ -72,7 +64,10 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                              ObjectMapper objectMapper,
                              RedisTemplate<Object, Object> redisTemplate,
                              RedisScript<Long> limitScript,
-                             ISysConfigService sysConfigService) {
+                             ISysConfigService sysConfigService,
+                             IKnowledgeBaseService knowledgeBaseService,
+                             IModelService modelService,
+                             ModelBuilder modelBuilder) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -80,7 +75,10 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 objectMapper,
                 redisTemplate,
                 limitScript,
-                sysConfigService);
+                sysConfigService,
+                knowledgeBaseService,
+                modelService,
+                modelBuilder);
     }
 
 
@@ -215,28 +213,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
 
     }
 
-    private EmbeddingModel getEmbeddingModel() {
-        Model query = new Model();
-        query.setType(ModelType.EMBEDDING.getValue());
-        List<Model> models = modelService.selectModelList(query);
-        if (models == null) {
-            throw new ServiceException("尚未配置embedding模型,无法进行知识库查询");
-        }
-        String value = sysConfigService.selectConfigByKey("ai.model.embedding");
-        if (StringUtils.isBlank(value)) {
-            log.warn("not configure default embedding model, will use the first one embedding model save in db");
-            Model first = models.get(0);
-            return modelBuilder.getEmbeddingModel(first);
-        } else {
-            long embId = Long.parseLong(value);
-            Model model = models.stream().filter(x -> embId == x.getId()).findFirst().orElse(null);
-            if (model == null) {
-                throw new ServiceException("已配置的默认向量模型id未配置");
-            }
-            return modelBuilder.getEmbeddingModel(model);
-        }
 
-    }
 
 
 }

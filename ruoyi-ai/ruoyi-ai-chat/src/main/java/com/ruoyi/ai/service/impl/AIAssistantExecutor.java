@@ -7,9 +7,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.service.AIAssistant;
 import com.ruoyi.ai.service.IChatMessageService;
+import com.ruoyi.ai.service.IKnowledgeBaseService;
 import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.util.Constants;
@@ -19,8 +21,11 @@ import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.slf4j.Logger;
@@ -30,7 +35,8 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import javax.annotation.Resource;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,14 +45,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AIAssistantExecutor extends AIBaseChatServiceImpl {
 
     private static final Logger log = LoggerFactory.getLogger(AIAssistantExecutor.class);
-    @Resource
-    private ModelBuilder modelBuilder;
-
-    @Resource
-    private IModelService modelService;
-
-    @Resource
-    private ObjectMapper objectMapper;
 
     public AIAssistantExecutor(IChatMessageService chatMessageService,
                                InMemoryChatMemoryStore inMemoryChatMemoryStore,
@@ -55,7 +53,10 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                ObjectMapper objectMapper,
                                RedisTemplate<Object, Object> redisTemplate,
                                RedisScript<Long> limitScript,
-                               ISysConfigService sysConfigService) {
+                               ISysConfigService sysConfigService,
+                               IKnowledgeBaseService knowledgeBaseService,
+                               IModelService modelService,
+                               ModelBuilder modelBuilder) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -63,7 +64,10 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                 objectMapper,
                 redisTemplate,
                 limitScript,
-                sysConfigService);
+                sysConfigService,
+                knowledgeBaseService,
+                modelService,
+                modelBuilder);
     }
 
     @Override
@@ -141,6 +145,21 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
         ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
                 redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
+
+        EmbeddingStoreContentRetriever contentRetriever = null;
+        String kbIds = aiAgent.getKbIds();
+        if (StringUtils.isNotBlank(kbIds)) {
+            List<Long> ids = Arrays.stream(kbIds.split(",")).map(Long::valueOf).toList();
+            List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
+            List<Long> kbIdList = kbs.stream().map(KnowledgeBase::getId).toList();
+            contentRetriever = EmbeddingStoreContentRetriever.builder()
+                    .embeddingModel(getEmbeddingModel())
+                    .minScore(aiAgent.getMinScore())
+                    .maxResults(aiAgent.getMaxResult())
+                    .embeddingStore(PgVectorEmbeddingStore.builder().build())
+                    .filter(new IsIn("kb_id", kbIdList))
+                    .build();
+        }
         return AiServices.builder(AIAssistant.class)
                 .streamingChatModel(llm)
                 .systemMessageProvider(x -> aiAgent.getSystemMessage())
@@ -149,6 +168,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         .maxMessages(aiAgent.getMemoryCount())
                         .build())
                 .toolProvider(new JToolProvider(aiAgent))
+                .contentRetriever(contentRetriever)
                 .maxSequentialToolsInvocations(10)
                 .build();
     }
