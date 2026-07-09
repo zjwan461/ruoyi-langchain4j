@@ -7,11 +7,15 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 public class AIAssistantTest {
@@ -64,9 +68,18 @@ public class AIAssistantTest {
     @Test
     public void testAssistant() throws Exception {
         AIAgent aiAgent = new AIAgent();
+        EmbeddingStoreContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingModel(null)
+                .minScore(aiAgent.getMinScore())
+                .maxResults(aiAgent.getMaxResult())
+                .displayName("")
+                .embeddingStore(PgVectorEmbeddingStore.builder().build())
+                .filter(new IsIn("kb_id", Collections.singleton("1")))
+                .build();
         AiServices.builder(AIAssistant.class)
                 .streamingChatModel(buildStreamingModel())
                 .systemMessageProvider(x -> "在必要的时候调用工具")
+                .contentRetriever(contentRetriever)
                 .toolProvider(new JToolProvider(aiAgent));
     }
 
