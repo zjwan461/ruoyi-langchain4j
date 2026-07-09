@@ -121,11 +121,19 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         }).onToolExecuted(toolExecuted -> {
                             String result = toolExecuted.result();
                             ToolExecutionRequest request = toolExecuted.request();
-                            log.info("调用工具{}, result={}", request.name(), result);
-                        }).beforeToolExecution(beforeToolExecution -> {
-                            String toolName = beforeToolExecution.request().name();
+                            log.info("调用工具完成{}, result={}", request.name(), result);
                             Map<String, String> msg = MapUtil.<String, String>builder()
-                                    .put("tool", toolName)
+                                    .put("tool_called", request.name())
+                                    .build();
+                            try {
+                                fluxSink.next(objectMapper.writeValueAsString(msg));
+                            } catch (JsonProcessingException ignored) {
+                            }
+                        }).beforeToolExecution(beforeToolExecution -> {
+                            ToolExecutionRequest request = beforeToolExecution.request();
+                            log.info("调用工具{}", request.name());
+                            Map<String, String> msg = MapUtil.<String, String>builder()
+                                    .put("tool_call", request.name())
                                     .build();
                             try {
                                 fluxSink.next(objectMapper.writeValueAsString(msg));
