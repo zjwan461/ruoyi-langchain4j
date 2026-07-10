@@ -1,8 +1,7 @@
 package com.ruoyi.ai.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.thread.ThreadUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
@@ -16,6 +15,7 @@ import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysConfigService;
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -41,10 +41,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -94,6 +91,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         } else {
             promptTemplate = promptTemplate + prompt;
         }
+
+        List<Map<String, Object>> retrievedContents = new ArrayList<>();
         if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isNotBlank(aiAgent.getKbIds())) {
             List<Long> ids = Arrays.stream(aiAgent.getKbIds().split(",")).map(Long::valueOf)
                     .collect(Collectors.toList());
@@ -108,6 +107,15 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 StringBuilder embBuilder = new StringBuilder();
                 searchRes.stream().map(EmbeddingMatch::embedded).forEach(embedded -> {
                     String text = embedded.text();
+                    Metadata metadata = embedded.metadata();
+                    Long kbId = metadata.getLong("kb_id");
+                    String fileName = metadata.getString("file_name");
+                    Map<String, Object> retrievedMetadata = MapUtil.<String, Object>builder()
+                            .put("kbId", kbId)
+                            .put("fileName", fileName)
+                            .put("text", text)
+                            .build();
+                    retrievedContents.add(retrievedMetadata);
                     embBuilder.append(text);
                 });
                 promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, embBuilder.toString());
@@ -153,70 +161,57 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 .build();
 
         return Flux.create(fluxSink -> {
-            ThreadUtil.execute(() -> {
-                AtomicInteger thinkCount = new AtomicInteger(0);
-                AtomicBoolean thinkFinish = new AtomicBoolean(false);
-                llm.chat(chatRequest, new StreamingChatResponseHandler() {
+            if (CollUtil.isNotEmpty(retrievedContents)) {
+                this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrievedContents, fluxSink);
+            }
+            AtomicInteger thinkCount = new AtomicInteger(0);
+            AtomicBoolean thinkFinish = new AtomicBoolean(false);
+            AIBaseChatServiceImpl root = this;
 
-                    @Override
-                    public void onPartialThinking(PartialThinking partialThinking) {
-                        String text = partialThinking.text();
-                        if (thinkCount.incrementAndGet() == 1) {
-                            text = Constants.THINK_PREFIX_TAG + text;
-                        }
-                        Map<String, String> msg = MapUtil.<String, String>builder()
-                                .put("msg", text)
-                                .build();
-                        try {
-                            fluxSink.next(objectMapper.writeValueAsString(msg));
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
+            llm.chat(chatRequest, new StreamingChatResponseHandler() {
+
+                @Override
+                public void onPartialThinking(PartialThinking partialThinking) {
+                    String text = partialThinking.text();
+                    if (thinkCount.incrementAndGet() == 1) {
+                        text = Constants.THINK_PREFIX_TAG + text;
                     }
+                    root.emitFluxEvent(Constants.SSE_EVENT_MSG, text, fluxSink);
+                }
 
-                    @Override
-                    public void onPartialResponse(String partialResponse) {
-                        if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
-                            partialResponse = Constants.THINK_SUFFIX_TAG + partialResponse;
-                            thinkFinish.set(true);
-                        }
-                        Map<String, String> msg = MapUtil.<String, String>builder()
-                                .put("msg", partialResponse)
-                                .build();
-                        try {
-                            fluxSink.next(objectMapper.writeValueAsString(msg));
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
+                @Override
+                public void onPartialResponse(String partialResponse) {
+                    if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
+                        partialResponse = Constants.THINK_SUFFIX_TAG + partialResponse;
+                        thinkFinish.set(true);
                     }
+                    root.emitFluxEvent(Constants.SSE_EVENT_MSG, partialResponse, fluxSink);
+                }
 
-                    @Override
-                    public void onCompleteResponse(ChatResponse completeResponse) {
-                        fluxSink.complete();
-                        StringBuilder content = new StringBuilder();
-                        String thinking = completeResponse.aiMessage().thinking();
-                        if (StringUtils.isNotBlank(thinking)) {
-                            content.append(Constants.THINK_PREFIX_TAG)
-                                    .append(thinking)
-                                    .append(Constants.THINK_SUFFIX_TAG);
-                        }
-                        String aiText = completeResponse.aiMessage().text();
-                        content.append(aiText);
-                        saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                @Override
+                public void onCompleteResponse(ChatResponse completeResponse) {
+                    fluxSink.complete();
+                    StringBuilder content = new StringBuilder();
+                    String thinking = completeResponse.aiMessage().thinking();
+                    if (StringUtils.isNotBlank(thinking)) {
+                        content.append(Constants.THINK_PREFIX_TAG)
+                                .append(thinking)
+                                .append(Constants.THINK_SUFFIX_TAG);
                     }
+                    String aiText = completeResponse.aiMessage().text();
+                    content.append(aiText);
+                    saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                }
 
-                    @Override
-                    public void onError(Throwable error) {
-                        fluxSink.error(error);
-                    }
-                });
-
+                @Override
+                public void onError(Throwable error) {
+                    fluxSink.error(error);
+                }
             });
+
         });
 
     }
-
-
 
 
 }
