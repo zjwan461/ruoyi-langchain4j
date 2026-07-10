@@ -43,7 +43,7 @@ public class JToolProvider implements ToolProvider {
         String builtinDict = DictUtils.getDictValue("ai_tool_type", "builtin");
         for (AgentTool tool : agentTools) {
             if (tool.getToolType().equals(sandboxDict)) {
-                SandboxToolExecutor sandboxToolExecutor = new SandboxToolExecutor(tool.getCode());
+                SandboxToolExecutor sandboxToolExecutor = new SandboxToolExecutor(tool);
                 ToolSpecification.Builder builder = ToolSpecification.builder()
                         .name(tool.getToolName())
                         .description(tool.getDescription());

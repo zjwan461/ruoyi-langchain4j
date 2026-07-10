@@ -142,7 +142,7 @@ public class SandboxSdk {
         if (!response.isSuccess() || StringUtils.isNotBlank(response.getStderr())) {
             String message = buildFailureMessage(response);
             log.error("dify-sandbox run python fail, code={}, message={}", response.getCode(), message);
-            throw new ServiceException(message);
+            return message;
         }
         return response.getStdout();
     }

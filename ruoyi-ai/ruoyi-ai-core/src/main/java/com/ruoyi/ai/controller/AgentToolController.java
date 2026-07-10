@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.service.IAgentToolService;
+import com.ruoyi.ai.util.PythonIndentChecker;
 import com.ruoyi.ai.util.SimplePythonFuncParser;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
@@ -37,6 +38,9 @@ public class AgentToolController extends BaseController {
 
     @Resource
     private ObjectMapper objectMapper;
+
+    @Resource
+    private PythonIndentChecker pythonIndentChecker;
 
     /**
      * 查询agent_tool列表
@@ -101,6 +105,12 @@ public class AgentToolController extends BaseController {
             }
             if (StringUtils.isBlank(agentTool.getDescription())) {
                 throw new ServiceException("sandbox tool 工具描述必填");
+            }
+            List<PythonIndentChecker.IndentError> errors = pythonIndentChecker.check(agentTool.getCode());
+            if (!errors.isEmpty()) {
+                StringBuilder err = new StringBuilder("代码缩进检查不通过：");
+                errors.stream().map(PythonIndentChecker.IndentError::toString).toList().forEach(err::append);
+                throw new ServiceException(err.toString());
             }
             SimplePythonFuncParser.FuncInfo funcInfo = SimplePythonFuncParser.parsePythonCode(agentTool.getCode());
             List<SimplePythonFuncParser.Param> paramList = funcInfo.getParamList();

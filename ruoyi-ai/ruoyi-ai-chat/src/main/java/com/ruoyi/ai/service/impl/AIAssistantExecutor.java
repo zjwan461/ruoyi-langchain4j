@@ -119,11 +119,13 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         String result = toolExecuted.result();
                         ToolExecutionRequest request = toolExecuted.request();
                         log.info("调用工具完成{}, result={}", request.name(), result);
-                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, request.name(), fluxSink);
+                        Map<String, Object> value = MapUtil.<String, Object>builder().put("tool_name", request.name()).put("result", result).build();
+                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, value, fluxSink);
                     }).beforeToolExecution(beforeToolExecution -> {
                         ToolExecutionRequest request = beforeToolExecution.request();
                         log.info("调用工具{}", request.name());
-                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, request.name(), fluxSink);
+                        Map<String, Object> value = MapUtil.<String, Object>builder().put("tool_name", request.name()).build();
+                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, fluxSink);
                     }).onRetrieved(contents -> {
                         log.info("知识库查询完成，共{}条", contents.size());
                         List<Map<String, Object>> retrieveList = contents.stream().map(content -> {

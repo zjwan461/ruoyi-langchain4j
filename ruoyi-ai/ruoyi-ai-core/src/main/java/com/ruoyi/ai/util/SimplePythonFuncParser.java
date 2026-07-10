@@ -25,6 +25,7 @@ public class SimplePythonFuncParser {
             return paramList;
         }
 
+
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -44,6 +45,9 @@ public class SimplePythonFuncParser {
     public static class Param {
         String name;
         String type;
+
+        public Param() {
+        }
 
         public Param(String name, String type) {
             this.name = name;

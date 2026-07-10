@@ -413,8 +413,20 @@ export default {
             if (item.trim()) {
               try {
                 const res = JSON.parse(item)
-                aiMessage.content += res.msg
-                this.scrollToBottom()
+                if (res.msg) {
+                  aiMessage.content += res.msg;
+                } else if (res.retrieved) {
+                  // {"retrieved":[{"kbId":1,"fileName":"停车场管理办法（2026年3月）_20260710115502A001.pdf","text":"xxxx\nxxxx\n"}]}
+                  // todo 渲染知识库召回的效果
+                  let array = JSON.parse(res.retrieved);
+                } else if (res.tool_call) {
+                  // {"tool_call":{"tool_name":"get_weather"}}
+                  // todo 渲染将要工具调用
+                } else if (res.tool_called) {
+                  // data:{"tool_called":{"tool_name":"get_weather","result":"当前深圳的天气是晴朗\n"}}
+                  // todo 渲染工具调用完成
+                }
+                this.scrollToBottom();
               } catch (e) {}
             }
           })
