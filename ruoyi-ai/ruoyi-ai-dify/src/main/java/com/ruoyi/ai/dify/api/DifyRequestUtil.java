@@ -156,7 +156,7 @@ public class DifyRequestUtil {
 
         HttpRequest httpRequest = HttpUtil.createRequest(Method.GET, urlPrefix + "/conversations")
                 .form("user", user)
-                .form("last_id", lastId == null ? "" : lastId)
+                .form("last_id", lastId)
                 .form("limit", limit == null ? "20" : limit.toString());
         if (StringUtils.isNotBlank(apiKey)) {
             httpRequest.header("Authorization", "Bearer " + apiKey);
