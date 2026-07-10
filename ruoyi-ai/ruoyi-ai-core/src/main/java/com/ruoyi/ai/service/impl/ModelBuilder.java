@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
+import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.enums.ModelProvider;
@@ -22,8 +23,13 @@ import dev.langchain4j.model.openai.OpenAiEmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
+
 @Service
 public class ModelBuilder {
+
+    @Resource
+    private AiConfig aiConfig;
 
     public EmbeddingModel getEmbeddingModel(Model model) {
         EmbeddingModel embeddingModel;
@@ -37,6 +43,7 @@ public class ModelBuilder {
             embeddingModel = OpenAiEmbeddingModel.builder()
                     .baseUrl(model.getBaseUrl())
                     .apiKey(model.getApiKey())
+                    .dimensions(aiConfig.getPgVector().getDimension())
                     .modelName(model.getName())
                     .build();
         } else if (provider == ModelProvider.LOCAL) {

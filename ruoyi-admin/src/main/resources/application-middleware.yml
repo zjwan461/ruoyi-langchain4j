@@ -218,6 +218,7 @@ ai:
     dimension: 768
   agent:
     memory-strategy: memory
+    max-sequential-tools-invocations: 10
   # dify-sandbox 代码执行沙箱配置（对应 docker-compose 中的 sandbox 服务）
   sandbox:
     base-url: http://127.0.0.1:38194 #容器内通过服务名访问；宿主机本地调试改为 http://localhost:8194

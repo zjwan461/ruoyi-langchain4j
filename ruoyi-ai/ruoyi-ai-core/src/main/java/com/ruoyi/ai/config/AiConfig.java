@@ -150,6 +150,16 @@ public class AiConfig {
     public static class Agent {
         private MemoryStrategy memoryStrategy;
 
+        private int maxSequentialToolsInvocations = 10;
+
+        public int getMaxSequentialToolsInvocations() {
+            return maxSequentialToolsInvocations;
+        }
+
+        public void setMaxSequentialToolsInvocations(int maxSequentialToolsInvocations) {
+            this.maxSequentialToolsInvocations = maxSequentialToolsInvocations;
+        }
+
         public MemoryStrategy getMemoryStrategy() {
             return memoryStrategy;
         }

@@ -1,8 +1,7 @@
 package com.ruoyi.ai.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.thread.ThreadUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
@@ -35,6 +34,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +43,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class AIAssistantExecutor extends AIBaseChatServiceImpl {
+
+    @Resource
+    private PgVectorEmbeddingStore pgVectorEmbeddingStore;
 
     private static final Logger log = LoggerFactory.getLogger(AIAssistantExecutor.class);
 
@@ -72,79 +75,73 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
 
     @Override
     public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
-        String promptTemplate = aiAgent.getPromptTemplate();
         saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
-        AIAssistant assistant = this.buildAIAssistant(aiAgent);
-        promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
+        String promptTemplate = aiAgent.getPromptTemplate();
+        if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
+            promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
+        } else {
+            promptTemplate = promptTemplate + prompt;
+        }
+        if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isNotBlank(aiAgent.getKbIds())) {
+            promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
+        }
         String finalPromptTemplate = promptTemplate;
+        AIAssistant assistant = this.buildAIAssistant(aiAgent);
         return Flux.create(fluxSink -> {
-            ThreadUtil.execute(() -> {
-                TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
-                AtomicInteger thinkCount = new AtomicInteger(0);
-                AtomicBoolean thinkFinish = new AtomicBoolean(false);
-                tokenStream.onPartialThinking(thinkingChunk -> {
-                            String text = thinkingChunk.text();
-                            if (thinkCount.incrementAndGet() == 1) {
-                                text = Constants.THINK_PREFIX_TAG + text;
-                            }
-                            Map<String, String> msg = MapUtil.<String, String>builder()
-                                    .put("msg", text)
+            TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
+            AtomicInteger thinkCount = new AtomicInteger(0);
+            AtomicBoolean thinkFinish = new AtomicBoolean(false);
+            tokenStream.onPartialThinking(thinkingChunk -> {
+                        String text = thinkingChunk.text();
+                        if (thinkCount.incrementAndGet() == 1) {
+                            text = Constants.THINK_PREFIX_TAG + text;
+                        }
+                        this.emitFluxEvent(Constants.SSE_EVENT_MSG, text, fluxSink);
+                    }).onPartialResponse(chunk -> {
+                        if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
+                            chunk = Constants.THINK_SUFFIX_TAG + chunk;
+                            thinkFinish.set(true);
+                        }
+                        this.emitFluxEvent(Constants.SSE_EVENT_MSG, chunk, fluxSink);
+                    }).onCompleteResponse(resp -> {
+                        fluxSink.complete();
+                        StringBuilder content = new StringBuilder();
+                        String thinking = resp.aiMessage().thinking();
+                        if (StringUtils.isNotBlank(thinking)) {
+                            content.append(Constants.THINK_PREFIX_TAG)
+                                    .append(thinking)
+                                    .append(Constants.THINK_SUFFIX_TAG);
+                        }
+                        String aiText = resp.aiMessage().text();
+                        content.append(aiText);
+                        saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                    }).onToolExecuted(toolExecuted -> {
+                        String result = toolExecuted.result();
+                        ToolExecutionRequest request = toolExecuted.request();
+                        log.info("调用工具完成{}, result={}", request.name(), result);
+                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, request.name(), fluxSink);
+                    }).beforeToolExecution(beforeToolExecution -> {
+                        ToolExecutionRequest request = beforeToolExecution.request();
+                        log.info("调用工具{}", request.name());
+                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, request.name(), fluxSink);
+                    }).onRetrieved(contents -> {
+                        log.info("知识库查询完成，共{}条", contents.size());
+                        List<Map<String, Object>> retrieveList = contents.stream().map(content -> {
+                            String text = content.textSegment().text();
+                            Long kbId = content.textSegment().metadata().getLong("kb_id");
+                            String fileName = content.textSegment().metadata().getString("file_name");
+                            return MapUtil.<String, Object>builder()
+                                    .put("kbId", kbId)
+                                    .put("fileName", fileName)
+                                    .put("text", text)
                                     .build();
-                            try {
-                                fluxSink.next(objectMapper.writeValueAsString(msg));
-                            } catch (JsonProcessingException ignore) {
-                            }
-                        }).onPartialResponse(chunk -> {
-                            if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
-                                chunk = Constants.THINK_SUFFIX_TAG + chunk;
-                                thinkFinish.set(true);
-                            }
-                            Map<String, String> msg = MapUtil.<String, String>builder()
-                                    .put("msg", chunk)
-                                    .build();
-                            try {
-                                fluxSink.next(objectMapper.writeValueAsString(msg));
-                            } catch (JsonProcessingException ignored) {
-                            }
-                        }).onCompleteResponse(resp -> {
-                            fluxSink.complete();
-                            StringBuilder content = new StringBuilder();
-                            String thinking = resp.aiMessage().thinking();
-                            if (StringUtils.isNotBlank(thinking)) {
-                                content.append(Constants.THINK_PREFIX_TAG)
-                                        .append(thinking)
-                                        .append(Constants.THINK_SUFFIX_TAG);
-                            }
-                            String aiText = resp.aiMessage().text();
-                            content.append(aiText);
-                            saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
-                        }).onToolExecuted(toolExecuted -> {
-                            String result = toolExecuted.result();
-                            ToolExecutionRequest request = toolExecuted.request();
-                            log.info("调用工具完成{}, result={}", request.name(), result);
-                            Map<String, String> msg = MapUtil.<String, String>builder()
-                                    .put("tool_called", request.name())
-                                    .build();
-                            try {
-                                fluxSink.next(objectMapper.writeValueAsString(msg));
-                            } catch (JsonProcessingException ignored) {
-                            }
-                        }).beforeToolExecution(beforeToolExecution -> {
-                            ToolExecutionRequest request = beforeToolExecution.request();
-                            log.info("调用工具{}", request.name());
-                            Map<String, String> msg = MapUtil.<String, String>builder()
-                                    .put("tool_call", request.name())
-                                    .build();
-                            try {
-                                fluxSink.next(objectMapper.writeValueAsString(msg));
-                            } catch (JsonProcessingException ignored) {
-                            }
-                        }).onRetrieved(contents -> {
-                            //todo
-                        })
-                        .onError(fluxSink::error)
-                        .start();
-            });
+                        }).toList();
+                        if (CollUtil.isNotEmpty(retrieveList)) {
+                            this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList, fluxSink);
+                        }
+                    })
+                    .onError(fluxSink::error)
+                    .start();
         });
     }
 
@@ -155,7 +152,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
         ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
                 redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
-
+        AiServices<AIAssistant> builder = AiServices.builder(AIAssistant.class);
         EmbeddingStoreContentRetriever contentRetriever = null;
         String kbIds = aiAgent.getKbIds();
         if (StringUtils.isNotBlank(kbIds)) {
@@ -166,20 +163,20 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                     .embeddingModel(getEmbeddingModel())
                     .minScore(aiAgent.getMinScore())
                     .maxResults(aiAgent.getMaxResult())
-                    .embeddingStore(PgVectorEmbeddingStore.builder().build())
+                    .embeddingStore(pgVectorEmbeddingStore)
                     .filter(new IsIn("kb_id", kbIdList))
                     .build();
+            builder.contentRetriever(contentRetriever);
         }
-        return AiServices.builder(AIAssistant.class)
-                .streamingChatModel(llm)
+
+        return builder.streamingChatModel(llm)
                 .systemMessageProvider(x -> aiAgent.getSystemMessage())
                 .chatMemory(MessageWindowChatMemory.builder()
                         .chatMemoryStore(memoryStore)
                         .maxMessages(aiAgent.getMemoryCount())
                         .build())
                 .toolProvider(new JToolProvider(aiAgent))
-                .contentRetriever(contentRetriever)
-                .maxSequentialToolsInvocations(10)
+                .maxSequentialToolsInvocations(aiConfig.getAgent().getMaxSequentialToolsInvocations())
                 .build();
     }
 

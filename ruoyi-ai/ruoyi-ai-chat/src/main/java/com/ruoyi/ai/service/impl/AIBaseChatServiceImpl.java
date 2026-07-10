@@ -1,5 +1,7 @@
 package com.ruoyi.ai.service.impl;
 
+import cn.hutool.core.map.MapUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
@@ -15,7 +17,6 @@ import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
-import com.ruoyi.framework.manager.AsyncManager;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -25,11 +26,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AIBaseChatServiceImpl implements IAIChatService {
@@ -90,29 +91,24 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     @Override
     public void saveChatMessage(String content, String clientId, String sessionId, Long agentId,
                                 ChatMessageType chatMessageType) {
-        AsyncManager.me().execute(new TimerTask() {
-            @Override
-            public void run() {
-                ChatMessage chatMessage = new ChatMessage();
-                chatMessage.setAgentId(agentId);
-                chatMessage.setContent(content);
-                if (chatMessageType == ChatMessageType.AI) {
-                    chatMessage.setRole("assistant");
-                } else if (chatMessageType == ChatMessageType.USER) {
-                    chatMessage.setRole("user");
-                } else if (chatMessageType == ChatMessageType.SYSTEM) {
-                    chatMessage.setRole("system");
-                } else if (chatMessageType == ChatMessageType.TOOL_EXECUTION_RESULT) {
-                    chatMessage.setRole("tool_execution_result");
-                } else {
-                    chatMessage.setRole(chatMessageType.name());
-                }
-                chatMessage.setClientId(clientId);
-                chatMessage.setSessionId(sessionId);
-                chatMessage.setCreateBy("system");
-                chatMessageService.insertChatMessage(chatMessage);
-            }
-        });
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setAgentId(agentId);
+        chatMessage.setContent(content);
+        if (chatMessageType == ChatMessageType.AI) {
+            chatMessage.setRole("assistant");
+        } else if (chatMessageType == ChatMessageType.USER) {
+            chatMessage.setRole("user");
+        } else if (chatMessageType == ChatMessageType.SYSTEM) {
+            chatMessage.setRole("system");
+        } else if (chatMessageType == ChatMessageType.TOOL_EXECUTION_RESULT) {
+            chatMessage.setRole("tool_execution_result");
+        } else {
+            chatMessage.setRole(chatMessageType.name());
+        }
+        chatMessage.setClientId(clientId);
+        chatMessage.setSessionId(sessionId);
+        chatMessage.setCreateBy("system");
+        chatMessageService.insertChatMessage(chatMessage);
 
     }
 
@@ -189,5 +185,16 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
             return modelBuilder.getEmbeddingModel(model);
         }
 
+    }
+
+    protected void emitFluxEvent(String event, Object value, FluxSink<String> fluxSink) {
+        Map<String, Object> msg = MapUtil.<String, Object>builder()
+                .put(event, value)
+                .build();
+
+        try {
+            fluxSink.next(objectMapper.writeValueAsString(msg));
+        } catch (JsonProcessingException ignored) {
+        }
     }
 }

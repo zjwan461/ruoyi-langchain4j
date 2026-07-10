@@ -91,6 +91,7 @@ public class LangChain4jServiceImpl implements LangChain4jService {
                         .baseUrl(baseUrl)
                         .apiKey(apiKey)
                         .modelName(modelName)
+                        .dimensions(aiConfig.getPgVector().getDimension())
                         .logRequests(true)
                         .logResponses(true)
                         .build();

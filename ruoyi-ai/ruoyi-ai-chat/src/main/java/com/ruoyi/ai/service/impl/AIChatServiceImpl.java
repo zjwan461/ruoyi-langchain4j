@@ -89,8 +89,11 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
 
         String promptTemplate = aiAgent.getPromptTemplate();
-        promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
-
+        if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
+            promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
+        } else {
+            promptTemplate = promptTemplate + prompt;
+        }
         if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isNotBlank(aiAgent.getKbIds())) {
             List<Long> ids = Arrays.stream(aiAgent.getKbIds().split(",")).map(Long::valueOf)
                     .collect(Collectors.toList());
