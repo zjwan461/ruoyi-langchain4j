@@ -499,18 +499,29 @@ export default {
     getThinkContent(content) {
       if (!content) return ''
       const startIdx = content.indexOf(THINK_START)
+      if (startIdx === -1) return ''
       const endIdx = content.indexOf(THINK_END)
-      if (startIdx !== -1 && endIdx !== -1) {
+      if (endIdx !== -1) {
+        // 思考已结束，返回标签内完整内容
         return content.substring(startIdx + THINK_START.length, endIdx)
+      } else {
+        // 思考进行中，返回从开始标签后到当前末尾的所有已接收内容
+        return content.substring(startIdx + THINK_START.length)
       }
-      return ''
     },
     getOutputContent(content) {
       if (!content) return ''
-      const idx = content.indexOf(THINK_END)
-      if (idx !== -1) {
-        return content.substring(idx + THINK_END.length)
+      const endIdx = content.indexOf(THINK_END)
+      if (endIdx !== -1) {
+        // 思考已结束，返回结束标签后的正文内容
+        return content.substring(endIdx + THINK_END.length)
       }
+      // 有开始标签但无结束标签：思考进行中，正文暂为空
+      const startIdx = content.indexOf(THINK_START)
+      if (startIdx !== -1) {
+        return ''
+      }
+      // 无思考标签，直接返回全部内容
       return content
     },
     renderMarkdown(content) {
@@ -520,10 +531,12 @@ export default {
     },
     isThinkFolded(msg, idx) {
       if (!msg) return false
+      // 用户手动切换过，优先尊重用户操作
       if (this.foldedStates.hasOwnProperty(idx)) {
         return this.foldedStates[idx]
       }
-      return !msg.loading && this.isThinkFinished(msg.content)
+      // 自动逻辑：思考结束则自动折叠，思考过程中保持展开
+      return this.isThinkFinished(msg.content)
     },
     toggleThink(idx) {
       const current = this.isThinkFolded(this.messages[idx], idx)
@@ -1019,7 +1032,7 @@ export default {
   line-height: 1.6;
   transition: all 0.3s ease;
   max-height: 300px;
-  overflow-y: auto; /* 把 hidden 改成 auto，超出出现滚动条 */
+  overflow-y: auto;
   opacity: 1;
 }
 
