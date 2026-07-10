@@ -81,3 +81,34 @@ insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame
                       perms, icon, create_by, create_time, update_by, update_time, remark)
 values ('Agent Tools导出', @parentId, '5', '#', '', 1, 0, 'F', '0', '0', 'ai:agent_tool:export', '#', 'admin',
         sysdate(), '', null, '');
+
+drop table if exists agent_tool_invoke;
+create table agent_tool_invoke
+(
+    id                 bigint unsigned not null auto_increment comment '主键ID',
+    agent_id           bigint unsigned not null comment 'Agent ID',
+    client_id          varchar(100)    not null comment '客户端id',
+    session_id         varchar(100)    not null comment '会话id',
+    tool_id            bigint unsigned not null comment '工具id',
+    tool_name          varchar(255)    not null comment '工具名称',
+    tool_type          varchar(255)    not null comment '工具类型，可选项：builtin,sandbox',
+    tool_invoke_result longtext        null comment '工具调用结果',
+    create_time        DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
+    primary key (id)
+) engine = innodb
+    comment ='工具调用记录表';
+
+drop table if exists agent_kb_invoke;
+create table agent_kb_invoke
+(
+    id          bigint unsigned not null auto_increment comment '主键ID',
+    agent_id    bigint unsigned not null comment 'Agent ID',
+    client_id   varchar(100)    not null comment '客户端id',
+    session_id  varchar(100)    not null comment '会话id',
+    kb_id       bigint unsigned not null comment '知识库id',
+    file_name   varchar(255)    not null comment '文件名',
+    text        longtext        not null comment '文本召回的分段',
+    create_time DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
+    primary key (id)
+) engine = innodb
+    comment ='工具调用记录表';
