@@ -68,4 +68,6 @@ public interface ChatMessageMapper {
     public List<ChatMessage> selectAgentChatMessageBySessionId(@Param("sessionId") String sessionId, @Param("agentId") Long agentId);
 
     int deleteBySessionId(String sessionId);
+
+    List<ChatMessage> selectAgentChatMessageBySessionIdWithInvokeData(@Param("sessionId") String sessionId, @Param("agentId") Long agentId);
 }

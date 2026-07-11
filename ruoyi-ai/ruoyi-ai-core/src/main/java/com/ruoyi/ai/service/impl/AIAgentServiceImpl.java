@@ -1,9 +1,13 @@
 package com.ruoyi.ai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import com.ruoyi.ai.domain.AgentKbInvoke;
+import com.ruoyi.ai.domain.AgentToolInvoke;
 import com.ruoyi.ai.domain.AgentToolMapping;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.mapper.AIAgentMapper;
+import com.ruoyi.ai.mapper.AgentKbInvokeMapper;
+import com.ruoyi.ai.mapper.AgentToolInvokeMapper;
 import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
@@ -12,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,6 +30,12 @@ import java.util.List;
 public class AIAgentServiceImpl implements IAIAgentService {
     @Autowired
     private AIAgentMapper aiAgentMapper;
+
+    @Resource
+    private AgentKbInvokeMapper agentKbInvokeMapper;
+
+    @Resource
+    private AgentToolInvokeMapper agentToolInvokeMapper;
 
     /**
      * 查询AI智能体
@@ -143,5 +154,15 @@ public class AIAgentServiceImpl implements IAIAgentService {
     @Override
     public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings) {
         return aiAgentMapper.batchInsertAgentToolMapping(mappings);
+    }
+
+    @Override
+    public int insertAgentKBInvoked(AgentKbInvoke agentKbInvoke) {
+        return agentKbInvokeMapper.insertAgentKbInvoke(agentKbInvoke);
+    }
+
+    @Override
+    public int insertAgentToolInvoked(AgentToolInvoke agentToolInvoke) {
+        return agentToolInvokeMapper.insertAgentToolInvoke(agentToolInvoke);
     }
 }

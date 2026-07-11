@@ -24,6 +24,6 @@ public interface IAIChatService {
 
     void deleteSession(String sessionId);
 
-    void saveChatMessage(String content, String clientId, String sessionId, Long agentId,
+    ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
                          ChatMessageType chatMessageType);
 }

@@ -6,12 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
-import com.ruoyi.ai.service.IChatMessageService;
-import com.ruoyi.ai.service.IKnowledgeBaseService;
-import com.ruoyi.ai.service.IModelService;
-import com.ruoyi.ai.service.LangChain4jService;
+import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysConfigService;
@@ -64,7 +62,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                              ISysConfigService sysConfigService,
                              IKnowledgeBaseService knowledgeBaseService,
                              IModelService modelService,
-                             ModelBuilder modelBuilder) {
+                             ModelBuilder modelBuilder, IAIAgentService aiAgentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -75,7 +73,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 sysConfigService,
                 knowledgeBaseService,
                 modelService,
-                modelBuilder);
+                modelBuilder,
+                aiAgentService);
     }
 
 
@@ -163,6 +162,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         return Flux.create(fluxSink -> {
             if (CollUtil.isNotEmpty(retrievedContents)) {
                 this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrievedContents, fluxSink);
+
             }
             AtomicInteger thinkCount = new AtomicInteger(0);
             AtomicBoolean thinkFinish = new AtomicBoolean(false);
@@ -200,7 +200,11 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     }
                     String aiText = completeResponse.aiMessage().text();
                     content.append(aiText);
-                    saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                    for (Map<String, Object> item : retrievedContents) {
+                        root.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
+                                String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));
+                    }
                 }
 
                 @Override

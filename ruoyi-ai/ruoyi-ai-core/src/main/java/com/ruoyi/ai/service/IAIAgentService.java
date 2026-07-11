@@ -1,7 +1,9 @@
 package com.ruoyi.ai.service;
 
-import com.ruoyi.ai.domain.AgentToolMapping;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.AgentKbInvoke;
+import com.ruoyi.ai.domain.AgentToolInvoke;
+import com.ruoyi.ai.domain.AgentToolMapping;
 
 import java.util.List;
 
@@ -73,4 +75,8 @@ public interface IAIAgentService {
     public int insertAgentToolMapping(Long agentId, Long toolId);
 
     public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings);
+
+    public int insertAgentKBInvoked(AgentKbInvoke agentKbInvoke);
+
+    public int insertAgentToolInvoked(AgentToolInvoke agentToolInvoke);
 }

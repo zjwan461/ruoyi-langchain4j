@@ -89,13 +89,14 @@ public class ChatMessageServiceImpl implements IChatMessageService {
     }
 
     @Override
-    public List<Map<String, String>> selectSessionList(String clientId, Long agentId,Integer limit) {
+    public List<Map<String, String>> selectSessionList(String clientId, Long agentId, Integer limit) {
         return chatMessageMapper.selectSessionList(clientId, agentId, limit);
     }
 
     @Override
     public List<ChatMessage> selectAgentChatMessageBySessionId(String sessionId, Long agentId) {
-        return chatMessageMapper.selectAgentChatMessageBySessionId(sessionId, agentId);
+//        return chatMessageMapper.selectAgentChatMessageBySessionId(sessionId, agentId);
+        return chatMessageMapper.selectAgentChatMessageBySessionIdWithInvokeData(sessionId, agentId);
     }
 
     @Override

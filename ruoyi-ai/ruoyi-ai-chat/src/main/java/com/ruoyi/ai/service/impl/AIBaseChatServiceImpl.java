@@ -5,14 +5,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.domain.AIAgent;
-import com.ruoyi.ai.domain.ChatMessage;
-import com.ruoyi.ai.domain.Model;
+import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.enums.ModelType;
-import com.ruoyi.ai.service.IAIChatService;
-import com.ruoyi.ai.service.IChatMessageService;
-import com.ruoyi.ai.service.IKnowledgeBaseService;
-import com.ruoyi.ai.service.IModelService;
+import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
@@ -57,6 +52,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
     protected final ModelBuilder modelBuilder;
 
+    protected final IAIAgentService aiAgentService;
+
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     public AIBaseChatServiceImpl(IChatMessageService chatMessageService,
@@ -69,7 +66,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                                  ISysConfigService sysConfigService,
                                  IKnowledgeBaseService knowledgeBaseService,
                                  IModelService modelService,
-                                 ModelBuilder modelBuilder) {
+                                 ModelBuilder modelBuilder, IAIAgentService aiAgentService) {
         this.chatMessageService = chatMessageService;
         this.inMemoryChatMemoryStore = inMemoryChatMemoryStore;
         this.redisMemoryChatMemoryStore = redisMemoryChatMemoryStore;
@@ -81,6 +78,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         this.knowledgeBaseService = knowledgeBaseService;
         this.modelService = modelService;
         this.modelBuilder = modelBuilder;
+        this.aiAgentService = aiAgentService;
     }
 
     @Override
@@ -89,8 +87,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     @Override
-    public void saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                                ChatMessageType chatMessageType) {
+    public ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
+                                       ChatMessageType chatMessageType) {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setAgentId(agentId);
         chatMessage.setContent(content);
@@ -109,7 +107,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         chatMessage.setSessionId(sessionId);
         chatMessage.setCreateBy("system");
         chatMessageService.insertChatMessage(chatMessage);
-
+        return chatMessage;
     }
 
     @Override
@@ -195,6 +193,38 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         try {
             fluxSink.next(objectMapper.writeValueAsString(msg));
         } catch (JsonProcessingException ignored) {
+        }
+    }
+
+    protected void saveToolCallRecord(AIAgent aiAgent, String sessionId, String clientId, Long messageId,
+                                      String toolName, String toolInvokeResult) {
+        try {
+            AgentToolInvoke invoke = new AgentToolInvoke();
+            invoke.setAgentId(aiAgent.getId());
+            invoke.setToolName(toolName);
+            invoke.setClientId(clientId);
+            invoke.setSessionId(sessionId);
+            invoke.setMessageId(messageId);
+            invoke.setToolInvokeResult(toolInvokeResult);
+            aiAgentService.insertAgentToolInvoked(invoke);
+        } catch (Exception e) {
+            log.error("save tool call record error:", e);
+        }
+    }
+
+    protected void saveKBRetrieved(AIAgent aiAgent, String sessionId, String clientId, Long messageId,
+                                   String fileName, String text) {
+        try {
+            AgentKbInvoke invoke = new AgentKbInvoke();
+            invoke.setAgentId(aiAgent.getId());
+            invoke.setClientId(clientId);
+            invoke.setSessionId(sessionId);
+            invoke.setMessageId(messageId);
+            invoke.setFileName(fileName);
+            invoke.setText(text);
+            aiAgentService.insertAgentKBInvoked(invoke);
+        } catch (Exception e) {
+            log.error("save kb retrieved error:", e);
         }
     }
 }

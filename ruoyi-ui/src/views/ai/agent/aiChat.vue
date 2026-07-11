@@ -143,7 +143,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
                 </svg>
-                <span class="tool-call-text">正在调用工具：{{ msg.currentToolCall.tool_name }}</span>
+                <span class="tool-call-text">正在调用工具：{{ msg.currentToolCall.toolName }}</span>
                 <div class="typing-indicator tool-dots">
                   <span></span>
                   <span></span>
@@ -158,11 +158,11 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline :points="isToolCalledFolded(msg, idx, toolIdx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
                     </svg>
-                    <span class="tool-name">工具调用：{{ tool.tool_name }}</span>
+                    <span class="tool-name">工具调用：{{ tool.toolName }}</span>
                     <span class="tool-status">已完成</span>
                   </div>
                   <div class="tool-called-result" :class="{ 'folded': isToolCalledFolded(msg, idx, toolIdx) }">
-                    <pre>{{ tool.result }}</pre>
+                    <pre>{{ tool.toolInvokeResult }}</pre>
                   </div>
                 </div>
               </div>

@@ -6,12 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
-import com.ruoyi.ai.service.AIAssistant;
-import com.ruoyi.ai.service.IChatMessageService;
-import com.ruoyi.ai.service.IKnowledgeBaseService;
-import com.ruoyi.ai.service.IModelService;
+import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
@@ -35,11 +33,10 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class AIAssistantExecutor extends AIBaseChatServiceImpl {
@@ -59,7 +56,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                ISysConfigService sysConfigService,
                                IKnowledgeBaseService knowledgeBaseService,
                                IModelService modelService,
-                               ModelBuilder modelBuilder) {
+                               ModelBuilder modelBuilder, IAIAgentService aiAgentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -70,7 +67,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                 sysConfigService,
                 knowledgeBaseService,
                 modelService,
-                modelBuilder);
+                modelBuilder, aiAgentService);
     }
 
     @Override
@@ -88,6 +85,8 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
         String finalPromptTemplate = promptTemplate;
         AIAssistant assistant = this.buildAIAssistant(aiAgent);
         return Flux.create(fluxSink -> {
+            AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
+            AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();
             TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
             AtomicInteger thinkCount = new AtomicInteger(0);
             AtomicBoolean thinkFinish = new AtomicBoolean(false);
@@ -114,21 +113,37 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         }
                         String aiText = resp.aiMessage().text();
                         content.append(aiText);
-                        saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                        ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+//                        this.saveToolCallRecord(aiAgent, sessionId, clientId, chatMessage.getId(), request.name(), result);
+                        if (CollUtil.isNotEmpty(retrieveList.get())) {
+                            for (Map<String, Object> item : retrieveList.get()) {
+                                this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
+                                        String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));
+                            }
+                        }
+                        if (CollUtil.isNotEmpty(toolCallList.get())) {
+                            for (Map<String, Object> item : toolCallList.get()) {
+                                this.saveToolCallRecord(aiAgent, sessionId, clientId, assistantMessage.getId(),
+                                        String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")));
+                            }
+                        }
                     }).onToolExecuted(toolExecuted -> {
                         String result = toolExecuted.result();
                         ToolExecutionRequest request = toolExecuted.request();
                         log.info("调用工具完成{}, result={}", request.name(), result);
-                        Map<String, Object> value = MapUtil.<String, Object>builder().put("tool_name", request.name()).put("result", result).build();
+                        Map<String, Object> value = MapUtil.<String, Object>builder().put("toolName", request.name()).put("toolInvokeResult", result).build();
                         this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, value, fluxSink);
+                        List<Map<String, Object>> toolCalls = toolCallList.get() == null ? new ArrayList<>() : toolCallList.get();
+                        toolCalls.add(value);
+                        toolCallList.set(toolCalls);
                     }).beforeToolExecution(beforeToolExecution -> {
                         ToolExecutionRequest request = beforeToolExecution.request();
                         log.info("调用工具{}", request.name());
-                        Map<String, Object> value = MapUtil.<String, Object>builder().put("tool_name", request.name()).build();
+                        Map<String, Object> value = MapUtil.<String, Object>builder().put("toolName", request.name()).build();
                         this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, fluxSink);
                     }).onRetrieved(contents -> {
                         log.info("知识库查询完成，共{}条", contents.size());
-                        List<Map<String, Object>> retrieveList = contents.stream().map(content -> {
+                        retrieveList.set(contents.stream().map(content -> {
                             String text = content.textSegment().text();
                             Long kbId = content.textSegment().metadata().getLong("kb_id");
                             String fileName = content.textSegment().metadata().getString("file_name");
@@ -137,9 +152,9 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                     .put("fileName", fileName)
                                     .put("text", text)
                                     .build();
-                        }).toList();
-                        if (CollUtil.isNotEmpty(retrieveList)) {
-                            this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList, fluxSink);
+                        }).toList());
+                        if (CollUtil.isNotEmpty(retrieveList.get())) {
+                            this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList.get(), fluxSink);
                         }
                     })
                     .onError(fluxSink::error)
