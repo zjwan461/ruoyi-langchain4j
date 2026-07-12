@@ -257,9 +257,12 @@ export default {
       isLoading: false,
       streamController: null,
       foldedStates: {},
-      // Dify 聊天历史游标分页：初始只取最近的一页，向上滚动加载更早的页
-      lastId: '',
-      limit: 20,
+      // Dify 聊天历史本地分片：后端一次性返回全量（硬编码 999），
+      // 这里保存全量历史 allMessages，并跟踪已渲染到 messages 的数量 loadedCount。
+      // 初始只展示末尾 pageSize 条，向上滚动时按本地下标向前切 pageSize 条。
+      allMessages: [],
+      loadedCount: 0,
+      pageSize: 10,
       historyLoading: false,
       hasMoreHistory: true,
       quickPrompts: [
@@ -317,58 +320,63 @@ export default {
     },
     getChatHistoryMessage() {
       if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
-      // 重新加载会话时重置游标分页状态
-      this.lastId = ''
+      // 重置本地分片状态
+      this.allMessages = []
+      this.loadedCount = 0
       this.hasMoreHistory = true
       this.historyLoading = false
-      listChatMessage(this.sessionId, this.agentInfo.id, this.lastId, this.limit).then(res => {
+      listChatMessage(this.sessionId, this.agentInfo.id).then(res => {
         const rows = (res && res.rows) || []
-        // 后端已 reverse 为 asc（最早在前、最新在末尾），直接使用
-        this.messages = rows
-        if (res && typeof res.lastId === 'string') {
-          this.lastId = res.lastId
-        }
-        this.hasMoreHistory = !!(res && res.hasMore)
+        // 后端一次性返回全量历史（硬编码 999），并按 createTime 升序排序：
+        // rows[0] = 最老对话，rows[end] = 最新对话。
+        // 首次只展示末尾 pageSize 条，避免一次性渲染全部导致滚动体验差。
+        this.allMessages = rows.slice()
+        const total = this.allMessages.length
+        const start = Math.max(0, total - this.pageSize)
+        this.messages = this.allMessages.slice(start)
+        this.loadedCount = this.messages.length
+        this.hasMoreHistory = start > 0
         this.$nextTick(() => {
           this.scrollToBottom()
         })
       })
     },
     /**
-     * 加载更早一页的历史消息（Dify 游标分页）。用上一页返回的 lastId 拉取更早的数据，
-     * 拼到 messages 头部，并恢复滚动位置避免页面跳动。
+     * 本地分片加载更早一页的历史消息。
+     * <p>
+     * 后端已一次性返回全量历史，本方法不再调 API，仅从 {@code allMessages} 中切出更早
+     * 的 {@code pageSize} 条插入到 {@code messages} 头部，并恢复滚动位置避免页面跳动。
+     * </p>
      */
     loadMoreHistory() {
       if (this.historyLoading || !this.hasMoreHistory) return
-      if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
+      if (this.allMessages.length === 0) return
       this.historyLoading = true
-      const cursor = this.lastId
       const container = this.$refs.messagesContainer
       const oldScrollHeight = container ? container.scrollHeight : 0
       const oldScrollTop = container ? container.scrollTop : 0
-      listChatMessage(this.sessionId, this.agentInfo.id, cursor, this.limit).then(res => {
-        const rows = (res && res.rows) || []
-        if (rows.length === 0) {
-          this.hasMoreHistory = false
-          return
-        }
-        // 后端返回的 rows 已是 asc 顺序，直接 unshift 到 messages 头部
-        this.messages = [...rows, ...this.messages]
-        if (res && typeof res.lastId === 'string') {
-          this.lastId = res.lastId
-        }
-        this.hasMoreHistory = !!(res && res.hasMore)
-        this.$nextTick(() => {
-          if (container) {
-            const newScrollHeight = container.scrollHeight
-            container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight)
-          }
-        })
-      }).catch(() => {
-        // 加载失败时保留 lastId 不变，便于下次重试
-      }).finally(() => {
+      // 从已加载区起始下标向前切 pageSize 条：
+      // newStart = max(0, start - pageSize)；slice(newStart, start)
+      const start = this.loadedCount > 0
+        ? (this.allMessages.length - this.loadedCount)
+        : this.allMessages.length
+      const newStart = Math.max(0, start - this.pageSize)
+      const olderSlice = this.allMessages.slice(newStart, start)
+      if (olderSlice.length === 0) {
+        this.hasMoreHistory = false
         this.historyLoading = false
+        return
+      }
+      this.messages = [...olderSlice, ...this.messages]
+      this.loadedCount = this.loadedCount + olderSlice.length
+      this.hasMoreHistory = newStart > 0
+      this.$nextTick(() => {
+        if (container) {
+          const newScrollHeight = container.scrollHeight
+          container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight)
+        }
       })
+      this.historyLoading = false
     },
     handleScroll(e) {
       const el = e && e.target
@@ -388,7 +396,8 @@ export default {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
         this.messages = []
-        this.lastId = ''
+        this.allMessages = []
+        this.loadedCount = 0
         this.hasMoreHistory = true
         this.historyLoading = false
         this.sessionList.unshift({

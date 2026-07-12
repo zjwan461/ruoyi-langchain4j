@@ -24,22 +24,20 @@ export function listChatSession(clientId, agentId) {
 }
 
 /**
- * 游标分页查询 Dify 聊天历史。
+ * 查询 Dify 聊天历史。
  * <p>
- * Dify /v1/messages 远端 API 使用 last_id 游标分页且不返回 total，
- * 后端在 DifyChatHistoryPage 中返回 { rows, hasMore, lastId, code, msg }。
+ * 由于 Dify /v1/messages 远端 API 不支持可靠排序参数，后端写死 999 条上限，
+ * 并按 {@code createTime} 升序排序后一次性返回。前端拿到全量后再做本地切片分页：
+ * 首次只展示末尾 {@code pageSize} 条，向上滚动时再切出更早的 {@code pageSize} 条。
  * </p>
  *
  * @param {string} sessionId 会话ID
  * @param {number} agentId   智能体ID
- * @param {string} [lastId=''] 上一次响应返回的 lastId；首页传空串
- * @param {number} [limit=20]  单页 Dify 消息条数（后端展开后约为 2*limit 条 ChatMessage）
  */
-export function listChatMessage(sessionId, agentId, lastId = '', limit = 20) {
+export function listChatMessage(sessionId, agentId) {
   return request({
     url: '/dify-chat/list-chat-message/' + sessionId + '/' + agentId,
-    method: 'get',
-    params: { lastId, limit }
+    method: 'get'
   })
 }
 
