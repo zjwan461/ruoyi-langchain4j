@@ -70,4 +70,13 @@ public interface ChatMessageMapper {
     int deleteBySessionId(String sessionId);
 
     List<ChatMessage> selectAgentChatMessageBySessionIdWithInvokeData(@Param("sessionId") String sessionId, @Param("agentId") Long agentId);
+
+    /**
+     * 按时间倒序分页查询（与 PageHelper 配合使用，由调用方 startPage 拦截）
+     *
+     * @param sessionId 会话ID
+     * @param agentId 智能体ID
+     * @return 聊天信息集合（按 create_time desc, id desc）
+     */
+    List<ChatMessage> selectAgentChatMessageBySessionIdWithInvokeDataOrderDesc(@Param("sessionId") String sessionId, @Param("agentId") Long agentId);
 }

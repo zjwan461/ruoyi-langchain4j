@@ -65,5 +65,14 @@ public interface IChatMessageService {
 
     public List<ChatMessage> selectAgentChatMessageBySessionId(String sessionId, Long agentId);
 
+    /**
+     * 按时间倒序分页查询（需配合 PageHelper.startPage 使用）
+     *
+     * @param sessionId 会话ID
+     * @param agentId 智能体ID
+     * @return 当前页的聊天信息（倒序）
+     */
+    public List<ChatMessage> selectAgentChatMessageBySessionIdOrderDesc(String sessionId, Long agentId);
+
     public int deleteBySessionId(String sessionId);
 }

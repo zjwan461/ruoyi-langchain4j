@@ -155,6 +155,11 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     @Override
+    public List<ChatMessage> listAgentChatMessageBySessionIdOrderDesc(String sessionId, Long agentId) {
+        return chatMessageService.selectAgentChatMessageBySessionIdOrderDesc(sessionId, agentId);
+    }
+
+    @Override
     public void deleteSession(String sessionId) {
         if (chatMessageService.deleteBySessionId(sessionId) > 0) {
 //            chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);

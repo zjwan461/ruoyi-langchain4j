@@ -151,10 +151,16 @@
         where message_id = #{msgId}
           AND #{msgRole} = 'assistant'
     </select>
+<select id="selectAgentChatMessageBySessionIdWithInvokeData" resultMap="ChatMessageResultWithInvokeData">
+    <include refid="selectChatMessageVo"/>
+    where session_id = #{sessionId} and agent_id = #{agentId}
+    order by create_time asc
+</select>
 
-    <select id="selectAgentChatMessageBySessionIdWithInvokeData" resultMap="ChatMessageResultWithInvokeData">
-        <include refid="selectChatMessageVo"/>
-        where session_id = #{sessionId} and agent_id = #{agentId}
-        order by create_time asc
-    </select>
+<!-- 倒序分页专用：PageHelper 会自动附加 LIMIT，但不会覆盖已有 ORDER BY；按 create_time desc, id desc 保证同毫秒下的稳定顺序 -->
+<select id="selectAgentChatMessageBySessionIdWithInvokeDataOrderDesc" resultMap="ChatMessageResultWithInvokeData">
+    <include refid="selectChatMessageVo"/>
+    where session_id = #{sessionId} and agent_id = #{agentId}
+    order by create_time desc, id desc
+</select>
 </mapper>

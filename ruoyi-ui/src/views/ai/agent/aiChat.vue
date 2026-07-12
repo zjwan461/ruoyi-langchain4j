@@ -74,7 +74,7 @@
       </header>
 
       <!-- 消息区域 -->
-      <div class="messages-container" ref="messagesContainer">
+      <div class="messages-container" ref="messagesContainer" @scroll="handleScroll">
         <!-- 欢迎界面 -->
         <div v-if="messages.length === 0" class="welcome-screen">
           <div class="welcome-icon">
@@ -95,6 +95,14 @@
 
         <!-- 消息列表 -->
         <div v-else class="message-list">
+          <div v-if="historyLoading" class="history-loading">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span>加载更早的历史消息…</span>
+          </div>
           <div
             v-for="(msg, idx) in messages"
             :key="idx"
@@ -288,6 +296,12 @@ export default {
       isLoading: false,
       streamController: null,
       foldedStates: {},
+      // 聊天历史分页：初始仅加载时间最近的一页，向上滚动加载更早的页
+      pageNum: 1,
+      pageSize: 20,
+      historyTotal: 0,
+      historyLoading: false,
+      hasMoreHistory: true,
       quickPrompts: [
         '帮我写一段Python代码',
         '解释一下什么是机器学习',
@@ -340,10 +354,68 @@ export default {
       })
     },
     getChatHistoryMessage() {
-      listChatMessage(this.sessionId, this.agentInfo.id).then(res => {
-        this.messages = res.data
-        this.scrollToBottom()
+      if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
+      // 重新加载会话时重置分页状态
+      this.pageNum = 1
+      this.hasMoreHistory = true
+      this.historyTotal = 0
+      this.historyLoading = false
+      listChatMessage(this.sessionId, this.agentInfo.id, this.pageNum, this.pageSize).then(res => {
+        const rows = (res && res.rows) || []
+        // 后端按 create_time desc 返回，reverse 成 asc 以便按时间正序展示
+        this.messages = [...rows].reverse()
+        this.historyTotal = (res && typeof res.total === 'number') ? res.total : rows.length
+        this.hasMoreHistory = this.messages.length < this.historyTotal
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
       })
+    },
+    /**
+     * 加载更早一页的历史消息（向前翻页）。后端会按 desc 返回，reverse 后 unshift 到头部，
+     * 并恢复滚动位置，避免页面跳动。
+     */
+    loadMoreHistory() {
+      if (this.historyLoading || !this.hasMoreHistory) return
+      if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
+      this.historyLoading = true
+      const nextPage = this.pageNum + 1
+      const container = this.$refs.messagesContainer
+      const oldScrollHeight = container ? container.scrollHeight : 0
+      const oldScrollTop = container ? container.scrollTop : 0
+      listChatMessage(this.sessionId, this.agentInfo.id, nextPage, this.pageSize).then(res => {
+        const rows = (res && res.rows) || []
+        if (rows.length === 0) {
+          // 服务端已经没有更多数据
+          this.hasMoreHistory = false
+          return
+        }
+        const ascRows = [...rows].reverse()
+        this.messages = [...ascRows, ...this.messages]
+        this.pageNum = nextPage
+        if (res && typeof res.total === 'number') {
+          this.historyTotal = res.total
+        }
+        this.hasMoreHistory = this.messages.length < this.historyTotal
+        this.$nextTick(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight
+            container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight)
+          }
+        })
+      }).catch(() => {
+        // 失败时不推进 pageNum，便于下次重试
+      }).finally(() => {
+        this.historyLoading = false
+      })
+    },
+    handleScroll(e) {
+      const el = e && e.target
+      if (!el) return
+      // 滚动到顶部附近（阈值 50px）时加载更早的一页
+      if (el.scrollTop <= 50 && this.hasMoreHistory && !this.historyLoading && this.messages.length > 0) {
+        this.loadMoreHistory()
+      }
     },
     switchSession(sessionId) {
       this.sessionId = sessionId
@@ -355,6 +427,10 @@ export default {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
         this.messages = []
+        this.pageNum = 1
+        this.historyTotal = 0
+        this.hasMoreHistory = true
+        this.historyLoading = false
         this.sessionList.unshift({
           sessionId: this.sessionId,
           title: '新对话'
@@ -937,6 +1013,21 @@ export default {
   padding: 24px;
   max-width: 900px;
   margin: 0 auto;
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 20px;
+  color: #808080;
+  font-size: 13px;
+  user-select: none;
+}
+
+.history-loading .typing-indicator {
+  padding: 0;
 }
 
 .message {

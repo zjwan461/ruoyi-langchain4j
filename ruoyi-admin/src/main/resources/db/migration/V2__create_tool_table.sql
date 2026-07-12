@@ -97,6 +97,8 @@ create table agent_tool_invoke
 ) engine = innodb
     comment ='工具调用记录表';
 
+CREATE INDEX idx_message_id ON agent_tool_invoke(message_id);
+
 drop table if exists agent_kb_invoke;
 create table agent_kb_invoke
 (
@@ -110,4 +112,6 @@ create table agent_kb_invoke
     create_time DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
     primary key (id)
 ) engine = innodb
-    comment ='工具调用记录表';
+    comment ='知识库召回记录表';
+
+CREATE INDEX idx_message_id ON agent_kb_invoke(message_id);

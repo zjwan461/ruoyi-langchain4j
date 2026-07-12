@@ -10,6 +10,7 @@ import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.ai.service.impl.AIAssistantExecutor;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.common.core.page.TableDataInfo;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -69,10 +70,15 @@ public class AIChatController extends ChatController {
     public AjaxResult listChatSession(@PathVariable("clientId") String clientId, @PathVariable("agentId") Long agentId) {
         return success(aiChatService.listClientSession(clientId, agentId));
     }
-
+    /**
+     * 分页查询聊天历史：前端使用 pageNum / pageSize，pageNum=1 时取时间最近的一页，
+     * 后续 pageNum++ 往前翻更早的历史。配合前端 "向上滚动加载更多" 场景。
+     */
     @GetMapping("/list-chat-message/{sessionId}/{agentId}")
-    public AjaxResult listChatHistory(@PathVariable("sessionId") String sessionId, @PathVariable("agentId") Long agentId) {
-        return success(aiChatService.listAgentChatMessageBySessionId(sessionId, agentId));
+    public TableDataInfo listChatHistory(@PathVariable("sessionId") String sessionId,
+                                         @PathVariable("agentId") Long agentId) {
+        startPage();
+        return getDataTable(aiChatService.listAgentChatMessageBySessionIdOrderDesc(sessionId, agentId));
     }
 
     @DeleteMapping("/delete-session/{sessionId}")

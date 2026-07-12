@@ -100,6 +100,11 @@ public class ChatMessageServiceImpl implements IChatMessageService {
     }
 
     @Override
+    public List<ChatMessage> selectAgentChatMessageBySessionIdOrderDesc(String sessionId, Long agentId) {
+        return chatMessageMapper.selectAgentChatMessageBySessionIdWithInvokeDataOrderDesc(sessionId, agentId);
+    }
+
+    @Override
     public int deleteBySessionId(String sessionId) {
         return chatMessageMapper.deleteBySessionId(sessionId);
     }
