@@ -129,8 +129,16 @@
                   {{ isThinkFolded(msg, idx) ? '展开思考过程' : '收起思考过程' }}
                 </button>
               </div>
-              <!-- Message Bubble -->
-              <div class="message-bubble" v-html="msg.role === 'user' ? escapeHtml(msg.content) : renderMarkdown(msg.content)"></div>
+              <!-- Message Bubble / 加载占位 -->
+              <template v-if="msg.loading && !msg.content">
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </template>
+              <div v-else class="message-bubble" v-html="msg.role === 'user' ? escapeHtml(msg.content) : renderMarkdown(msg.content)"></div>
+
               <div class="message-meta">
                 <span class="message-time">{{ formatTime(msg.createTime) }}</span>
                 <div v-if="!msg.loading" class="message-actions">
@@ -148,24 +156,6 @@
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
-            </div>
-          </div>
-
-          <!-- 加载指示器 -->
-          <div v-if="isLoading" class="message ai-message">
-            <div class="message-avatar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-              </svg>
-            </div>
-            <div class="message-content">
-              <div class="typing-indicator">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
             </div>
           </div>
         </div>
@@ -462,6 +452,20 @@ export default {
       const chatApi = process.env.VUE_APP_BASE_API + '/dify-chat'
       const msgId = 'ai-' + Date.now()
 
+      const aiMessage = {
+        role: 'assistant',
+        content: '',
+        loading: true,
+        createTime: new Date().toISOString(),
+        _id: msgId,
+        thinkFolded: false,
+        retrievedList: [],
+        currentToolCall: null,
+        toolCalledList: []
+      }
+      this.messages.push(aiMessage)
+      this.scrollToBottom()
+
       try {
         const response = await fetch(chatApi, {
           method: 'POST',
@@ -474,16 +478,6 @@ export default {
           }),
           signal: this.streamController.signal
         })
-
-        const aiMessage = {
-          role: 'assistant',
-          content: '',
-          loading: true,
-          createTime: new Date().toISOString(),
-          _id: msgId,
-          thinkFolded: false
-        }
-        this.messages.push(aiMessage)
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder('utf-8')
@@ -501,7 +495,13 @@ export default {
               try {
                 const res = JSON.parse(item)
                 aiMessage.content += res.msg
+                // 外层聊天容器滚动
                 this.scrollToBottom()
+                // ==========新增：思考框内部自动滚动到底==========
+                const msgIndex = this.messages.findIndex(m => m._id === aiMessage._id)
+                if (msgIndex > -1) {
+                  this.scrollThinkBlockToBottom(msgIndex)
+                }
               } catch (e) {}
             }
           })
@@ -509,17 +509,28 @@ export default {
 
         aiMessage.loading = false
         aiMessage.content = aiMessage.content.replace('Deep thinking...', '')
+        this.scrollToBottom()
       } catch (error) {
         if (error.name !== 'AbortError') {
-          const lastMsg = this.messages[this.messages.length - 1]
-          if (lastMsg?.role === 'assistant') {
-            lastMsg.content += '\n\n⚠️ 响应中断，请重试'
-            lastMsg.loading = false
-          }
+          aiMessage.content += '\n\n⚠️ 响应中断，请重试'
         }
+        aiMessage.loading = false
       } finally {
         this.isLoading = false
       }
+    },
+    // ========== 新增方法：思考区域内部滚动到底 ==========
+    scrollThinkBlockToBottom(idx) {
+      this.$nextTick(() => {
+        const refName = 'thinkBlock-' + idx
+        const el = this.$refs[refName]
+        if (!el) return
+        const dom = Array.isArray(el) ? el[0] : el
+        if (!dom) return
+        if (dom.scrollHeight > dom.clientHeight) {
+          dom.scrollTop = dom.scrollHeight
+        }
+      })
     },
     hasThinkContent(content) {
       if (!content) return false
