@@ -21,9 +21,9 @@
             <ul>
               <li>SpringBoot</li>
               <li>Spring Security</li>
-              <li>JWT</li>
+              <li>Spring Webflux</li>
               <li>MyBatis</li>
-              <li>Druid</li>
+              <li>PgVector</li>
               <li>LangChain4j</li>
               <li>...</li>
             </ul>
@@ -61,9 +61,27 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
-            <el-collapse-item title="v0.0.1 - 2025-09-03">
+            <el-collapse-item title="v1.1 - 2026-07-12">
               <ol>
-                <li>发布v0.0.1版本</li>
+                <li>新增 Dify 类型智能体：在【AI 工具箱 → Dify API 管理】统一维护外部 Dify 服务，通过 agentType=dify 即可一键纳管 Chatflow / Workflow / Agent 应用，对话与历史会话走本地 dify_session_mapping 映射，全链路流式输出。</li>
+                <li>新增 原生智能体调用本地 Java Tool：智能体支持挂载 builtin 类型工具，后台通过反射扫描 dev.langchain4j.agent.tool.Tool 注解方法注册到 LangChain4j，大模型可自动调用本地 Java 业务方法（已内置 time_tool 时间工具示例）。</li>
+                <li>新增 调用 Dify Sandbox 执行 Python Tool：智能体支持挂载 sandbox 类型工具，自动把 LLM 参数按 parameters 元数据拼装成 func_name(args) 并下发到 dify-sandbox 沙箱执行 Python 代码，回传 print(result) 文本给 LLM。</li>
+                <li>新增 工具管理：新增 agent_tool、agent_tool_mapping 表与对应菜单（AI 工具箱 → Agent Tools），支持「builtin / sandbox」两种工具类型，新增 ai_tool_type 字典，并预置 time_tool 内置工具。</li>
+                <li>新增 Dify API 管理：新增 dify_api、dify_session_mapping 表与对应菜单，统一维护外部 Dify 服务接入。</li>
+                <li>新增 工具调用与召回可观测：新增 agent_tool_invoke、agent_kb_invoke 两张记录表，聊天响应中推送 TOOL_CALL / TOOL_CALLED / RETRIEVED 三类 SSE 事件，前端可实时展示工具调用过程。</li>
+                <li>新增 数据库迁移脚本 sql/V2__create_tool_table.sql，包含全部表结构与字典数据。</li>
+                <li>新增 sandbox 部署资源，仓库 sandbox/ 目录提供 dify-sandbox 启动配置模板与依赖说明。</li>
+              </ol>
+            </el-collapse-item>
+            <el-collapse-item title="v1.0 - 2025-09-03">
+              <ol>
+                <li>新增 AI 模型管理（LLM / Embedding），支持 Ollama 与 OpenAI 兼容协议，支持本地向量模型运行（shibing624_text2vec-base-chinese），支持在线下载本地向量模型。</li>
+                <li>新增 本地知识库 功能，支持文档分段、手动调整分段内容。</li>
+                <li>新增 智能体管理，支持多知识库挂载、系统提示词、用户提示词模板、记忆功能、客户端限流。</li>
+                <li>新增 AI 聊天 功能，支持深度思考 UI 渲染，支持删除聊天历史。</li>
+                <li>新增 推送服务，支持异步下载本地向量模型结果推送、文档分段向量化处理结果推送。</li>
+                <li>新增 向量模型维度检测 功能。</li>
+                <li>新增 知识库重向量 功能。</li>
               </ol>
             </el-collapse-item>
           </el-collapse>

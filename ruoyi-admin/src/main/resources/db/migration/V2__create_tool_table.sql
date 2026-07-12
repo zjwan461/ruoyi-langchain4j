@@ -115,3 +115,14 @@ create table agent_kb_invoke
     comment ='知识库召回记录表';
 
 CREATE INDEX idx_message_id ON agent_kb_invoke(message_id);
+
+ALTER TABLE sys_config
+    MODIFY COLUMN config_value varchar(2000) default ''  null comment '参数键值';
+
+UPDATE sys_config
+SET config_value = 'RuoYi-Langchain4j 是基于经典 RuoYi-Vue 后台框架深度拓展，集成 LangChain4j AI 框架、PgVector 向量数据库与 Dify 生态的企业级轻量化AI智能体快速开发平台。项目完整保留 RuoYi-Vue 原生权限管理、系统监控、代码生成、定时任务等全套后台能力，同时一站式封装大模型管理、知识库检索、多形态智能体、工具调用、AI 对话等核心AI能力，大幅降低Java项目集成AI应用的开发门槛。
+数据存储采用分层架构设计，业务运营数据沿用 RuoYi-Vue 原生 MySQL 数据库，保障传统业务的稳定高效；AI 知识库向量数据基于搭载 PgVector 插件的 PostgreSQL 存储，精准支撑 RAG 检索场景。项目内置 PgVector 容器化部署配置文件，可通过 Docker Compose 快速搭建向量数据库环境，开箱即用、部署零门槛。
+平台摒弃了初期单一简易RAG的能力局限，现已迭代完善全场景AI智能体体系，支持原生 LangChain4j 智能体、Dify 生态智能体双形态部署，同时实现两大核心工具调用能力：可无缝调用本地 Java 业务工具完成内部业务逻辑处理，也可对接 Dify Sandbox 沙箱执行 Python 代码，覆盖企业多样化智能交互、自动化办公、业务检索场景。
+在AI基础能力上，平台全面兼容 Ollama、OpenAI 双协议，支持本地向量模型在线下载、自定义配置大模型参数，具备文档智能分段、人工微调、向量重生成、检索可观测、流式对话输出、会话记忆、客户端访问限流等完善功能，同时配套完整的日志审计、任务异步推送机制，适配企业级生产落地需求，是一套轻量化、易拓展、可商用的Java AI后台解决方案。',
+    update_time = NOW()
+WHERE config_key = 'homePage.desc.showInfo';
