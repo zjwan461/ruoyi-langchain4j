@@ -273,6 +273,10 @@ AI 工具箱菜单下包含：
         <td><img src="https://jerrysu232.oss-cn-shenzhen.aliyuncs.com/img/20260704001134.png" alt="演示图-13" width="1700"/></td>
         <td><img src="https://jerrysu232.oss-cn-shenzhen.aliyuncs.com/img/20260704000922.png" alt="演示图-14" width="1700"/></td>
     </tr>
+    <tr>
+        <td><img src="https://jerrysu232.oss-cn-shenzhen.aliyuncs.com/img/20260712234728.png" alt="演示图-15" width="1700"/></td>
+        <td><img src="https://jerrysu232.oss-cn-shenzhen.aliyuncs.com/img/20260712234912.png" alt="演示图-16" width="1700"/></td>
+    </tr>
 </table>
 
 ---
