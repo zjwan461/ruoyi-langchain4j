@@ -5,85 +5,90 @@ import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.util.List;
+
 /**
  * 聊天信息对象 chat_message
- * 
+ *
  * @author ruoyi
  * @date 2025-09-08
  */
-public class ChatMessage extends BaseEntity
-{
+public class ChatMessage extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
-    /** ID */
+    /**
+     * ID
+     */
     private Long id;
 
-    /** 角色 */
+    /**
+     * 角色
+     */
     @Excel(name = "角色")
     private String role;
 
-    /** 消息内容 */
+    /**
+     * 消息内容
+     */
     @Excel(name = "消息内容")
     private String content;
 
-    /** 客户端ID */
+    /**
+     * 客户端ID
+     */
     @Excel(name = "客户端ID")
     private String clientId;
 
-    /** 会话ID */
+    /**
+     * 会话ID
+     */
     @Excel(name = "会话ID")
     private String sessionId;
 
     @Excel(name = "智能体ID")
     private Long agentId;
 
-    public void setId(Long id) 
-    {
+    private List<AgentKbInvoke> retrievedList;
+
+    private List<AgentToolInvoke> toolCalledList;
+
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public Long getId() 
-    {
+    public Long getId() {
         return id;
     }
 
-    public void setRole(String role) 
-    {
+    public void setRole(String role) {
         this.role = role;
     }
 
-    public String getRole() 
-    {
+    public String getRole() {
         return role;
     }
 
-    public void setContent(String content) 
-    {
+    public void setContent(String content) {
         this.content = content;
     }
 
-    public String getContent() 
-    {
+    public String getContent() {
         return content;
     }
 
-    public void setClientId(String clientId) 
-    {
+    public void setClientId(String clientId) {
         this.clientId = clientId;
     }
 
-    public String getClientId() 
-    {
+    public String getClientId() {
         return clientId;
     }
 
-    public void setSessionId(String sessionId) 
-    {
+    public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
     }
 
-    public String getSessionId() 
-    {
+    public String getSessionId() {
         return sessionId;
     }
 
@@ -95,16 +100,34 @@ public class ChatMessage extends BaseEntity
         this.agentId = agentId;
     }
 
+    public List<AgentKbInvoke> getRetrievedList() {
+        return retrievedList;
+    }
+
+    public void setRetrievedList(List<AgentKbInvoke> retrievedList) {
+        this.retrievedList = retrievedList;
+    }
+
+    public List<AgentToolInvoke> getToolCalledList() {
+        return toolCalledList;
+    }
+
+    public void setToolCalledList(List<AgentToolInvoke> toolCalledList) {
+        this.toolCalledList = toolCalledList;
+    }
+
     @Override
     public String toString() {
-        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
-            .append("id", getId())
-            .append("role", getRole())
-            .append("content", getContent())
-            .append("clientId", getClientId())
-            .append("sessionId", getSessionId())
-            .append("createTime", getCreateTime())
-            .append("agentId", getAgentId())
-            .toString();
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+                .append("id", getId())
+                .append("role", getRole())
+                .append("content", getContent())
+                .append("clientId", getClientId())
+                .append("sessionId", getSessionId())
+                .append("createTime", getCreateTime())
+                .append("agentId", getAgentId())
+                .append("retrievedList", getRetrievedList())
+                .append("toolCalledList", getToolCalledList())
+                .toString();
     }
 }

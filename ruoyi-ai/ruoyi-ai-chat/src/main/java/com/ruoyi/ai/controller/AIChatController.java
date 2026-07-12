@@ -1,10 +1,14 @@
 package com.ruoyi.ai.controller;
 
+import cn.hutool.core.collection.CollUtil;
+import com.ruoyi.ai.agent.AgentType;
 import com.ruoyi.ai.controller.model.ChatReq;
-import com.ruoyi.ai.domain.AiAgent;
-import com.ruoyi.ai.service.IAiAgentService;
-import com.ruoyi.ai.service.IAiChatService;
-import com.ruoyi.ai.service.IChatMessageService;
+import com.ruoyi.ai.domain.AgentTool;
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.service.IAgentToolService;
+import com.ruoyi.ai.service.IAIAgentService;
+import com.ruoyi.ai.service.IAIChatService;
+import com.ruoyi.ai.service.impl.AIAssistantExecutor;
 import com.ruoyi.common.core.domain.AjaxResult;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -12,28 +16,43 @@ import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/ai-chat")
-public class AiChatController extends ChatController {
+public class AIChatController extends ChatController {
 
 
     @Resource
-    IAiAgentService aiAgentService;
+    IAIAgentService aiAgentService;
 
     @Resource
-    private IChatMessageService chatMessageService;
+    IAgentToolService agentToolService;
 
-    public AiChatController(IAiChatService aiChatService) {
+    @Resource
+    private AIAssistantExecutor aiAssistantExecutor;
+
+    public AIChatController(IAIChatService aiChatService) {
         super(aiChatService);
+    }
+
+    protected AgentType getAgentType(AIAgent aiAgent) {
+        List<AgentTool> agentTools = agentToolService.selectAgentToolByAgentId(aiAgent.getId());
+        return CollUtil.isEmpty(agentTools) ? AgentType.simple : AgentType.service;
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
     public Flux<String> aiChat(@RequestBody @Valid ChatReq chatReq) {
-        AiAgent aiAgent = aiAgentService.selectAiAgentById(chatReq.getAgentId());
+        AIAgent aiAgent = aiAgentService.selectAiAgentById(chatReq.getAgentId());
         this.preCheck(aiAgent, chatReq);
-        return aiChatService.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                chatReq.getSessionId());
+        AgentType agentType = this.getAgentType(aiAgent);
+        if (agentType == AgentType.simple) {
+            return aiChatService.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
+                    chatReq.getSessionId());
+        } else {
+            return aiAssistantExecutor.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
+                    chatReq.getSessionId());
+        }
     }
 
     @GetMapping("/agent-info/{visitId}")

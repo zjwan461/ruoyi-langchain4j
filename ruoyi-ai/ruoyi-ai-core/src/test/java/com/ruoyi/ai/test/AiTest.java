@@ -1,7 +1,9 @@
 package com.ruoyi.ai.test;
 
+import cn.hutool.core.util.RandomUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
+import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -35,19 +37,21 @@ import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import static dev.langchain4j.rag.content.ContentMetadata.EMBEDDING_ID;
 
 @Slf4j
 public class AiTest {
 
-    public static final String LLM_BASE_URL = "http://10.100.216.70:8000/v1";
+    public static final String LLM_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
     public static final String OLLAMA_BASE_URL = "http://10.100.217.2:11434";
 
     @Test
@@ -67,13 +71,13 @@ public class AiTest {
     private static OpenAiChatModel buildBlockModel() {
         return OpenAiChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
-                .modelName("qwen3-8b")
+                .modelName("qwen3.7-plus")
                 .build();
     }
 
     private static ChatRequestParameters buildParameters() {
         return OpenAiChatRequestParameters.builder()
-                .modelName("qwen3-8b")
+                .modelName("qwen3.7-plus")
                 .temperature(0.7)
 //        .topK(40)
 //        .topP(0.9)
@@ -116,7 +120,8 @@ public class AiTest {
     private static OpenAiStreamingChatModel buildStreamingModel() {
         OpenAiStreamingChatModel model = OpenAiStreamingChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
-                .modelName("qwen3-8b")
+                .modelName("qwen3.7-plus")
+                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
                 .build();
         return model;
     }
@@ -351,4 +356,14 @@ public class AiTest {
             log.error("检查本地模型失败", e);
         }
     }
+
+    @SneakyThrows
+    @Tool
+    public String getWeather(String city) {
+        TimeUnit.SECONDS.sleep(1);
+        return "当前" + city + "的气温是" + RandomUtil.randomNumbers(50) + "摄氏度";
+    }
+
+
+
 }

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ai.mapper.AgentToolInvokeMapper">
+
+    <resultMap type="AgentToolInvoke" id="AgentToolInvokeResult">
+        <result property="id"    column="id"    />
+        <result property="agentId"    column="agent_id"    />
+        <result property="clientId"    column="client_id"    />
+        <result property="sessionId"    column="session_id"    />
+        <result property="messageId"    column="message_id"    />
+        <result property="toolName"    column="tool_name"    />
+        <result property="toolInvokeResult"    column="tool_invoke_result"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectAgentToolInvokeVo">
+        select id, agent_id, client_id, session_id, message_id, tool_name, tool_invoke_result, create_time from agent_tool_invoke
+    </sql>
+
+    <select id="selectAgentToolInvokeList" parameterType="AgentToolInvoke" resultMap="AgentToolInvokeResult">
+        <include refid="selectAgentToolInvokeVo"/>
+        <where>
+            <if test="agentId != null "> and agent_id = #{agentId}</if>
+            <if test="clientId != null  and clientId != ''"> and client_id = #{clientId}</if>
+            <if test="sessionId != null  and sessionId != ''"> and session_id = #{sessionId}</if>
+            <if test="messageId != null  and messageId != ''"> and message_id = #{messageId}</if>
+            <if test="toolName != null  and toolName != ''"> and tool_name like concat('%', #{toolName}, '%')</if>
+        </where>
+    </select>
+
+    <select id="selectAgentToolInvokeById" parameterType="Long" resultMap="AgentToolInvokeResult">
+        <include refid="selectAgentToolInvokeVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertAgentToolInvoke" parameterType="AgentToolInvoke">
+        insert into agent_tool_invoke
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="agentId != null">agent_id,</if>
+            <if test="clientId != null and clientId != ''">client_id,</if>
+            <if test="sessionId != null and sessionId != ''">session_id,</if>
+            <if test="messageId != null and messageId != ''">message_id,</if>
+            <if test="toolName != null and toolName != ''">tool_name,</if>
+            <if test="toolInvokeResult != null">tool_invoke_result,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="agentId != null">#{agentId},</if>
+            <if test="clientId != null and clientId != ''">#{clientId},</if>
+            <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
+            <if test="messageId != null and messageId != ''">#{messageId},</if>
+            <if test="toolName != null and toolName != ''">#{toolName},</if>
+            <if test="toolInvokeResult != null">#{toolInvokeResult},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAgentToolInvoke" parameterType="AgentToolInvoke">
+        update agent_tool_invoke
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="agentId != null">agent_id = #{agentId},</if>
+            <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
+            <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
+            <if test="messageId != null and messageId != ''">message_id = #{messageId},</if>
+            <if test="toolName != null and toolName != ''">tool_name = #{toolName},</if>
+            <if test="toolInvokeResult != null">tool_invoke_result = #{toolInvokeResult},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAgentToolInvokeById" parameterType="Long">
+        delete from agent_tool_invoke where id = #{id}
+    </delete>
+
+    <delete id="deleteAgentToolInvokeByIds" parameterType="String">
+        delete from agent_tool_invoke where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

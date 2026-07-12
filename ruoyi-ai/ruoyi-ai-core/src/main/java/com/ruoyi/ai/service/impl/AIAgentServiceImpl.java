@@ -1,0 +1,168 @@
+package com.ruoyi.ai.service.impl;
+
+import cn.hutool.core.collection.CollUtil;
+import com.ruoyi.ai.domain.AgentKbInvoke;
+import com.ruoyi.ai.domain.AgentToolInvoke;
+import com.ruoyi.ai.domain.AgentToolMapping;
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.mapper.AIAgentMapper;
+import com.ruoyi.ai.mapper.AgentKbInvokeMapper;
+import com.ruoyi.ai.mapper.AgentToolInvokeMapper;
+import com.ruoyi.ai.service.IAIAgentService;
+import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.SecurityUtils;
+import com.ruoyi.common.utils.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * AI智能体Service业务层处理
+ *
+ * @author jerry
+ * @date 2025-09-02
+ */
+@Service
+public class AIAgentServiceImpl implements IAIAgentService {
+    @Autowired
+    private AIAgentMapper aiAgentMapper;
+
+    @Resource
+    private AgentKbInvokeMapper agentKbInvokeMapper;
+
+    @Resource
+    private AgentToolInvokeMapper agentToolInvokeMapper;
+
+    /**
+     * 查询AI智能体
+     *
+     * @param id AI智能体主键
+     * @return AI智能体
+     */
+    @Override
+    public AIAgent selectAiAgentById(Long id) {
+        return aiAgentMapper.selectAiAgentById(id);
+    }
+
+    /**
+     * 查询AI智能体,含tool
+     *
+     * @param id AI智能体主键
+     * @return AI智能体
+     */
+    @Override
+    public AIAgent selectAiAgentWithToolById(Long id) {
+        return aiAgentMapper.selectAiAgentWithToolById(id);
+    }
+
+    /**
+     * 查询AI智能体列表
+     *
+     * @param aiAgent AI智能体
+     * @return AI智能体
+     */
+    @Override
+    public List<AIAgent> selectAiAgentList(AIAgent aiAgent) {
+        return aiAgentMapper.selectAiAgentList(aiAgent);
+    }
+
+    /**
+     * 新增AI智能体
+     *
+     * @param aiAgent AI智能体
+     * @return 结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int insertAiAgent(AIAgent aiAgent) {
+        aiAgent.setCreateTime(DateUtils.getNowDate());
+        aiAgent.setCreateBy(SecurityUtils.getUsername());
+        int insertCount = aiAgentMapper.insertAiAgent(aiAgent);
+        updateAgentToolMapping(aiAgent);
+        return insertCount;
+    }
+
+    /**
+     * 修改AI智能体
+     *
+     * @param aiAgent AI智能体
+     * @return 结果
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public int updateAiAgent(AIAgent aiAgent) {
+        aiAgent.setUpdateTime(DateUtils.getNowDate());
+        aiAgent.setUpdateBy(SecurityUtils.getUsername());
+        int updateCount = aiAgentMapper.updateAiAgent(aiAgent);
+        updateAgentToolMapping(aiAgent);
+        return updateCount;
+    }
+
+    private void updateAgentToolMapping(AIAgent aiAgent) {
+        if (StringUtils.isNotBlank(aiAgent.getToolIds())) {
+            List<AgentToolMapping> mappings = Arrays.stream(aiAgent.getToolIds().split(",")).map(x -> {
+                AgentToolMapping mapping = new AgentToolMapping();
+                mapping.setAgentId(aiAgent.getId());
+                mapping.setToolId(Long.valueOf(x));
+                return mapping;
+            }).toList();
+            if (CollUtil.isNotEmpty(mappings)) {
+                aiAgentMapper.deleteAgentToolMappingByAgentId(aiAgent.getId());
+                this.batchInsertAgentToolMapping(mappings);
+            }
+        } else {
+            aiAgentMapper.deleteAgentToolMappingByAgentId(aiAgent.getId());
+        }
+    }
+
+    /**
+     * 批量删除AI智能体
+     *
+     * @param ids 需要删除的AI智能体主键
+     * @return 结果
+     */
+    @Override
+    public int deleteAiAgentByIds(Long[] ids) {
+        return aiAgentMapper.deleteAiAgentByIds(ids);
+    }
+
+    /**
+     * 删除AI智能体信息
+     *
+     * @param id AI智能体主键
+     * @return 结果
+     */
+    @Override
+    public int deleteAiAgentById(Long id) {
+        return aiAgentMapper.deleteAiAgentById(id);
+    }
+
+    @Override
+    public AIAgent selectByVisitId(String visitId) {
+        return aiAgentMapper.selectAiAgentByVisitUrl(visitId);
+    }
+
+    @Override
+    public int insertAgentToolMapping(Long agentId, Long toolId) {
+        return aiAgentMapper.insertAgentToolMapping(agentId, toolId);
+    }
+
+    @Override
+    public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings) {
+        return aiAgentMapper.batchInsertAgentToolMapping(mappings);
+    }
+
+    @Override
+    public int insertAgentKBInvoked(AgentKbInvoke agentKbInvoke) {
+        return agentKbInvokeMapper.insertAgentKbInvoke(agentKbInvoke);
+    }
+
+    @Override
+    public int insertAgentToolInvoked(AgentToolInvoke agentToolInvoke) {
+        return agentToolInvokeMapper.insertAgentToolInvoke(agentToolInvoke);
+    }
+}

@@ -47,6 +47,19 @@ user:
 
 # Spring配置
 spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true  # 已有存量库自动创建基线（关键）
+    baseline-version: 1  # 基线版本号（默认 1）
+    validate-on-migrate: true  # 启动时校验脚本完整性（推荐）
+    clean-disabled: true  # 生产环境必须开启：禁止清空数据库
+    out-of-order: false  # 禁止乱序执行（推荐）
+    encoding: UTF-8  # 脚本编码
+    table: flyway_schema_history  # 元数据表名（默认）
+    placeholder-replacement: true  # 启用占位符替换
+    placeholder-prefix: '${'  # 占位符前缀
+    placeholder-suffix: '}'  # 占位符后缀
   jackson:
     time-zone: GMT+8
 
@@ -149,3 +162,9 @@ ai:
     drop-table-first: false #如果设置为true，会在启动的时候重新建表
   agent:
     memory-strategy: memory
+    max-sequential-tools-invocations: 10
+  # dify-sandbox 代码执行沙箱配置（对应 docker-compose 中的 sandbox 服务）
+  sandbox:
+    base-url: http://sandbox:8194 #容器内通过服务名访问；宿主机本地调试改为 http://localhost:8194
+    api-key: dify-sandbox #对应 docker-compose 中 sandbox 服务的 API_KEY 环境变量
+    timeout: 30 #请求超时时间（秒），覆盖 sandbox 服务自身的 worker_timeout

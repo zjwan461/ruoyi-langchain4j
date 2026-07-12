@@ -1,7 +1,10 @@
 package com.ruoyi.ai.mapper;
 
+import com.ruoyi.ai.domain.AgentToolMapping;
+import com.ruoyi.ai.domain.AIAgent;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
-import com.ruoyi.ai.domain.AiAgent;
 
 /**
  * AI智能体Mapper接口
@@ -9,7 +12,7 @@ import com.ruoyi.ai.domain.AiAgent;
  * @author jerry
  * @date 2025-09-02
  */
-public interface AiAgentMapper 
+public interface AIAgentMapper
 {
     /**
      * 查询AI智能体
@@ -17,7 +20,7 @@ public interface AiAgentMapper
      * @param id AI智能体主键
      * @return AI智能体
      */
-    public AiAgent selectAiAgentById(Long id);
+    public AIAgent selectAiAgentById(Long id);
 
     /**
      * 查询AI智能体列表
@@ -25,7 +28,7 @@ public interface AiAgentMapper
      * @param aiAgent AI智能体
      * @return AI智能体集合
      */
-    public List<AiAgent> selectAiAgentList(AiAgent aiAgent);
+    public List<AIAgent> selectAiAgentList(AIAgent aiAgent);
 
     /**
      * 新增AI智能体
@@ -33,7 +36,7 @@ public interface AiAgentMapper
      * @param aiAgent AI智能体
      * @return 结果
      */
-    public int insertAiAgent(AiAgent aiAgent);
+    public int insertAiAgent(AIAgent aiAgent);
 
     /**
      * 修改AI智能体
@@ -41,7 +44,7 @@ public interface AiAgentMapper
      * @param aiAgent AI智能体
      * @return 结果
      */
-    public int updateAiAgent(AiAgent aiAgent);
+    public int updateAiAgent(AIAgent aiAgent);
 
     /**
      * 删除AI智能体
@@ -60,5 +63,13 @@ public interface AiAgentMapper
     public int deleteAiAgentByIds(Long[] ids);
 
 
-    public AiAgent selectAiAgentByVisitUrl(String visitUrl);
+    public AIAgent selectAiAgentByVisitUrl(String visitUrl);
+
+    public AIAgent selectAiAgentWithToolById(Long id);
+
+    int insertAgentToolMapping(@Param("agentId") Long agentId, @Param("toolId") Long toolId);
+
+    int batchInsertAgentToolMapping(@Param("list") List<AgentToolMapping> mappings);
+
+    void deleteAgentToolMappingByAgentId(@Param("agentId") Long agentId);
 }

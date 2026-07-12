@@ -14,6 +14,9 @@ public class AiConfig {
 
     private Agent agent;
 
+    private Sandbox sandbox;
+
+
     public PgVector getPgVector() {
         return pgVector;
     }
@@ -36,6 +39,14 @@ public class AiConfig {
 
     public void setAgent(Agent agent) {
         this.agent = agent;
+    }
+
+    public Sandbox getSandbox() {
+        return sandbox;
+    }
+
+    public void setSandbox(Sandbox sandbox) {
+        this.sandbox = sandbox;
     }
 
     public static class PgVector {
@@ -139,6 +150,16 @@ public class AiConfig {
     public static class Agent {
         private MemoryStrategy memoryStrategy;
 
+        private int maxSequentialToolsInvocations = 10;
+
+        public int getMaxSequentialToolsInvocations() {
+            return maxSequentialToolsInvocations;
+        }
+
+        public void setMaxSequentialToolsInvocations(int maxSequentialToolsInvocations) {
+            this.maxSequentialToolsInvocations = maxSequentialToolsInvocations;
+        }
+
         public MemoryStrategy getMemoryStrategy() {
             return memoryStrategy;
         }
@@ -149,6 +170,55 @@ public class AiConfig {
 
         public enum MemoryStrategy {
             MEMORY, REDIS
+        }
+    }
+
+    /**
+     * dify-sandbox 代码执行沙箱配置，对应 docker-compose 中的 sandbox 服务。
+     */
+    public static class Sandbox {
+
+        /**
+         * dify-sandbox 服务地址。
+         *
+         * <p>容器内通过 compose 服务名 {@code sandbox} 直连，
+         * 宿主机本地调试可改为 {@code http://localhost:8194}。</p>
+         */
+        private String baseUrl = "http://sandbox:8194";
+
+        /**
+         * dify-sandbox 鉴权 Key，对应 docker-compose 中 {@code API_KEY}。
+         */
+        private String apiKey = "dify-sandbox";
+
+        /**
+         * 请求超时时间（秒）。dify-sandbox 默认 {@code WORKER_TIMEOUT=-15}（15 秒），
+         * 此处取稍大的 30 秒以兼容网络开销。
+         */
+        private int timeout = 30;
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public int getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(int timeout) {
+            this.timeout = timeout;
         }
     }
 }

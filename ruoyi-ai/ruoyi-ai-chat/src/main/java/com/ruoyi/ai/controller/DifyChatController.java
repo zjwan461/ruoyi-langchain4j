@@ -14,10 +14,10 @@ import com.ruoyi.ai.dify.domain.DifyApi;
 import com.ruoyi.ai.dify.domain.DifySessionMapping;
 import com.ruoyi.ai.dify.service.IDifyApiService;
 import com.ruoyi.ai.dify.service.IDifySessionMappingService;
-import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.ChatMessage;
-import com.ruoyi.ai.service.IAiAgentService;
-import com.ruoyi.ai.service.IAiChatService;
+import com.ruoyi.ai.service.IAIAgentService;
+import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
@@ -41,7 +41,7 @@ public class DifyChatController extends ChatController {
     IDifyApiService difyApiService;
 
     @Resource
-    IAiAgentService aiAgentService;
+    IAIAgentService aiAgentService;
 
     @Resource
     DifyRequestUtil difyRequestUtil;
@@ -55,13 +55,13 @@ public class DifyChatController extends ChatController {
     @Resource
     private ObjectMapper objectMapper;
 
-    public DifyChatController(IAiChatService aiChatService) {
+    public DifyChatController(IAIChatService aiChatService) {
         super(aiChatService);
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
     public Flux<String> aiChat(@RequestBody @Valid ChatReq chatReq) {
-        AiAgent aiAgent = aiAgentService.selectAiAgentById(chatReq.getAgentId());
+        AIAgent aiAgent = aiAgentService.selectAiAgentById(chatReq.getAgentId());
         DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
         this.preCheck(aiAgent, chatReq);
         DifySessionMapping mapping = difySessionMappingService.selectDifySessionMappingBySessionIdAndClientId(chatReq.getSessionId(), chatReq.getClientId());
@@ -124,7 +124,7 @@ public class DifyChatController extends ChatController {
 
     @GetMapping("/list-chat-session/{clientId}/{agentId}")
     public AjaxResult listChatSession(@PathVariable("clientId") String clientId, @PathVariable("agentId") Long agentId) {
-        AiAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
+        AIAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
         DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
         List<DifySessionMapping> mappings = difySessionMappingService.selectDifySessionMappingByClientId(clientId);
         if (CollUtil.isEmpty(mappings)) {
@@ -162,7 +162,7 @@ public class DifyChatController extends ChatController {
         if (mapping == null || StringUtils.isBlank(mapping.getConversationId())) {
             return AjaxResult.success();
         }
-        AiAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
+        AIAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
         DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
         DifyMessagesResponse messages = difyRequestUtil.getMessages(difyApi.getUrlPrefix(), difyApi.getApiKey(), mapping.getClientId() + ":" + Constants.DIFY_USER,
                 mapping.getConversationId(), "", 100);
@@ -189,7 +189,7 @@ public class DifyChatController extends ChatController {
     public AjaxResult deleteSession(@PathVariable("sessionId") String sessionId) {
         DifySessionMapping mapping = difySessionMappingService.selectDifySessionMappingBySessionId(sessionId);
         if (mapping != null && StringUtils.isNotBlank(mapping.getConversationId())) {
-            AiAgent aiAgent = aiAgentService.selectAiAgentById(mapping.getAgentId());
+            AIAgent aiAgent = aiAgentService.selectAiAgentById(mapping.getAgentId());
             DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
             difyRequestUtil.deleteConversation(difyApi.getUrlPrefix(), difyApi.getApiKey(), mapping.getConversationId(),
                     mapping.getClientId() + ":" + Constants.DIFY_USER);

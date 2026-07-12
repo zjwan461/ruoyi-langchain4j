@@ -110,17 +110,17 @@
             </div>
             <div class="message-content">
               <!-- Think Block (foldable) -->
-                <div v-if="msg.role === 'assistant' && hasThinkContent(msg.content)" class="think-section">
-                  <div class="think-block" :class="{ 'folded': isThinkFolded(msg, idx) }">
-                    {{ getThinkContent(msg.content) }}
-                  </div>
-                  <button v-if="!msg.loading" class="think-toggle-btn" @click="toggleThink(idx)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline :points="isThinkFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
-                    </svg>
-                    {{ isThinkFolded(msg, idx) ? '展开思考过程' : '收起思考过程' }}
-                  </button>
+              <div v-if="msg.role === 'assistant' && hasThinkContent(msg.content)" class="think-section">
+                <div class="think-block" :class="{ 'folded': isThinkFolded(msg, idx) }">
+                  {{ getThinkContent(msg.content) }}
                 </div>
+                <button v-if="!msg.loading" class="think-toggle-btn" @click="toggleThink(idx)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline :points="isThinkFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                  </svg>
+                  {{ isThinkFolded(msg, idx) ? '展开思考过程' : '收起思考过程' }}
+                </button>
+              </div>
               <!-- Message Bubble -->
               <div class="message-bubble" v-html="msg.role === 'user' ? escapeHtml(msg.content) : renderMarkdown(msg.content)"></div>
               <div class="message-meta">
@@ -192,6 +192,9 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import {getAgent, createSession, listChatSession, listChatMessage, deleteSession} from '@/api/ai/difyChat'
 import {nanoid} from 'nanoid'
+
+const THINK_START = '<' + 'think' + '>'
+const THINK_END = '<' + '/think' + '>'
 
 const md = new MarkdownIt({
   html: true,
@@ -440,31 +443,38 @@ export default {
     },
     hasThinkContent(content) {
       if (!content) return false
-      return content.includes('<think>')
+      return content.indexOf(THINK_START) !== -1
     },
     isThinkFinished(content) {
       if (!content) return false
-      return content.includes('</think>')
+      return content.indexOf(THINK_END) !== -1
     },
     getThinkContent(content) {
       if (!content) return ''
-      const startTag = '<think>'
-      const endTag = '</think>'
-      const startIndex = content.indexOf(startTag)
-      const endIndex = content.indexOf(endTag)
-      if (startIndex !== -1 && endIndex !== -1) {
-        // Return only the content inside the tags (excluding tags themselves)
-        return content.substring(startIndex + startTag.length, endIndex)
+      const startIdx = content.indexOf(THINK_START)
+      if (startIdx === -1) return ''
+      const endIdx = content.indexOf(THINK_END)
+      if (endIdx !== -1) {
+        // 思考已结束，返回标签内完整内容
+        return content.substring(startIdx + THINK_START.length, endIdx)
+      } else {
+        // 思考进行中，返回从开始标签后到当前末尾的所有已接收内容
+        return content.substring(startIdx + THINK_START.length)
       }
-      return ''
     },
     getOutputContent(content) {
       if (!content) return ''
-      const endTag = '</think>'
-      const index = content.indexOf(endTag)
-      if (index !== -1) {
-        return content.substring(index + endTag.length)
+      const endIdx = content.indexOf(THINK_END)
+      if (endIdx !== -1) {
+        // 思考已结束，返回结束标签后的正文内容
+        return content.substring(endIdx + THINK_END.length)
       }
+      // 有开始标签但无结束标签：思考进行中，正文暂为空
+      const startIdx = content.indexOf(THINK_START)
+      if (startIdx !== -1) {
+        return ''
+      }
+      // 无思考标签，直接返回全部内容
       return content
     },
     renderMarkdown(content) {
@@ -475,12 +485,12 @@ export default {
     },
     isThinkFolded(msg, idx) {
       if (!msg) return false
-      // If user has explicitly set a value, use that
+      // 用户手动切换过，优先尊重用户操作
       if (this.foldedStates.hasOwnProperty(idx)) {
         return this.foldedStates[idx]
       }
-      // Otherwise, auto-fold when loading done and think finished
-      return !msg.loading && this.isThinkFinished(msg.content)
+      // 自动逻辑：思考结束则自动折叠，思考过程中保持展开
+      return this.isThinkFinished(msg.content)
     },
     toggleThink(idx) {
       const current = this.isThinkFolded(this.messages[idx], idx)
@@ -493,9 +503,9 @@ export default {
     },
     copyMessage(content, role) {
       // content 是原始文本，直接使用。
-      // 对于 AI 消息：保留完整的原始内容（包括<think>...</think>标签）
+      // 对于 AI 消息：保留完整的原始内容（包括...标签）
       // 对于用户消息：就是用户输入的原始文本
-      // 注意：不能用 /<[^>]+>/g 去除 HTML 标签，因为会误伤<think>标签
+      // 注意：不能用 /<[^>]+>/g 去除 HTML 标签，因为会误伤标签
       const text = content || ''
       navigator.clipboard.writeText(text).then(() => {
         this.$message.success('已复制')
@@ -955,7 +965,7 @@ export default {
   line-height: 1.6;
   transition: all 0.3s ease;
   max-height: 300px;
-  overflow: hidden;
+  overflow-y: auto;
   opacity: 1;
 }
 

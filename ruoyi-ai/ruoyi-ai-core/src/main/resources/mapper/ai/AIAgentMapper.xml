@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ruoyi.ai.mapper.AiAgentMapper">
+<mapper namespace="com.ruoyi.ai.mapper.AIAgentMapper">
 
     <resultMap type="AiAgent" id="AiAgentResult">
         <result property="id"                  column="id"                  />
@@ -27,6 +27,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="promptTemplate"      column="prompt_template"     />
         <result property="minScore"            column="min_score"           />
         <result property="maxResult"           column="max_result"          />
+    </resultMap>
+
+    <resultMap id="AiAgentWithToolResult" type="AiAgent" extends="AiAgentResult">
+        <collection property="agentTools" javaType="java.util.List" ofType="com.ruoyi.ai.domain.AgentTool">
+            <result property="id" column="tool_id"/>
+            <result property="toolName" column="tool_name"/>
+            <result property="toolType" column="tool_type"/>
+            <result property="code" column="code"/>
+            <result property="clazz" column="clazz"/>
+            <result property="parameters" column="parameters"/>
+            <result property="description" column="description"/>
+            <result property="createTime" column="tool_create_time"/>
+            <result property="updateTime" column="tool_update_time"/>
+            <result property="createBy" column="tool_create_by"/>
+            <result property="updateBy" column="tool_update_by"/>
+        </collection>
     </resultMap>
 
     <sql id="selectAiAgentVo">
@@ -145,4 +161,39 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectAiAgentVo"/>
         where visit_url = #{visitUrl}
     </select>
+
+    <select id="selectAiAgentWithToolById" parameterType="Long" resultMap="AiAgentWithToolResult">
+        select
+            a.id, a.name, a.kb_ids, a.system_message, a.memory_count, a.model_id, a.model_name,
+            a.create_by, a.create_time, a.update_by, a.update_time, a.agent_type, a.dify_api_id,
+            a.dify_api_name, a.status, a.visit_url, a.day_lmt_per_client, a.temperature,
+            a.max_output_token, a.prompt_template, a.min_score, a.max_result,
+            c.id tool_id, c.tool_name, c.tool_type, c.code, c.clazz, c.parameters, c.description,
+            c.create_time tool_create_time, c.update_time tool_update_time,
+            c.create_by tool_create_by, c.update_by tool_update_by
+        from ai_agent a
+                 left join agent_tool_mapping b on a.id = b.agent_id
+                 left join agent_tool c on b.tool_id = c.id
+        where a.id = #{id}
+    </select>
+
+    <insert id="insertAgentToolMapping" useGeneratedKeys="true" keyProperty="id">
+        insert into agent_tool_mapping (agent_id, tool_id)
+        values (#{agentId}, #{toolId})
+    </insert>
+
+    <insert id="batchInsertAgentToolMapping" useGeneratedKeys="true" keyProperty="id">
+        insert into agent_tool_mapping (agent_id, tool_id)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.agentId},
+            #{item.toolId}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteAgentToolMappingByAgentId" parameterType="Long">
+        delete from agent_tool_mapping where agent_id = #{agentId}
+    </delete>
 </mapper>

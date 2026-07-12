@@ -1,15 +1,16 @@
 package com.ruoyi.ai.service;
 
-import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.ChatMessage;
+import dev.langchain4j.data.message.ChatMessageType;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
 
-public interface IAiChatService {
+public interface IAIChatService {
 
-    Flux<String> chat(AiAgent aiAgent, String prompt, String clientId, String sessionId);
+    Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId);
 
     String createSession(String clientId);
 
@@ -22,4 +23,7 @@ public interface IAiChatService {
     List<ChatMessage> listAgentChatMessageBySessionId(String sessionId, Long agentId);
 
     void deleteSession(String sessionId);
+
+    ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
+                         ChatMessageType chatMessageType);
 }

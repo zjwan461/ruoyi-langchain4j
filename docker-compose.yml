@@ -30,7 +30,7 @@ services:
       - MYSQL_DATABASE=ry-vue
     volumes:
       - mysql-data:/var/lib/mysql  # 挂载数据目录，实现数据持久化
-      - ./sql:/docker-entrypoint-initdb.d
+#      - ./sql:/docker-entrypoint-initdb.d
       - ./my.cnf:/etc/my.cnf
     command: >
       mysqld --character-set-server=utf8mb4
@@ -91,7 +91,7 @@ services:
       -c min_wal_size=1GB
       -c max_wal_size=4GB
   sandbox:
-    image: langgenius/dify-sandbox:0.2.12
+    image: langgenius/dify-sandbox:0.2.15
     restart: always
     environment:
       # The DifySandbox configurations
@@ -99,14 +99,13 @@ services:
       # You can generate a strong key using `openssl rand -base64 42`.
       API_KEY: dify-sandbox
       GIN_MODE: release
-      WORKER_TIMEOUT: -15
+      WORKER_TIMEOUT: 15
       ENABLE_NETWORK: true
       SANDBOX_PORT: 8194
       PIP_MIRROR_URL: https://pypi.tuna.tsinghua.edu.cn/simple
     volumes:
       - ./sandbox/dependencies:/dependencies
       - ./sandbox/conf:/conf
-      - ./sandbox/storage:/var/sandbox/sandbox-python/tmp/storage
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8194/health" ]
     networks:

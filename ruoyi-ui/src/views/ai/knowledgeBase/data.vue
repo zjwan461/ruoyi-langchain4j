@@ -213,6 +213,9 @@ export default {
         this.$modal.loading("修改中...")
         updateSegment(reqParams).then(response => {
           this.$modal.closeLoading()
+          if (response.code !== 200) {
+            this.$message.error(response.msg)
+          }
           this.showUpdate = false
           this.listSegment()
         }).catch(e => {

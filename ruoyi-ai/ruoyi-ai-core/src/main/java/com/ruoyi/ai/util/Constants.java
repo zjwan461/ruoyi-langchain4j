@@ -36,4 +36,11 @@ public interface Constants {
 
     int MEMORY_TTL_SECONDS = -1;
 
+    String SSE_EVENT_MSG = "msg";
+
+    String SSE_EVENT_TOOL_CALL = "tool_call";
+
+    String SSE_EVENT_TOOL_CALLED = "tool_called";
+
+    String SSE_EVENT_RETRIEVED = "retrieved";
 }

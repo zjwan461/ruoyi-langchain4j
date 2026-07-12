@@ -5,13 +5,15 @@ import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.util.List;
+
 /**
  * AI智能体对象 ai_agent
  *
  * @author jerry
  * @date 2025-09-02
  */
-public class AiAgent extends BaseEntity {
+public class AIAgent extends BaseEntity {
 
   private static final long serialVersionUID = 1L;
 
@@ -113,6 +115,12 @@ public class AiAgent extends BaseEntity {
   @Excel(name = "知识库查询最多条数")
   private Integer maxResult;
 
+  private String toolIds;
+
+  private String toolNames;
+
+  private List<AgentTool> agentTools;
+
   public void setId(Long id) {
     this.id = id;
   }
@@ -128,8 +136,6 @@ public class AiAgent extends BaseEntity {
   public String getName() {
     return name;
   }
-
-
 
   public void setSystemMessage(String systemMessage) {
     this.systemMessage = systemMessage;
@@ -267,6 +273,30 @@ public class AiAgent extends BaseEntity {
     this.difyApiName = difyApiName;
   }
 
+  public List<AgentTool> getAgentTools() {
+    return agentTools;
+  }
+
+  public void setAgentTools(List<AgentTool> agentTools) {
+    this.agentTools = agentTools;
+  }
+
+  public String getToolIds() {
+    return toolIds;
+  }
+
+  public void setToolIds(String toolIds) {
+    this.toolIds = toolIds;
+  }
+
+  public String getToolNames() {
+    return toolNames;
+  }
+
+  public void setToolNames(String toolNames) {
+    this.toolNames = toolNames;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -293,6 +323,9 @@ public class AiAgent extends BaseEntity {
         .append("difyApiName", getDifyApiName())
         .append("minScore", getMinScore())
         .append("maxResult", getMaxResult())
+        .append("agentTools", getAgentTools())
+        .append("toolIds", getToolIds())
+        .append("toolNames", getToolNames())
         .toString();
   }
 

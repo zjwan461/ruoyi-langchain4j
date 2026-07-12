@@ -2,10 +2,10 @@ package com.ruoyi.ai.controller;
 
 import com.ruoyi.ai.dify.domain.DifyApi;
 import com.ruoyi.ai.dify.service.IDifyApiService;
-import com.ruoyi.ai.domain.AiAgent;
+import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.domain.Model;
-import com.ruoyi.ai.service.IAiAgentService;
+import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.ai.service.IKnowledgeBaseService;
 import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.common.annotation.Log;
@@ -36,10 +36,10 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/ai/agent")
-public class AiAgentController extends BaseController {
+public class AIAgentController extends BaseController {
 
     @Autowired
-    private IAiAgentService aiAgentService;
+    private IAIAgentService aiAgentService;
 
     @Autowired
     private IKnowledgeBaseService knowledgeBaseService;
@@ -61,7 +61,7 @@ public class AiAgentController extends BaseController {
      */
     @PreAuthorize("@ss.hasPermi('ai:agent:list')")
     @GetMapping("/list")
-    public TableDataInfo list(AiAgent aiAgent) {
+    public TableDataInfo list(AIAgent aiAgent) {
         startPage();
         Model model = new Model();
         String dictLabel = DictUtils.getDictValue("ai_model_type", "LLM");
@@ -70,7 +70,7 @@ public class AiAgentController extends BaseController {
 
         List<KnowledgeBase> knowledgeBases = knowledgeBaseService.selectKnowledgeBaseList(null);
 
-        List<AiAgent> list = aiAgentService.selectAiAgentList(aiAgent);
+        List<AIAgent> list = aiAgentService.selectAiAgentList(aiAgent);
 
         list.forEach(agent -> {
             Long modelId = agent.getModelId();
@@ -93,9 +93,9 @@ public class AiAgentController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:agent:export')")
     @Log(title = "AI智能体", businessType = BusinessType.EXPORT)
     @PostMapping("/export")
-    public void export(HttpServletResponse response, AiAgent aiAgent) {
-        List<AiAgent> list = aiAgentService.selectAiAgentList(aiAgent);
-        ExcelUtil<AiAgent> util = new ExcelUtil<AiAgent>(AiAgent.class);
+    public void export(HttpServletResponse response, AIAgent aiAgent) {
+        List<AIAgent> list = aiAgentService.selectAiAgentList(aiAgent);
+        ExcelUtil<AIAgent> util = new ExcelUtil<AIAgent>(AIAgent.class);
         util.exportExcel(response, list, "AI智能体数据");
     }
 
@@ -105,7 +105,7 @@ public class AiAgentController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:agent:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
-        return success(aiAgentService.selectAiAgentById(id));
+        return success(aiAgentService.selectAiAgentWithToolById(id));
     }
 
     /**
@@ -114,13 +114,13 @@ public class AiAgentController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:agent:add')")
     @Log(title = "AI智能体", businessType = BusinessType.INSERT)
     @PostMapping
-    public AjaxResult add(@RequestBody AiAgent aiAgent) {
+    public AjaxResult add(@RequestBody AIAgent aiAgent) {
         constructInfo(aiAgent);
         aiAgent.setCreateBy(getUsername());
         return toAjax(aiAgentService.insertAiAgent(aiAgent));
     }
 
-    private void constructInfo(AiAgent aiAgent) {
+    private void constructInfo(AIAgent aiAgent) {
         String difyType = DictUtils.getDictValue("ai_agent_type", "dify");
         String originType = DictUtils.getDictValue("ai_agent_type", "origin");
         if (StringUtils.equals(difyType, aiAgent.getAgentType())) {
@@ -155,7 +155,7 @@ public class AiAgentController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:agent:edit')")
     @Log(title = "AI智能体", businessType = BusinessType.UPDATE)
     @PutMapping
-    public AjaxResult edit(@RequestBody AiAgent aiAgent) {
+    public AjaxResult edit(@RequestBody AIAgent aiAgent) {
         constructInfo(aiAgent);
         aiAgent.setUpdateBy(getUsername());
         return toAjax(aiAgentService.updateAiAgent(aiAgent));

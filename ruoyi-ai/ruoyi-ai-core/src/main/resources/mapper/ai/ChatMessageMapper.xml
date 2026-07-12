@@ -14,6 +14,24 @@
         <result property="createTime" column="create_time"/>
     </resultMap>
 
+    <resultMap id="ChatMessageResultWithInvokeData" type="ChatMessage" extends="ChatMessageResult">
+        <!-- 嵌套查询知识库调用记录 -->
+        <collection
+                property="retrievedList"
+                javaType="java.util.List"
+                ofType="com.ruoyi.ai.domain.AgentKbInvoke"
+                select="selectKbInvokeByMsgId"
+                column="{msgId=id, msgRole=role}"
+        />
+        <collection
+                property="toolCalledList"
+                javaType="java.util.List"
+                ofType="com.ruoyi.ai.domain.AgentToolInvoke"
+                select="selectToolInvokeByMsgId"
+                column="{msgId=id, msgRole=role}"
+        />
+    </resultMap>
+
     <sql id="selectChatMessageVo">
         select id, role, content, client_id, session_id, agent_id, create_time
         from chat_message
@@ -103,4 +121,40 @@
     <delete id="deleteBySessionId" parameterType="String">
         delete from chat_message where session_id = #{sessionId}
     </delete>
+
+    <!-- 子查询：仅role=assistant才查询kb调用 -->
+    <select id="selectKbInvokeByMsgId" resultType="com.ruoyi.ai.domain.AgentKbInvoke">
+        select id,
+               agent_id agentId,
+               message_id messageId,
+               session_id sessionId,
+               client_id clientId,
+               text,
+               file_name fileName,
+               create_time createTime
+        from agent_kb_invoke
+        where message_id = #{msgId}
+          AND #{msgRole} = 'assistant'
+    </select>
+
+    <!-- 子查询：仅role=assistant才查询工具调用 -->
+    <select id="selectToolInvokeByMsgId" resultType="com.ruoyi.ai.domain.AgentToolInvoke">
+        select id,
+               agent_id agentId,
+               message_id messageId,
+               session_id sessionId,
+               client_id clientId,
+               tool_name toolName,
+               tool_invoke_result toolInvokeResult,
+               create_time createTIME
+        from agent_tool_invoke
+        where message_id = #{msgId}
+          AND #{msgRole} = 'assistant'
+    </select>
+
+    <select id="selectAgentChatMessageBySessionIdWithInvokeData" resultMap="ChatMessageResultWithInvokeData">
+        <include refid="selectChatMessageVo"/>
+        where session_id = #{sessionId} and agent_id = #{agentId}
+        order by create_time asc
+    </select>
 </mapper>

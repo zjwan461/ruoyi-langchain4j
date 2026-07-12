@@ -110,17 +110,63 @@
             </div>
             <div class="message-content">
               <!-- Think Block (foldable) -->
-                <div v-if="msg.role === 'assistant' && hasThinkContent(msg.content)" class="think-section">
-                  <div class="think-block" :class="{ 'folded': isThinkFolded(msg, idx) }">
-                    {{ getThinkContent(msg.content) }}
-                  </div>
-                  <button v-if="!msg.loading" class="think-toggle-btn" @click="toggleThink(idx)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline :points="isThinkFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
-                    </svg>
-                    {{ isThinkFolded(msg, idx) ? '展开思考过程' : '收起思考过程' }}
-                  </button>
+              <div v-if="msg.role === 'assistant' && hasThinkContent(msg.content)" class="think-section">
+                <div class="think-block" :class="{ 'folded': isThinkFolded(msg, idx) }">
+                  {{ getThinkContent(msg.content) }}
                 </div>
+                <button v-if="!msg.loading" class="think-toggle-btn" @click="toggleThink(idx)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline :points="isThinkFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                  </svg>
+                  {{ isThinkFolded(msg, idx) ? '展开思考过程' : '收起思考过程' }}
+                </button>
+              </div>
+
+              <!-- 知识库召回参考资料 -->
+              <div v-if="msg.role === 'assistant' && msg.retrievedList && msg.retrievedList.length > 0" class="retrieved-section">
+                <div class="retrieved-header" @click="toggleRetrieved(idx)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline :points="isRetrievedFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                  </svg>
+                  <span class="retrieved-title-text">参考资料 ({{ msg.retrievedList.length }})</span>
+                </div>
+                <div class="retrieved-list" :class="{ 'folded': isRetrievedFolded(msg, idx) }">
+                  <div v-for="(item, itemIdx) in msg.retrievedList" :key="itemIdx" class="retrieved-item">
+                    <div class="retrieved-filename">{{ item.fileName }}</div>
+                    <div class="retrieved-content">{{ item.text }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 工具调用进行中 -->
+              <div v-if="msg.role === 'assistant' && msg.currentToolCall" class="tool-call-loading">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tool-icon">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                </svg>
+                <span class="tool-call-text">正在调用工具：{{ msg.currentToolCall.toolName }}</span>
+                <div class="typing-indicator tool-dots">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+
+              <!-- 工具调用结果 -->
+              <div v-if="msg.role === 'assistant' && msg.toolCalledList && msg.toolCalledList.length > 0" class="tool-called-section">
+                <div v-for="(tool, toolIdx) in msg.toolCalledList" :key="toolIdx" class="tool-called-item">
+                  <div class="tool-called-header" @click="toggleToolCalled(idx, toolIdx)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline :points="isToolCalledFolded(msg, idx, toolIdx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                    </svg>
+                    <span class="tool-name">工具调用：{{ tool.toolName }}</span>
+                    <span class="tool-status">已完成</span>
+                  </div>
+                  <div class="tool-called-result" :class="{ 'folded': isToolCalledFolded(msg, idx, toolIdx) }">
+                    <pre>{{ tool.toolInvokeResult }}</pre>
+                  </div>
+                </div>
+              </div>
+
               <!-- Message Bubble -->
               <div class="message-bubble" v-html="msg.role === 'user' ? escapeHtml(msg.content) : renderMarkdown(msg.content)"></div>
               <div class="message-meta">
@@ -193,17 +239,15 @@ import 'highlight.js/styles/github.css'
 import {getAgent, createSession, listChatSession, listChatMessage, deleteSession} from '@/api/ai/aiChat'
 import {nanoid} from 'nanoid'
 
+const THINK_START = '<' + 'think' + '>'
+const THINK_END = '<' + '/think' + '>'
+
 const md = new MarkdownIt({
   html: true,
   breaks: true,
   linkify: true,
   typographer: true,
   highlight: function (str, lang) {
-    // 防御性处理：从 lang 中提取真正的语言标识符
-    // 某些情况下（例如 AI 返回的代码块格式异常），
-    // markdown-it 可能传入包含空白/换行符的字符串作为 lang，
-    // 直接传给 highlight.js 会抛出 "Could not find the language" 错误。
-    // 这里只取第一个空白分隔的子串作为语言名，确保传入安全。
     let validLang = ''
     if (lang && typeof lang === 'string') {
       const trimmed = lang.trim()
@@ -218,7 +262,6 @@ const md = new MarkdownIt({
       } catch (__) {}
     }
 
-    // fallback：尝试自动检测语言
     try {
       const auto = hljs.highlightAuto(str)
       if (auto && auto.value) {
@@ -226,7 +269,6 @@ const md = new MarkdownIt({
       }
     } catch (__) {}
 
-    // 最终 fallback：转义后直接输出原始内容
     return '<pre class="code-block"><code class="hljs">' + md.utils.escapeHtml(str) + '</code></pre>'
   }
 })
@@ -394,7 +436,10 @@ export default {
           loading: true,
           createTime: new Date().toISOString(),
           _id: msgId,
-          thinkFolded: false
+          thinkFolded: false,
+          retrievedList: [],
+          currentToolCall: null,
+          toolCalledList: []
         }
         this.messages.push(aiMessage)
 
@@ -413,7 +458,16 @@ export default {
             if (item.trim()) {
               try {
                 const res = JSON.parse(item)
-                aiMessage.content += res.msg
+                if (res.msg) {
+                  aiMessage.content += res.msg
+                } else if (res.retrieved) {
+                  aiMessage.retrievedList = res.retrieved
+                } else if (res.tool_call) {
+                  aiMessage.currentToolCall = res.tool_call
+                } else if (res.tool_called) {
+                  aiMessage.toolCalledList.push(res.tool_called)
+                  aiMessage.currentToolCall = null
+                }
                 this.scrollToBottom()
               } catch (e) {}
             }
@@ -436,51 +490,83 @@ export default {
     },
     hasThinkContent(content) {
       if (!content) return false
-      return content.includes('<think>')
+      return content.indexOf(THINK_START) !== -1
     },
     isThinkFinished(content) {
       if (!content) return false
-      return content.includes('</think>')
+      return content.indexOf(THINK_END) !== -1
     },
     getThinkContent(content) {
       if (!content) return ''
-      const startTag = '<think>'
-      const endTag = '</think>'
-      const startIndex = content.indexOf(startTag)
-      const endIndex = content.indexOf(endTag)
-      if (startIndex !== -1 && endIndex !== -1) {
-        // Return only the content inside the tags (excluding tags themselves)
-        return content.substring(startIndex + startTag.length, endIndex)
+      const startIdx = content.indexOf(THINK_START)
+      if (startIdx === -1) return ''
+      const endIdx = content.indexOf(THINK_END)
+      if (endIdx !== -1) {
+        // 思考已结束，返回标签内完整内容
+        return content.substring(startIdx + THINK_START.length, endIdx)
+      } else {
+        // 思考进行中，返回从开始标签后到当前末尾的所有已接收内容
+        return content.substring(startIdx + THINK_START.length)
       }
-      return ''
     },
     getOutputContent(content) {
       if (!content) return ''
-      const endTag = '</think>'
-      const index = content.indexOf(endTag)
-      if (index !== -1) {
-        return content.substring(index + endTag.length)
+      const endIdx = content.indexOf(THINK_END)
+      if (endIdx !== -1) {
+        // 思考已结束，返回结束标签后的正文内容
+        return content.substring(endIdx + THINK_END.length)
       }
+      // 有开始标签但无结束标签：思考进行中，正文暂为空
+      const startIdx = content.indexOf(THINK_START)
+      if (startIdx !== -1) {
+        return ''
+      }
+      // 无思考标签，直接返回全部内容
       return content
     },
     renderMarkdown(content) {
       if (!content) return ''
-      // Remove think tag content for rendering in bubble
       const output = this.getOutputContent(content)
       return md.render(output)
     },
     isThinkFolded(msg, idx) {
       if (!msg) return false
-      // If user has explicitly set a value, use that
+      // 用户手动切换过，优先尊重用户操作
       if (this.foldedStates.hasOwnProperty(idx)) {
         return this.foldedStates[idx]
       }
-      // Otherwise, auto-fold when loading done and think finished
-      return !msg.loading && this.isThinkFinished(msg.content)
+      // 自动逻辑：思考结束则自动折叠，思考过程中保持展开
+      return this.isThinkFinished(msg.content)
     },
     toggleThink(idx) {
       const current = this.isThinkFolded(this.messages[idx], idx)
       this.$set(this.foldedStates, idx, !current)
+    },
+    isRetrievedFolded(msg, idx) {
+      if (!msg) return true
+      const key = 'retrieved-' + idx
+      if (this.foldedStates.hasOwnProperty(key)) {
+        return this.foldedStates[key]
+      }
+      return true
+    },
+    toggleRetrieved(idx) {
+      const key = 'retrieved-' + idx
+      const current = this.isRetrievedFolded(this.messages[idx], idx)
+      this.$set(this.foldedStates, key, !current)
+    },
+    isToolCalledFolded(msg, idx, toolIndex) {
+      if (!msg) return true
+      const key = 'tool-' + idx + '-' + toolIndex
+      if (this.foldedStates.hasOwnProperty(key)) {
+        return this.foldedStates[key]
+      }
+      return true
+    },
+    toggleToolCalled(idx, toolIndex) {
+      const key = 'tool-' + idx + '-' + toolIndex
+      const current = this.isToolCalledFolded(this.messages[idx], idx, toolIndex)
+      this.$set(this.foldedStates, key, !current)
     },
     escapeHtml(text) {
       const div = document.createElement('div')
@@ -488,10 +574,6 @@ export default {
       return div.innerHTML
     },
     copyMessage(content, role) {
-      // content 是原始文本，直接使用。
-      // 对于 AI 消息：保留完整的原始内容（包括<think>...</think>标签）
-      // 对于用户消息：就是用户输入的原始文本
-      // 注意：不能用 /<[^>]+>/g 去除 HTML 标签，因为会误伤<think>标签
       const text = content || ''
       navigator.clipboard.writeText(text).then(() => {
         this.$message.success('已复制')
@@ -510,11 +592,10 @@ export default {
       const hh = pad(date.getHours())
       const mm = pad(date.getMinutes())
       const isSameYear = date.getFullYear() === now.getFullYear()
-      // 当天：仅显示时分；当年非当天：显示 MM-DD HH:mm；跨年：显示 YYYY-MM-DD HH:mm
       if (isSameYear && y === now.getFullYear() && m === pad(now.getMonth() + 1) && d === pad(now.getDate())) {
-        return `${hh}:${mm}`
+        return hh + ':' + mm
       }
-      return isSameYear ? `${m}-${d} ${hh}:${mm}` : `${y}-${m}-${d} ${hh}:${mm}`
+      return isSameYear ? m + '-' + d + ' ' + hh + ':' + mm : y + '-' + m + '-' + d + ' ' + hh + ':' + mm
     },
     scrollToBottom() {
       this.$nextTick(() => {
@@ -951,7 +1032,7 @@ export default {
   line-height: 1.6;
   transition: all 0.3s ease;
   max-height: 300px;
-  overflow: hidden;
+  overflow-y: auto;
   opacity: 1;
 }
 
@@ -982,6 +1063,174 @@ export default {
 .think-toggle-btn:hover {
   background: #333;
   color: #a3a3a3;
+}
+
+/* 知识库召回样式 */
+.retrieved-section {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.retrieved-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #262626;
+  border: 1px solid #3f3f3f;
+  border-radius: 6px;
+  color: #808080;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.retrieved-header:hover {
+  background: #333;
+  color: #a3a3a3;
+}
+
+.retrieved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.3s ease;
+  max-height: 500px;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.retrieved-list.folded {
+  max-height: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+.retrieved-item {
+  background: #1e1e1e;
+  border-left: 3px solid #10b981;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+}
+
+.retrieved-filename {
+  font-size: 13px;
+  color: #10b981;
+  font-weight: 500;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retrieved-content {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 工具调用进行中样式 */
+.tool-call-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #1e1e1e;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #f59e0b;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+
+.tool-call-loading .tool-icon {
+  flex-shrink: 0;
+}
+
+.tool-call-text {
+  margin-right: 4px;
+}
+
+.tool-dots {
+  padding: 0;
+}
+
+.tool-dots span {
+  width: 6px;
+  height: 6px;
+  background: #f59e0b;
+}
+
+/* 工具调用结果样式 */
+.tool-called-section {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.tool-called-item {
+  margin-bottom: 8px;
+}
+
+.tool-called-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #262626;
+  border: 1px solid #3f3f3f;
+  border-radius: 6px;
+  color: #808080;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.tool-called-header:hover {
+  background: #333;
+  color: #a3a3a3;
+}
+
+.tool-status {
+  margin-left: auto;
+  color: #10b981;
+  font-size: 11px;
+}
+
+.tool-called-result {
+  background: #1e1e1e;
+  border-left: 3px solid #8b5cf6;
+  padding: 10px 14px;
+  border-radius: 0 8px 8px 0;
+  transition: all 0.3s ease;
+  max-height: 300px;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.tool-called-result.folded {
+  max-height: 0;
+  padding: 0 14px;
+  opacity: 0;
+  border: none;
+}
+
+.tool-called-result pre {
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .message-meta {
