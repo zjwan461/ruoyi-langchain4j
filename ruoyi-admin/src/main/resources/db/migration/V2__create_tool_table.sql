@@ -19,7 +19,7 @@ create table agent_tool
 -- 内置时间工具
 INSERT INTO agent_tool (id, tool_name, tool_type, code, clazz, description, parameters, create_time, update_time,
                         create_by, update_by)
-VALUES (1, 'time_tool', 'builtin', null, 'com.ruoyi.ai.tool.TimeTool', null, null, sysdate(), null, 'admin', '');
+VALUES (1, 'time_tool', 'builtin', null, 'com.ruoyi.ai.tool.TimeTool', '内置本地时间日期工具', null, sysdate(), null, 'admin', '');
 
 drop table if exists agent_tool_mapping;
 create table agent_tool_mapping
