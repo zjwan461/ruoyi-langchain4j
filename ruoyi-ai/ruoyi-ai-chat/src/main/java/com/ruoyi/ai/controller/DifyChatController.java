@@ -16,9 +16,11 @@ import com.ruoyi.ai.dify.service.IDifyApiService;
 import com.ruoyi.ai.dify.service.IDifySessionMappingService;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.ChatMessage;
+import com.ruoyi.ai.dto.DifyChatHistoryPage;
 import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.ai.util.Constants;
+import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
@@ -154,35 +156,69 @@ public class DifyChatController extends ChatController {
         }
         return AjaxResult.success(list);
     }
-
+    /**
+     * 游标分页查询 Dify 聊天历史。
+     * <p>
+     * Dify 远端 /v1/messages 接口使用 last_id 游标分页且不返回 total，
+     * 这里用 DifyChatHistoryPage 封装：{@code rows} 为 asc 顺序的消息列表，
+     * {@code hasMore} 指示是否还能继续往前翻，{@code lastId} 是下一页请求使用的游标。
+     * </p>
+     *
+     * @param sessionId 会话ID
+     * @param agentId   智能体ID
+     * @param lastId    上次响应返回的 lastId；首页传空串
+     * @param limit     单页 Dify 消息条数（展开后约为 2*limit 条 ChatMessage）
+     */
     @GetMapping("/list-chat-message/{sessionId}/{agentId}")
-    public AjaxResult listChatHistory(@PathVariable("sessionId") String sessionId, @PathVariable("agentId") Long agentId) {
-        List<ChatMessage> list = new ArrayList<>();
+    public DifyChatHistoryPage listChatHistory(@PathVariable("sessionId") String sessionId,
+                                               @PathVariable("agentId") Long agentId,
+                                               @RequestParam(value = "lastId", required = false, defaultValue = "") String lastId,
+                                               @RequestParam(value = "limit", required = false, defaultValue = "20") Integer limit) {
+        DifyChatHistoryPage result = new DifyChatHistoryPage();
+        result.setCode(HttpStatus.SUCCESS);
+        result.setMsg("查询成功");
+
         DifySessionMapping mapping = difySessionMappingService.selectDifySessionMappingBySessionId(sessionId);
         if (mapping == null || StringUtils.isBlank(mapping.getConversationId())) {
-            return AjaxResult.success();
+            // 无会话或未关联到 Dify conversation，直接返回空页
+            result.setHasMore(false);
+            result.setLastId(lastId);
+            return result;
         }
         AIAgent aiAgent = aiAgentService.selectAiAgentById(agentId);
         DifyApi difyApi = difyApiService.selectDifyApiById(aiAgent.getDifyApiId());
-        DifyMessagesResponse messages = difyRequestUtil.getMessages(difyApi.getUrlPrefix(), difyApi.getApiKey(), mapping.getClientId() + ":" + Constants.DIFY_USER,
-                mapping.getConversationId(), "", 100);
+        DifyMessagesResponse messages = difyRequestUtil.getMessages(difyApi.getUrlPrefix(), difyApi.getApiKey(),
+                mapping.getClientId() + ":" + Constants.DIFY_USER,
+                mapping.getConversationId(), lastId, limit);
         List<DifyMessagesResponse.Message> data = messages.getData();
+        List<ChatMessage> list = new ArrayList<>();
         for (DifyMessagesResponse.Message datum : data) {
             ChatMessage userChatMessage = new ChatMessage();
-            ChatMessage assistantChatMessage = new ChatMessage();
             userChatMessage.setRole("user");
             userChatMessage.setAgentId(aiAgent.getId());
             userChatMessage.setSessionId(mapping.getSessionId());
             userChatMessage.setContent(datum.getQuery());
             userChatMessage.setClientId(mapping.getClientId());
             userChatMessage.setCreateTime(new Date(datum.getCreatedAt() * 1000));
+            list.add(userChatMessage);
+
+            ChatMessage assistantChatMessage = new ChatMessage();
             BeanUtils.copyProperties(userChatMessage, assistantChatMessage);
             assistantChatMessage.setRole("assistant");
             assistantChatMessage.setContent(datum.getAnswer());
-            list.add(userChatMessage);
             list.add(assistantChatMessage);
         }
-        return AjaxResult.success(list);
+        // Dify 远端返回 desc（最新在前），reverse 成 asc 与前端 messages 数组顺序保持一致
+        Collections.reverse(list);
+        // 下一页游标 = 当前页 Dify 原始数据最早那条的 id（即 data 最后一条的 id）
+        if (CollUtil.isNotEmpty(data)) {
+            result.setLastId(data.get(data.size() - 1).getId());
+        } else {
+            result.setLastId(lastId);
+        }
+        result.setRows(list);
+        result.setHasMore(Boolean.TRUE.equals(messages.getHasMore()));
+        return result;
     }
 
     @DeleteMapping("/delete-session/{sessionId}")

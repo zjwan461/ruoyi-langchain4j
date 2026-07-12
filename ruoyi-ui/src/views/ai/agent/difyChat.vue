@@ -74,7 +74,7 @@
       </header>
 
       <!-- 消息区域 -->
-      <div class="messages-container" ref="messagesContainer">
+      <div class="messages-container" ref="messagesContainer" @scroll="handleScroll">
         <!-- 欢迎界面 -->
         <div v-if="messages.length === 0" class="welcome-screen">
           <div class="welcome-icon">
@@ -95,6 +95,14 @@
 
         <!-- 消息列表 -->
         <div v-else class="message-list">
+          <div v-if="historyLoading" class="history-loading">
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span>加载更早的历史消息…</span>
+          </div>
           <div
             v-for="(msg, idx) in messages"
             :key="idx"
@@ -249,6 +257,11 @@ export default {
       isLoading: false,
       streamController: null,
       foldedStates: {},
+      // Dify 聊天历史游标分页：初始只取最近的一页，向上滚动加载更早的页
+      lastId: '',
+      limit: 20,
+      historyLoading: false,
+      hasMoreHistory: true,
       quickPrompts: [
         '帮我写一段Python代码',
         '解释一下什么是机器学习',
@@ -303,12 +316,67 @@ export default {
       })
     },
     getChatHistoryMessage() {
-      listChatMessage(this.sessionId, this.agentInfo.id).then(res => {
-        if (res.data) {
-          this.messages = res.data;
-          this.scrollToBottom();
+      if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
+      // 重新加载会话时重置游标分页状态
+      this.lastId = ''
+      this.hasMoreHistory = true
+      this.historyLoading = false
+      listChatMessage(this.sessionId, this.agentInfo.id, this.lastId, this.limit).then(res => {
+        const rows = (res && res.rows) || []
+        // 后端已 reverse 为 asc（最早在前、最新在末尾），直接使用
+        this.messages = rows
+        if (res && typeof res.lastId === 'string') {
+          this.lastId = res.lastId
         }
+        this.hasMoreHistory = !!(res && res.hasMore)
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
       })
+    },
+    /**
+     * 加载更早一页的历史消息（Dify 游标分页）。用上一页返回的 lastId 拉取更早的数据，
+     * 拼到 messages 头部，并恢复滚动位置避免页面跳动。
+     */
+    loadMoreHistory() {
+      if (this.historyLoading || !this.hasMoreHistory) return
+      if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
+      this.historyLoading = true
+      const cursor = this.lastId
+      const container = this.$refs.messagesContainer
+      const oldScrollHeight = container ? container.scrollHeight : 0
+      const oldScrollTop = container ? container.scrollTop : 0
+      listChatMessage(this.sessionId, this.agentInfo.id, cursor, this.limit).then(res => {
+        const rows = (res && res.rows) || []
+        if (rows.length === 0) {
+          this.hasMoreHistory = false
+          return
+        }
+        // 后端返回的 rows 已是 asc 顺序，直接 unshift 到 messages 头部
+        this.messages = [...rows, ...this.messages]
+        if (res && typeof res.lastId === 'string') {
+          this.lastId = res.lastId
+        }
+        this.hasMoreHistory = !!(res && res.hasMore)
+        this.$nextTick(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight
+            container.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight)
+          }
+        })
+      }).catch(() => {
+        // 加载失败时保留 lastId 不变，便于下次重试
+      }).finally(() => {
+        this.historyLoading = false
+      })
+    },
+    handleScroll(e) {
+      const el = e && e.target
+      if (!el) return
+      // 滚动到顶部附近（阈值 50px）时加载更早的一页
+      if (el.scrollTop <= 50 && this.hasMoreHistory && !this.historyLoading && this.messages.length > 0) {
+        this.loadMoreHistory()
+      }
     },
     switchSession(sessionId) {
       this.sessionId = sessionId
@@ -320,6 +388,9 @@ export default {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
         this.messages = []
+        this.lastId = ''
+        this.hasMoreHistory = true
+        this.historyLoading = false
         this.sessionList.unshift({
           sessionId: this.sessionId,
           title: '新对话'
@@ -870,6 +941,21 @@ export default {
   padding: 24px;
   max-width: 900px;
   margin: 0 auto;
+}
+
+.history-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0 20px;
+  color: #808080;
+  font-size: 13px;
+  user-select: none;
+}
+
+.history-loading .typing-indicator {
+  padding: 0;
 }
 
 .message {
