@@ -204,4 +204,9 @@ public class LangChain4jServiceImpl implements LangChain4jService {
             return false;
         }
     }
+
+    @Override
+    public void removeSegmentByFilter(Filter filter) {
+        embeddingStore.removeAll(filter);
+    }
 }

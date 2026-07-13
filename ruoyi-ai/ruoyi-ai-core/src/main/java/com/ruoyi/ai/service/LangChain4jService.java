@@ -30,5 +30,7 @@ public interface LangChain4jService {
 
     boolean checkLocalEmbeddingModel(String saveDir);
 
+    void removeSegmentByFilter(Filter filter);
+
 
 }

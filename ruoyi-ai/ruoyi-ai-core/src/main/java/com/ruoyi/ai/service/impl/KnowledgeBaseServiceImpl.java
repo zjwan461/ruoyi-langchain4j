@@ -3,10 +3,13 @@ package com.ruoyi.ai.service.impl;
 import com.ruoyi.ai.domain.KnowledgeBase;
 import com.ruoyi.ai.mapper.KnowledgeBaseMapper;
 import com.ruoyi.ai.service.IKnowledgeBaseService;
+import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.common.utils.DateUtils;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.List;
 
 /**
@@ -20,6 +23,9 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService
 {
     @Autowired
     private KnowledgeBaseMapper knowledgeBaseMapper;
+
+    @Resource
+    private LangChain4jService langChain4jService;
 
     /**
      * 查询知识库
@@ -80,7 +86,9 @@ public class KnowledgeBaseServiceImpl implements IKnowledgeBaseService
     @Override
     public int deleteKnowledgeBaseByIds(Long[] ids)
     {
-        return knowledgeBaseMapper.deleteKnowledgeBaseByIds(ids);
+        int result = knowledgeBaseMapper.deleteKnowledgeBaseByIds(ids);
+        langChain4jService.removeSegmentByFilter(new IsIn("kb_id", List.of(ids)));
+        return result;
     }
 
     /**
