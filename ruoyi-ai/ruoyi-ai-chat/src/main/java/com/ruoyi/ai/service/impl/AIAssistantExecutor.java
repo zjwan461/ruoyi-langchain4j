@@ -3,7 +3,7 @@ package com.ruoyi.ai.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ruoyi.ai.component.RedisMemoryChatMemoryStore;
+import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.ChatMessage;
@@ -83,7 +83,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
         String finalPromptTemplate = promptTemplate;
-        AIAssistant assistant = this.buildAIAssistant(aiAgent);
+        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId);
         return Flux.create(fluxSink -> {
             AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
             AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();
@@ -163,7 +163,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
     }
 
 
-    protected AIAssistant buildAIAssistant(AIAgent aiAgent) {
+    protected AIAssistant buildAIAssistant(AIAgent aiAgent, String sessionId) {
         Long modelId = aiAgent.getModelId();
         Model model = modelService.selectModelById(modelId);
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -189,6 +189,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
         return builder.streamingChatModel(llm)
                 .systemMessageProvider(x -> aiAgent.getSystemMessage())
                 .chatMemory(MessageWindowChatMemory.builder()
+                        .id(sessionId)
                         .chatMemoryStore(memoryStore)
                         .maxMessages(aiAgent.getMemoryCount())
                         .build())

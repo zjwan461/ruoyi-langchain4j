@@ -1,10 +1,9 @@
-package com.ruoyi.ai.component;
+package com.ruoyi.ai.component.memory;
 
 import cn.hutool.core.collection.CollUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ai.component.memory.dto.*;
 import com.ruoyi.ai.util.Constants;
-import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.*;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -20,10 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisMemoryChatMemoryStore implements ChatMemoryStore {
 
     @Resource
-    private RedisTemplate<String, String> redisTemplate;
-
-    @Resource
-    private ObjectMapper objectMapper;
+    private RedisTemplate<Object, Object> redisTemplate;
 
     /**
      * 读取会话全部历史消息
@@ -37,16 +33,16 @@ public class RedisMemoryChatMemoryStore implements ChatMemoryStore {
         String key = Constants.MEMORY_CACHE_KEY_PREFIX + String.valueOf(memoryId);
         try {
             // 读取全量JSON字符串
-            List<String> jsonList = redisTemplate.opsForList().range(key, 0, -1);
-            if (CollUtil.isEmpty(jsonList)) {
+            List<ChatMessage> memoryMessageList = (List<ChatMessage>) redisTemplate.opsForValue().get(key);
+            if (CollUtil.isEmpty(memoryMessageList)) {
                 return new ArrayList<>();
             }
-            List<ChatMessage> messageList = new ArrayList<>(jsonList.size());
-            TypeReference<ChatMessage> typeRef = new TypeReference<>() {
-            };
-            for (String json : jsonList) {
-                ChatMessage message = objectMapper.readValue(json, typeRef);
-                messageList.add(message);
+            List<ChatMessage> messageList = new ArrayList<>(memoryMessageList.size());
+            for (Object message : memoryMessageList) {
+                if (message instanceof LangChain4jMemoryAdaptor<?>) {
+                    ChatMessage chatMessage = (ChatMessage) ((LangChain4jMemoryAdaptor<?>) message).toLangChain4jMemoryComponent();
+                    messageList.add(chatMessage);
+                }
             }
             return messageList;
         } catch (Exception e) {
@@ -68,19 +64,37 @@ public class RedisMemoryChatMemoryStore implements ChatMemoryStore {
         try {
             // 1. 先清空旧数据，保证全量覆盖
             redisTemplate.delete(key);
-            List<String> jsonMessages = new ArrayList<>(messages.size());
+            List<ChatMessage> list = new ArrayList<>(messages.size());
             for (ChatMessage msg : messages) {
-                String json = objectMapper.writeValueAsString(msg);
-                jsonMessages.add(json);
+                if (msg instanceof AiMessage am) {
+                    JAiMessage jam = new JAiMessage();
+                    jam.fromLangChain4jMemoryComponent(am);
+                    list.add(jam);
+                } else if (msg instanceof SystemMessage sm) {
+                    JSystemMessage jsm = new JSystemMessage();
+                    jsm.fromLangChain4jMemoryComponent(sm);
+                    list.add(jsm);
+                } else if (msg instanceof CustomMessage cm) {
+                    JCustomMessage jcm = new JCustomMessage();
+                    jcm.fromLangChain4jMemoryComponent(cm);
+                    list.add(jcm);
+                } else if (msg instanceof ToolExecutionResultMessage trm) {
+                    JToolExecutionResultMessage jtrm = new JToolExecutionResultMessage();
+                    jtrm.fromLangChain4jMemoryComponent(trm);
+                    list.add(jtrm);
+                } else if (msg instanceof UserMessage um) {
+                    JUserMessage jum = new JUserMessage();
+                    jum.fromLangChain4jMemoryComponent(um);
+                    list.add(jum);
+                }
             }
             // 2. 尾部插入，保证对话时序正确
-            redisTemplate.opsForList().rightPushAll(key, jsonMessages);
-            // 3. 限制最大消息条数，截断头部旧消息
-            long currentSize = redisTemplate.opsForList().size(key);
+            int currentSize = list.size();
             if (currentSize > Constants.MAX_MEMORY_MESSAGE_COUNT) {
                 // 保留后N条最新消息
-                redisTemplate.opsForList().trim(key, currentSize - Constants.MAX_MEMORY_MESSAGE_COUNT, -1);
+                list = CollUtil.sub(list, currentSize - Constants.MAX_MEMORY_MESSAGE_COUNT, list.size());
             }
+            redisTemplate.opsForValue().set(key, list);
             // 4. 设置过期时间
             if (Constants.MEMORY_TTL_SECONDS > 0) {
                 redisTemplate.expire(key, Constants.MEMORY_TTL_SECONDS, TimeUnit.SECONDS);
