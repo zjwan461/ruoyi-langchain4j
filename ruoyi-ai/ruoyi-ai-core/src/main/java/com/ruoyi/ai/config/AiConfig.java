@@ -235,6 +235,7 @@ public class AiConfig {
 
     public static class Skill {
         private Path localSkillPath = Path.of("skills");
+        private boolean sync2Db = Boolean.TRUE;
 
         public Path getLocalSkillPath() {
             return localSkillPath;
@@ -245,5 +246,12 @@ public class AiConfig {
         }
 
 
+        public boolean isSync2Db() {
+            return sync2Db;
+        }
+
+        public void setSync2Db(boolean sync2Db) {
+            this.sync2Db = sync2Db;
+        }
     }
 }

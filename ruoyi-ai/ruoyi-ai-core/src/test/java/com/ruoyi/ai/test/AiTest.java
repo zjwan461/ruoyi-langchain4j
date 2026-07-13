@@ -370,6 +370,9 @@ public class AiTest {
 
     @Test
     public void testSkill() {
+        Skill.builder().name("")
+                .description("")
+                .content("");
         List<FileSystemSkill> skills = FileSystemSkillLoader.loadSkills(Path.of("skills"));
         System.out.println(skills);
         Skills skillList = Skills.from(skills);

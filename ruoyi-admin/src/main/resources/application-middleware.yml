@@ -226,3 +226,4 @@ ai:
     timeout: 30 #请求超时时间（秒），覆盖 sandbox 服务自身的 worker_timeout
   skill:
     local-skill-path: skills
+    sync2-db: true
