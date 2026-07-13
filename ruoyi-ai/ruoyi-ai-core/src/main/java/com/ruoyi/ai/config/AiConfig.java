@@ -4,6 +4,8 @@ import com.ruoyi.ai.util.Constants;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
+
 @Component
 @ConfigurationProperties(prefix = "ai")
 public class AiConfig {
@@ -16,6 +18,7 @@ public class AiConfig {
 
     private Sandbox sandbox;
 
+    private Skill skill;
 
     public PgVector getPgVector() {
         return pgVector;
@@ -47,6 +50,14 @@ public class AiConfig {
 
     public void setSandbox(Sandbox sandbox) {
         this.sandbox = sandbox;
+    }
+
+    public Skill getSkill() {
+        return skill;
+    }
+
+    public void setSkill(Skill skill) {
+        this.skill = skill;
     }
 
     public static class PgVector {
@@ -220,5 +231,19 @@ public class AiConfig {
         public void setTimeout(int timeout) {
             this.timeout = timeout;
         }
+    }
+
+    public static class Skill {
+        private Path localSkillPath = Path.of("skills");
+
+        public Path getLocalSkillPath() {
+            return localSkillPath;
+        }
+
+        public void setLocalSkillPath(Path localSkillPath) {
+            this.localSkillPath = localSkillPath;
+        }
+
+
     }
 }

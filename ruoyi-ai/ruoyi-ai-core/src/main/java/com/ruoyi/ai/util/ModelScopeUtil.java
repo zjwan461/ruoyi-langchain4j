@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -170,7 +169,7 @@ public class ModelScopeUtil {
         list = list.stream()
                 .filter(item -> item.getName().matches(allowFilePattern))
                 .sorted((o1, o2) -> Math.toIntExact(o1.getSize() - o2.getSize()))
-                .collect(Collectors.toList());
+                .toList();
 
         final CountDownLatch countDownLatch = new CountDownLatch(list.size());
         for (ModelScopeFile file : list) {

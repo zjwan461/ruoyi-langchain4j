@@ -30,6 +30,7 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.skills.*;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -42,6 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +73,7 @@ public class AiTest {
     private static OpenAiChatModel buildBlockModel() {
         return OpenAiChatModel.builder()
                 .baseUrl(LLM_BASE_URL)
+                .apiKey("sk-0543377485b74778b3728e250df4e7d1")
                 .modelName("qwen3.7-plus")
                 .build();
     }
@@ -365,5 +368,22 @@ public class AiTest {
     }
 
 
+    @Test
+    public void testSkill() {
+        List<FileSystemSkill> skills = FileSystemSkillLoader.loadSkills(Path.of("skills"));
+        System.out.println(skills);
+        Skills skillList = Skills.from(skills);
+        OpenAiChatModel model = buildBlockModel();
+//    Assistant assistant = AiServices.create(Assistant.class, model);
+        Assistant assistant = AiServices.builder(Assistant.class)
+                .chatModel(model)
+                .toolProvider(skillList.toolProvider())
+                .chatMemory(buildChatMemory())
+                .systemMessage("You have access to the following skills:\n" + skillList.formatAvailableSkills()
+                        + "\nWhen the user's request relates to one of these skills, activate it first using the `activate_skill` tool before proceeding.")
+                .build();
+        String resp = assistant.chat("你好,Spring的3个重点，帮我使用json格式输出");
+        System.out.println(resp);
+    }
 
 }

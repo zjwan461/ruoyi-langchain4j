@@ -224,3 +224,5 @@ ai:
     base-url: http://127.0.0.1:38194 #容器内通过服务名访问；宿主机本地调试改为 http://localhost:8194
     api-key: dify-sandbox #对应 docker-compose 中 sandbox 服务的 API_KEY 环境变量
     timeout: 30 #请求超时时间（秒），覆盖 sandbox 服务自身的 worker_timeout
+  skill:
+    local-skill-path: skills
