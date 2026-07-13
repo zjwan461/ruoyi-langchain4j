@@ -161,7 +161,7 @@ ai:
     dimension: 768 #如果选用的embedding模型维度不是768，需要重新建表，所有已经完成embedding的数据需要重新embedding
     drop-table-first: false #如果设置为true，会在启动的时候重新建表
   agent:
-    memory-strategy: memory
+    memory-strategy: redis
     max-sequential-tools-invocations: 10
   # dify-sandbox 代码执行沙箱配置（对应 docker-compose 中的 sandbox 服务）
   sandbox:
