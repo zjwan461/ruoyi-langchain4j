@@ -104,6 +104,7 @@
           </el-form-item>
           <el-form-item label="token最大生成数" prop="maxOutputToken">
             <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数" />
+            <br>
             <i class="color: grey">Tips: <b
               style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
           </el-form-item>
@@ -115,6 +116,11 @@
           <el-form-item label="工具" prop="toolIds">
             <el-select v-model="form.toolIds" filterable multiple>
               <el-option v-for="item in tools" :key="item.id" :value="item.id" :label="item.toolName"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="skill" prop="skillIds">
+            <el-select v-model="form.skillIds" filterable multiple>
+              <el-option v-for="item in skills" :key="item.id" :value="item.id" :label="item.skillName"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="最小得分" prop="minScore"
@@ -168,6 +174,7 @@ import { listModel } from "@/api/ai/model"
 import { listKnowledgeBase } from "@/api/ai/knowledgeBase"
 import { listDifyApi } from "@/api/ai/difyApi"
 import { listAgent_tool } from "@/api/ai/agent_tool"
+import { listSkill } from "@/api/ai/skill"
 
 export default {
   name: "Agent",
@@ -178,6 +185,7 @@ export default {
       llms: [],
       kbs: [],
       tools: [],
+      skills: [],
       difyApis: [],
       // 遮罩层
       loading: true,
@@ -339,6 +347,7 @@ export default {
       this.listKbs()
       this.listTools()
       this.listDifyApis()
+      this.listSkills()
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -348,6 +357,7 @@ export default {
       this.listKbs()
       this.listTools()
       this.listDifyApis()
+      this.listSkills()
       getAgent(id).then(response => {
         this.form = response.data
         if (this.form) {
@@ -360,6 +370,13 @@ export default {
               toolIds.push(item.id)
             })
             this.form.toolIds = toolIds
+          }
+          if (this.form.agentSkills) {
+            let skillIds = []
+            this.form.agentSkills.forEach(item=>{
+              skillIds.push(item.id)
+            })
+            this.form.skillIds = skillIds
           }
         }
         this.open = true
@@ -375,6 +392,9 @@ export default {
           }
           if (this.form.toolIds) {
             this.form.toolIds = this.form.toolIds.join(',')
+          }
+          if (this.form.skillIds) {
+            this.form.skillIds = this.form.skillIds.join(',')
           }
           if (this.form.id != null) {
             updateAgent(this.form).then(response => {
@@ -426,6 +446,11 @@ export default {
     listTools() {
       listAgent_tool().then(res=>{
         this.tools = res.rows
+      })
+    },
+    listSkills() {
+      listSkill().then(res=>{
+        this.skills = res.rows
       })
     }
   }

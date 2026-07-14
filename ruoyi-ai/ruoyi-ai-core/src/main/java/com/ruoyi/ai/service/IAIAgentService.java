@@ -1,9 +1,6 @@
 package com.ruoyi.ai.service;
 
-import com.ruoyi.ai.domain.AIAgent;
-import com.ruoyi.ai.domain.AgentKbInvoke;
-import com.ruoyi.ai.domain.AgentToolInvoke;
-import com.ruoyi.ai.domain.AgentToolMapping;
+import com.ruoyi.ai.domain.*;
 
 import java.util.List;
 
@@ -28,7 +25,7 @@ public interface IAIAgentService {
      * @param id AI智能体主键
      * @return AI智能体
      */
-    public AIAgent selectAiAgentWithToolById(Long id);
+    public AIAgent selectAiAgentWithToolAndSkillById(Long id);
 
     /**
      * 查询AI智能体列表
@@ -75,6 +72,8 @@ public interface IAIAgentService {
     public int insertAgentToolMapping(Long agentId, Long toolId);
 
     public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings);
+
+    public int batchInsertAgentSkillMapping(List<AgentSkillMapping> mappings);
 
     public int insertAgentKBInvoked(AgentKbInvoke agentKbInvoke);
 

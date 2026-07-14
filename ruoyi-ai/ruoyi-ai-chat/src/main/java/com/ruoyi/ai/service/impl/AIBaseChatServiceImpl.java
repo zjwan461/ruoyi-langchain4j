@@ -24,6 +24,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -211,6 +212,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
             invoke.setSessionId(sessionId);
             invoke.setMessageId(messageId);
             invoke.setToolInvokeResult(toolInvokeResult);
+            invoke.setCreateTime(new Date());
             aiAgentService.insertAgentToolInvoked(invoke);
         } catch (Exception e) {
             log.error("save tool call record error:", e);
@@ -227,6 +229,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
             invoke.setMessageId(messageId);
             invoke.setFileName(fileName);
             invoke.setText(text);
+            invoke.setCreateTime(new Date());
             aiAgentService.insertAgentKBInvoked(invoke);
         } catch (Exception e) {
             log.error("save kb retrieved error:", e);

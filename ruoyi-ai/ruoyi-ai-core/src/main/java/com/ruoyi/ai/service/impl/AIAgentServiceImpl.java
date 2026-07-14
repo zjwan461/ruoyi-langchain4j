@@ -1,10 +1,7 @@
 package com.ruoyi.ai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
-import com.ruoyi.ai.domain.AgentKbInvoke;
-import com.ruoyi.ai.domain.AgentToolInvoke;
-import com.ruoyi.ai.domain.AgentToolMapping;
-import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.mapper.AIAgentMapper;
 import com.ruoyi.ai.mapper.AgentKbInvokeMapper;
 import com.ruoyi.ai.mapper.AgentToolInvokeMapper;
@@ -55,8 +52,8 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @return AI智能体
      */
     @Override
-    public AIAgent selectAiAgentWithToolById(Long id) {
-        return aiAgentMapper.selectAiAgentWithToolById(id);
+    public AIAgent selectAiAgentWithToolAndSkillById(Long id) {
+        return aiAgentMapper.selectAiAgentWithToolAndSkillById(id);
     }
 
     /**
@@ -83,6 +80,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
         aiAgent.setCreateBy(SecurityUtils.getUsername());
         int insertCount = aiAgentMapper.insertAiAgent(aiAgent);
         updateAgentToolMapping(aiAgent);
+        updateAgentSkillMapping(aiAgent);
         return insertCount;
     }
 
@@ -99,6 +97,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
         aiAgent.setUpdateBy(SecurityUtils.getUsername());
         int updateCount = aiAgentMapper.updateAiAgent(aiAgent);
         updateAgentToolMapping(aiAgent);
+        updateAgentSkillMapping(aiAgent);
         return updateCount;
     }
 
@@ -116,6 +115,23 @@ public class AIAgentServiceImpl implements IAIAgentService {
             }
         } else {
             aiAgentMapper.deleteAgentToolMappingByAgentId(aiAgent.getId());
+        }
+    }
+
+    private void updateAgentSkillMapping(AIAgent aiAgent) {
+        if (StringUtils.isNotBlank(aiAgent.getSkillIds())) {
+            List<AgentSkillMapping> mappings = Arrays.stream(aiAgent.getSkillIds().split(",")).map(x -> {
+                AgentSkillMapping mapping = new AgentSkillMapping();
+                mapping.setAgentId(aiAgent.getId());
+                mapping.setSkillId(Long.valueOf(x));
+                return mapping;
+            }).toList();
+            if (CollUtil.isNotEmpty(mappings)) {
+                aiAgentMapper.deleteAgentSkillMappingByAgentId(aiAgent.getId());
+                this.batchInsertAgentSkillMapping(mappings);
+            }
+        } else {
+            aiAgentMapper.deleteAgentSkillMappingByAgentId(aiAgent.getId());
         }
     }
 
@@ -154,6 +170,11 @@ public class AIAgentServiceImpl implements IAIAgentService {
     @Override
     public int batchInsertAgentToolMapping(List<AgentToolMapping> mappings) {
         return aiAgentMapper.batchInsertAgentToolMapping(mappings);
+    }
+
+    @Override
+    public int batchInsertAgentSkillMapping(List<AgentSkillMapping> mappings) {
+        return aiAgentMapper.batchInsertAgentSkillMapping(mappings);
     }
 
     @Override
