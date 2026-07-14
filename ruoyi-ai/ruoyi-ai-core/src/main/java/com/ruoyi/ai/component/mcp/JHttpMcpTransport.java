@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSources;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 @Slf4j
 public class JHttpMcpTransport implements McpTransport {
-    private static final Logger log = LoggerFactory.getLogger(HttpMcpTransport.class);
+    private static final Logger log = LoggerFactory.getLogger(JHttpMcpTransport.class);
     private final String sseUrl;
     private final McpHeadersSupplier customHeadersSupplier;
     private final OkHttpClient client;

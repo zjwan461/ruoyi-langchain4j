@@ -16,7 +16,6 @@ import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpCallContext;
 import dev.langchain4j.mcp.client.McpHeadersSupplier;
-import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -427,7 +426,7 @@ public class AiTest {
                 .chatMemory(buildChatMemory())
                 .build();
 
-        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成pdf");
+        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
         System.out.println(resp);
     }
 
