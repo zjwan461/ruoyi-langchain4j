@@ -24,7 +24,8 @@
           size="mini"
           @click="handleAdd"
           v-hasPermi="['ai:skill:add']"
-        >新增</el-button>
+        >新增
+        </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -35,7 +36,8 @@
           :disabled="single"
           @click="handleUpdate"
           v-hasPermi="['ai:skill:edit']"
-        >修改</el-button>
+        >修改
+        </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -46,7 +48,8 @@
           :disabled="multiple"
           @click="handleDelete"
           v-hasPermi="['ai:skill:remove']"
-        >删除</el-button>
+        >删除
+        </el-button>
       </el-col>
       <el-col :span="1.5">
         <el-button
@@ -56,17 +59,32 @@
           size="mini"
           @click="handleExport"
           v-hasPermi="['ai:skill:export']"
-        >导出</el-button>
+        >导出
+        </el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
     <el-table v-loading="loading" :data="skillList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键ID" align="center" prop="id" />
-      <el-table-column label="skill名称" align="center" prop="skillName" />
-      <el-table-column label="skill描述" align="center" prop="skillDescription" />
-      <el-table-column label="skill内容" align="center" prop="skillContent" />
+      <el-table-column type="selection" width="55" align="center"/>
+      <el-table-column label="主键ID" align="center" prop="id"/>
+      <el-table-column label="skill名称" align="center" prop="skillName"/>
+      <el-table-column label="skill描述" align="center" prop="skillDescription"/>
+      <el-table-column label="skill类型" align="center" prop="toolType">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.ai_skill_type" :value="scope.row.skillType"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="skill内容" align="center" prop="skillContent">
+        <template slot-scope="scope">
+          <div
+            class="text-ellipsis-multi"
+            :title="scope.row.skillContent"
+          >
+            {{ scope.row.skillContent }}
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button
@@ -75,14 +93,16 @@
             icon="el-icon-edit"
             @click="handleUpdate(scope.row)"
             v-hasPermi="['ai:skill:edit']"
-          >修改</el-button>
+          >修改
+          </el-button>
           <el-button
             size="mini"
             type="text"
             icon="el-icon-delete"
             @click="handleDelete(scope.row)"
             v-hasPermi="['ai:skill:remove']"
-          >删除</el-button>
+          >删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -96,16 +116,17 @@
     />
 
     <!-- 添加或修改agent_skill对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="800px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="1300px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="skill名称" prop="skillName">
-          <el-input v-model="form.skillName" placeholder="请输入skill名称" />
+          <el-input v-model="form.skillName" placeholder="请输入skill名称"/>
         </el-form-item>
         <el-form-item label="skill描述" prop="skillDescription">
-          <el-input v-model="form.skillDescription" type="textarea" placeholder="请输入内容" />
+          <el-input v-model="form.skillDescription" type="textarea" placeholder="请输入内容"/>
         </el-form-item>
         <el-form-item label="skill内容">
-          <editor v-model="form.skillContent" :min-height="192"/>
+          <!--          <editor v-model="form.skillContent" :min-height="192"/>-->
+          <markdown-editor v-model="form.skillContent" :min-height="192"></markdown-editor>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -117,10 +138,11 @@
 </template>
 
 <script>
-import { listSkill, getSkill, delSkill, addSkill, updateSkill } from "@/api/ai/skill"
+import {listSkill, getSkill, delSkill, addSkill, updateSkill} from "@/api/ai/skill"
 
 export default {
   name: "Skill",
+  dicts: ['ai_skill_type'],
   data() {
     return {
       // 遮罩层
@@ -154,13 +176,13 @@ export default {
       // 表单校验
       rules: {
         skillName: [
-          { required: true, message: "skill名称不能为空", trigger: "blur" }
+          {required: true, message: "skill名称不能为空", trigger: "blur"}
         ],
         skillDescription: [
-          { required: true, message: "skill描述不能为空", trigger: "blur" }
+          {required: true, message: "skill描述不能为空", trigger: "blur"}
         ],
         skillContent: [
-          { required: true, message: "skill内容不能为空", trigger: "blur" }
+          {required: true, message: "skill内容不能为空", trigger: "blur"}
         ],
       }
     }
@@ -210,7 +232,7 @@ export default {
     // 多选框选中数据
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.id)
-      this.single = selection.length!==1
+      this.single = selection.length !== 1
       this.multiple = !selection.length
     },
     /** 新增按钮操作 */
@@ -252,12 +274,13 @@ export default {
     /** 删除按钮操作 */
     handleDelete(row) {
       const ids = row.id || this.ids
-      this.$modal.confirm('是否确认删除agent_skill编号为"' + ids + '"的数据项？').then(function() {
+      this.$modal.confirm('是否确认删除agent_skill编号为"' + ids + '"的数据项？').then(function () {
         return delSkill(ids)
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess("删除成功")
-      }).catch(() => {})
+      }).catch(() => {
+      })
     },
     /** 导出按钮操作 */
     handleExport() {
@@ -268,3 +291,15 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* 最多显示3行，超出省略 */
+.text-ellipsis-multi {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 展示行数，自行修改 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
+}
+</style>

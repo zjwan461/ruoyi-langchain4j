@@ -35,6 +35,9 @@ public class AgentSkill extends BaseEntity
     @NotBlank(message = "skill内容不能为空")
     private String skillContent;
 
+    @Excel(name = "skill类型")
+    private String skillType;
+
     public void setId(Long id) 
     {
         this.id = id;
@@ -75,6 +78,14 @@ public class AgentSkill extends BaseEntity
         return skillContent;
     }
 
+    public String getSkillType() {
+        return skillType;
+    }
+
+    public void setSkillType(String skillType) {
+        this.skillType = skillType;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -82,6 +93,7 @@ public class AgentSkill extends BaseEntity
             .append("skillName", getSkillName())
             .append("skillDescription", getSkillDescription())
             .append("skillContent", getSkillContent())
+            .append("skillType", getSkillType())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
             .append("createBy", getCreateBy())

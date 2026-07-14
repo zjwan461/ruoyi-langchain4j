@@ -7,6 +7,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -72,6 +73,7 @@ public class AgentSkillController extends BaseController
     @PostMapping
     public AjaxResult add(@RequestBody @Valid AgentSkill agentSkill)
     {
+        agentSkill.setSkillType(DictUtils.getDictValue("ai_skill_type","创建"));
         return toAjax(agentSkillService.insertAgentSkill(agentSkill));
     }
 

@@ -2,36 +2,36 @@
   <div class="markdown-viewer">
     <!-- 加载状态 -->
     <div v-if="loading" class="loading">加载中...</div>
-    
+
     <!-- 错误状态 -->
     <div v-else-if="error" class="error">
       无法加载 Markdown 内容: {{ error }}
     </div>
-    
+
     <!-- Markdown 内容展示 -->
     <div v-else class="markdown-content" v-html="renderedHtml"></div>
   </div>
 </template>
 
 <script>
-import marked from 'marked'
+import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 // 选择一个代码高亮样式
 import 'highlight.js/styles/atom-one-dark.css'
 
-// 配置 marked 解析器
-marked.setOptions({
-  // 启用 GitHub 风格的 Markdown
+// 初始化 markdown-it 实例并配置
+const md = new MarkdownIt({
+  // 启用 GitHub 风格语法
   gfm: true,
-  // 支持换行符
+  // 自动转换换行符
   breaks: true,
-  // 代码高亮处理
-  highlight: function(code, lang) {
+  // 开启代码高亮
+  highlight: function (code, lang) {
+    // 指定语言高亮
     if (lang && hljs.getLanguage(lang)) {
-      // 已知语言，使用指定语言高亮
       return hljs.highlight(code, { language: lang }).value
     }
-    // 未知语言，自动检测
+    // 自动检测语言高亮
     return hljs.highlightAuto(code).value
   }
 })
@@ -62,9 +62,7 @@ export default {
     markdown: {
       immediate: true,
       handler() {
-        if (this.markdown) {
-          this.renderedHtml = marked(this.markdown)
-        }
+        this.renderMarkdown()
       }
     },
     // 当 URL 变化时重新加载内容
@@ -73,11 +71,21 @@ export default {
       handler() {
         if (this.url) {
           this.loadFromUrl()
+        } else {
+          this.renderMarkdown()
         }
       }
     }
   },
   methods: {
+    // 渲染本地 markdown 文本
+    renderMarkdown() {
+      if (this.markdown) {
+        this.renderedHtml = md.render(this.markdown)
+      } else {
+        this.renderedHtml = ''
+      }
+    },
     // 从 URL 加载 Markdown 内容
     async loadFromUrl() {
       this.loading = true
@@ -88,7 +96,7 @@ export default {
           throw new Error(`HTTP 错误: ${response.status}`)
         }
         const content = await response.text()
-        this.renderedHtml = marked(content)
+        this.renderedHtml = md.render(content)
       } catch (err) {
         this.error = err.message
         console.error('加载 Markdown 失败:', err)

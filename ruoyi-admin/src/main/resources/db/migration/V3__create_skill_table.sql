@@ -5,6 +5,7 @@ create table agent_skill
     skill_name        varchar(255)    not null comment 'skill名称',
     skill_description varchar(500)    not null comment 'skill描述',
     skill_content     longtext        not null comment 'skill内容',
+    skill_type        varchar(255)    not null comment 'skill类型',
     create_time       DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
     update_time       datetime        null default null comment '更新时间',
     create_by         varchar(64)          default '' comment '创建者',
@@ -38,3 +39,11 @@ values('agent_skill删除', @parentId, '4',  '#', '', 1, 0, 'F', '0', '0', 'ai:s
 
 insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame, is_cache, menu_type, visible, status, perms, icon, create_by, create_time, update_by, update_time, remark)
 values('agent_skill导出', @parentId, '5',  '#', '', 1, 0, 'F', '0', '0', 'ai:skill:export',       '#', 'admin', sysdate(), '', null, '');
+
+
+
+INSERT INTO sys_dict_type (dict_id, dict_name, dict_type, status, create_by, create_time, update_by, update_time, remark) VALUES (106, 'AI技能类型', 'ai_skill_type', '0', 'admin', now(), '', null, 'AI技能的类型');
+
+INSERT INTO sys_dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_by, create_time, update_by, update_time, remark) VALUES (113, 0, '创建', 'create', 'ai_skill_type', null, 'primary', 'N', '0', 'admin', now(), 'admin', now(), '在系统中创建');
+INSERT INTO sys_dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_by, create_time, update_by, update_time, remark) VALUES (114, 0, '导入', 'import', 'ai_skill_type', null, 'info', 'N', '0', 'admin', now(), 'admin', now(), '从skills目录下导入');
+

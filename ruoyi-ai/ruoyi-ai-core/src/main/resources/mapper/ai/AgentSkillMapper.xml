@@ -9,6 +9,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="skillName"    column="skill_name"    />
         <result property="skillDescription"    column="skill_description"    />
         <result property="skillContent"    column="skill_content"    />
+        <result property="skillType"    column="skill_type"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
         <result property="createBy"    column="create_by"    />
@@ -16,7 +17,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAgentSkillVo">
-        select id, skill_name, skill_description, skill_content, create_time, update_time, create_by, update_by from agent_skill
+        select id, skill_name, skill_description, skill_content, skill_type, create_time, update_time, create_by, update_by from agent_skill
     </sql>
 
     <select id="selectAgentSkillList" parameterType="AgentSkill" resultMap="AgentSkillResult">
@@ -25,6 +26,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="skillName != null  and skillName != ''"> and skill_name like concat('%', #{skillName}, '%')</if>
             <if test="skillDescription != null  and skillDescription != ''"> and skill_description = #{skillDescription}</if>
             <if test="skillContent != null  and skillContent != ''"> and skill_content = #{skillContent}</if>
+            <if test="skillType != null  and skillType != ''"> and skill_type = #{skillType}</if>
         </where>
     </select>
     
@@ -39,6 +41,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="skillName != null and skillName != ''">skill_name,</if>
             <if test="skillDescription != null and skillDescription != ''">skill_description,</if>
             <if test="skillContent != null and skillContent != ''">skill_content,</if>
+            <if test="skillType != null and skillType != ''">skill_type,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="createBy != null">create_by,</if>
@@ -48,6 +51,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="skillName != null and skillName != ''">#{skillName},</if>
             <if test="skillDescription != null and skillDescription != ''">#{skillDescription},</if>
             <if test="skillContent != null and skillContent != ''">#{skillContent},</if>
+            <if test="skillType != null and skillType != ''">#{skillType},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -61,6 +65,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="skillName != null and skillName != ''">skill_name = #{skillName},</if>
             <if test="skillDescription != null and skillDescription != ''">skill_description = #{skillDescription},</if>
             <if test="skillContent != null and skillContent != ''">skill_content = #{skillContent},</if>
+            <if test="skillType != null and skillType != ''">skill_type = #{skillType},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="createBy != null">create_by = #{createBy},</if>
@@ -98,13 +103,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <!-- 批量新增技能信息 -->
     <insert id="batchInsertAgentSkill" parameterType="java.util.List">
-        insert into agent_skill (skill_name, skill_description, skill_content, create_time, update_time, create_by, update_by)
+        insert into agent_skill (skill_name, skill_description, skill_content, skill_type, create_time, update_time, create_by, update_by)
         values
         <foreach collection="list" item="item" separator=",">
             (
             #{item.skillName},
             #{item.skillDescription},
             #{item.skillContent},
+            #{item.skillType},
             #{item.createTime},
             #{item.updateTime},
             #{item.createBy},

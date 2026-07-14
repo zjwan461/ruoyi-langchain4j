@@ -6,6 +6,7 @@ import com.ruoyi.ai.domain.AgentSkill;
 import com.ruoyi.ai.mapper.AgentSkillMapper;
 import com.ruoyi.ai.service.IAgentSkillService;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.DictUtils;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skill;
@@ -120,6 +121,7 @@ public class AgentSkillServiceImpl implements IAgentSkillService, InitializingBe
                 agentSkill.setSkillName(x.name());
                 agentSkill.setSkillContent(x.content());
                 agentSkill.setSkillDescription(x.description());
+                agentSkill.setSkillType(DictUtils.getDictValue("ai_skill_type","导入"));
                 return agentSkill;
             }).toList();
             agentSkillMapper.batchInsertAgentSkill(agentSkills);
