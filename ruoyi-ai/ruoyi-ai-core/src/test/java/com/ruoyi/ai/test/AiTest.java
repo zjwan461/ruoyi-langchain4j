@@ -5,6 +5,7 @@ import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -414,20 +415,29 @@ public class AiTest {
                 .transport(mcpTransport)
                 .build();
 
+        List<ToolSpecification> toolSpecifications = client.listTools();
+        for (ToolSpecification toolSpecification : toolSpecifications) {
+            System.out.println(toolSpecification);
+        }
+
+//        client.executeTool()
+
         McpToolProvider mcpToolProvider = McpToolProvider.builder()
                 .mcpClients(client)
                 .build();
+//        List<AiServiceTool> aiServiceTools = mcpToolProvider.provideTools(null).aiServiceTools();
 
         OpenAiChatModel model = buildBlockModel();
         Assistant assistant = AiServices.builder(Assistant.class)
                 .chatModel(model)
                 .systemMessage("在必要时调用工具")
-                .toolProvider(mcpToolProvider)
+//                .toolProvider(mcpToolProvider)
+//                .tool
                 .chatMemory(buildChatMemory())
                 .build();
-
-        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
-        System.out.println(resp);
+//
+//        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
+//        System.out.println(resp);
     }
 
 }
