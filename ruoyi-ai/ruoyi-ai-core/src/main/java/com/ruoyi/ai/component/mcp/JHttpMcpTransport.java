@@ -57,7 +57,7 @@ public class JHttpMcpTransport implements McpTransport {
         httpClientBuilder.writeTimeout(timeout);
         this.logRequests = builder.logRequests;
         if (builder.logRequests) {
-//            httpClientBuilder.addInterceptor(new McpRequestLoggingInterceptor(builder.logger));
+            httpClientBuilder.addInterceptor(new McpRequestLoggingInterceptor(builder.logger));
         }
         this.logResponses = builder.logResponses;
         sseUrl = ensureNotNull(builder.sseUrl, "Missing SSE endpoint URL");
