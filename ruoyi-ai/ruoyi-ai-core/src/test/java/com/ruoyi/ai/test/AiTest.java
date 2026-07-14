@@ -1,6 +1,7 @@
 package com.ruoyi.ai.test;
 
 import cn.hutool.core.util.RandomUtil;
+import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.agent.tool.Tool;
@@ -11,6 +12,11 @@ import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.mcp.McpToolProvider;
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.McpCallContext;
+import dev.langchain4j.mcp.client.McpHeadersSupplier;
+import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -30,7 +36,9 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.skills.*;
+import dev.langchain4j.skills.FileSystemSkill;
+import dev.langchain4j.skills.FileSystemSkillLoader;
+import dev.langchain4j.skills.Skills;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -45,6 +53,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -386,6 +395,39 @@ public class AiTest {
                         + "\nWhen the user's request relates to one of these skills, activate it first using the `activate_skill` tool before proceeding.")
                 .build();
         String resp = assistant.chat("你好,Spring的3个重点，帮我使用json格式输出");
+        System.out.println(resp);
+    }
+
+    @Test
+    public void testMcp() {
+        JHttpMcpTransport mcpTransport = JHttpMcpTransport.builder()
+                .sseUrl("http://localhost:8001/sse")
+                .customHeaders(new McpHeadersSupplier() {
+                    @Override
+                    public Map<String, String> apply(McpCallContext mcpCallContext) {
+                        return Map.of("Authorization", "Bearer " + IdUtils.fastSimpleUUID());
+                    }
+                })
+                .logRequests(true) // if you want to see the traffic in the log
+                .logResponses(true)
+                .build();
+        DefaultMcpClient client = DefaultMcpClient.builder()
+                .transport(mcpTransport)
+                .build();
+
+        McpToolProvider mcpToolProvider = McpToolProvider.builder()
+                .mcpClients(client)
+                .build();
+
+        OpenAiChatModel model = buildBlockModel();
+        Assistant assistant = AiServices.builder(Assistant.class)
+                .chatModel(model)
+                .systemMessage("在必要时调用工具")
+                .toolProvider(mcpToolProvider)
+                .chatMemory(buildChatMemory())
+                .build();
+
+        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成pdf");
         System.out.println(resp);
     }
 
