@@ -1,5 +1,6 @@
 package com.ruoyi.ai.mapper;
 
+import com.ruoyi.ai.domain.AgentSkillMapping;
 import com.ruoyi.ai.domain.AgentToolMapping;
 import com.ruoyi.ai.domain.AIAgent;
 import org.apache.ibatis.annotations.Param;
@@ -65,11 +66,17 @@ public interface AIAgentMapper
 
     public AIAgent selectAiAgentByVisitUrl(String visitUrl);
 
-    public AIAgent selectAiAgentWithToolById(Long id);
+    public AIAgent selectAiAgentWithToolAndSkillById(Long id);
 
     int insertAgentToolMapping(@Param("agentId") Long agentId, @Param("toolId") Long toolId);
 
     int batchInsertAgentToolMapping(@Param("list") List<AgentToolMapping> mappings);
 
     void deleteAgentToolMappingByAgentId(@Param("agentId") Long agentId);
+
+    int insertAgentSkillMapping(@Param("agentId") Long agentId, @Param("skillId") Long skillId);
+
+    int batchInsertAgentSkillMapping(@Param("list") List<AgentSkillMapping> mappings);
+
+    void deleteAgentSkillMappingByAgentId(@Param("agentId") Long agentId);
 }

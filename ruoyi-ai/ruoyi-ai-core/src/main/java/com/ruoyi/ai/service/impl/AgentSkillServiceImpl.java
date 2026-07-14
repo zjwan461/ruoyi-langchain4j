@@ -127,4 +127,9 @@ public class AgentSkillServiceImpl implements IAgentSkillService, InitializingBe
             agentSkillMapper.batchInsertAgentSkill(agentSkills);
         }
     }
+
+    @Override
+    public List<AgentSkill> selectAgentSkillByAgentId(Long agentId) {
+        return agentSkillMapper.selectAgentSkillByAgentId(agentId);
+    }
 }

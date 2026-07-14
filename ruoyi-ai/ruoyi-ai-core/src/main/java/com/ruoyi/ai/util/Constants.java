@@ -43,4 +43,12 @@ public interface Constants {
     String SSE_EVENT_TOOL_CALLED = "tool_called";
 
     String SSE_EVENT_RETRIEVED = "retrieved";
+
+    String SKILL_APPEND_SYSTEM_MESSAGE = """
+
+            You have access to the following skills:
+          
+            %s
+
+            When the user's request relates to one of these skills, activate it first using the `activate_skill` tool before proceeding.""";
 }

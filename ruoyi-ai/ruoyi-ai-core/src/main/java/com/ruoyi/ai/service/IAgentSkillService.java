@@ -54,9 +54,11 @@ public interface IAgentSkillService
 
     /**
      * 删除agent_skill信息
-     * 
+     *
      * @param id agent_skill主键
      * @return 结果
      */
     public int deleteAgentSkillById(Long id);
+
+    public List<AgentSkill> selectAgentSkillByAgentId(Long agentId);
 }

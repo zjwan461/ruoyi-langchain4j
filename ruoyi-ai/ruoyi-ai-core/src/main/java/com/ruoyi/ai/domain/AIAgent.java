@@ -121,6 +121,12 @@ public class AIAgent extends BaseEntity {
 
   private List<AgentTool> agentTools;
 
+  private String skillIds;
+
+  private String skillNames;
+
+  private List<AgentSkill> agentSkills;
+
   public void setId(Long id) {
     this.id = id;
   }
@@ -297,6 +303,30 @@ public class AIAgent extends BaseEntity {
     this.toolNames = toolNames;
   }
 
+  public String getSkillIds() {
+    return skillIds;
+  }
+
+  public void setSkillIds(String skillIds) {
+    this.skillIds = skillIds;
+  }
+
+  public String getSkillNames() {
+    return skillNames;
+  }
+
+  public void setSkillNames(String skillNames) {
+    this.skillNames = skillNames;
+  }
+
+  public List<AgentSkill> getAgentSkills() {
+    return agentSkills;
+  }
+
+  public void setAgentSkills(List<AgentSkill> agentSkills) {
+    this.agentSkills = agentSkills;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -326,6 +356,9 @@ public class AIAgent extends BaseEntity {
         .append("agentTools", getAgentTools())
         .append("toolIds", getToolIds())
         .append("toolNames", getToolNames())
+        .append("agentSkills", getAgentSkills())
+        .append("skillNames", getSkillNames())
+        .append("skillIds", getSkillIds())
         .toString();
   }
 

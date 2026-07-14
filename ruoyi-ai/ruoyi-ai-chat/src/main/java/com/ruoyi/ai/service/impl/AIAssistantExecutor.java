@@ -5,10 +5,7 @@ import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.domain.AIAgent;
-import com.ruoyi.ai.domain.ChatMessage;
-import com.ruoyi.ai.domain.KnowledgeBase;
-import com.ruoyi.ai.domain.Model;
+import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.util.Constants;
@@ -114,7 +111,6 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         String aiText = resp.aiMessage().text();
                         content.append(aiText);
                         ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
-//                        this.saveToolCallRecord(aiAgent, sessionId, clientId, chatMessage.getId(), request.name(), result);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
@@ -187,16 +183,51 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
         }
 
         return builder.streamingChatModel(llm)
-                .systemMessageProvider(x -> aiAgent.getSystemMessage())
+                .systemMessageProvider(x -> {
+                    if (CollUtil.isNotEmpty(aiAgent.getAgentSkills())) {
+                        return aiAgent.getSystemMessage() + String.format(Constants.SKILL_APPEND_SYSTEM_MESSAGE, formatAvailableSkills(aiAgent.getAgentSkills()));
+                    } else {
+                        return aiAgent.getSystemMessage();
+                    }
+                })
                 .chatMemory(MessageWindowChatMemory.builder()
                         .id(sessionId)
                         .chatMemoryStore(memoryStore)
                         .maxMessages(aiAgent.getMemoryCount())
                         .build())
                 .toolProvider(new JToolProvider(aiAgent))
-                .maxSequentialToolsInvocations(aiConfig.getAgent().getMaxSequentialToolsInvocations())
+                .maxToolCallingRoundTrips(aiConfig.getAgent().getMaxSequentialToolsInvocations())
                 .build();
     }
 
+
+    private static String formatAvailableSkills(Collection<AgentSkill> skills) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<available_skills>\n");
+        for (AgentSkill skill : skills) {
+            sb.append("<skill>\n")
+                    .append("<name>")
+                    .append(escapeXml(skill.getSkillName()))
+                    .append("</name>\n")
+                    .append("<description>")
+                    .append(escapeXml(skill.getSkillDescription()))
+                    .append("</description>\n")
+                    .append("</skill>\n");
+        }
+        sb.append("</available_skills>");
+        return sb.toString();
+    }
+
+    private static String escapeXml(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input
+                .replace("&", "&amp;") // must be first
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
+    }
 
 }

@@ -47,3 +47,13 @@ INSERT INTO sys_dict_type (dict_id, dict_name, dict_type, status, create_by, cre
 INSERT INTO sys_dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_by, create_time, update_by, update_time, remark) VALUES (113, 0, '创建', 'create', 'ai_skill_type', null, 'primary', 'N', '0', 'admin', now(), 'admin', now(), '在系统中创建');
 INSERT INTO sys_dict_data (dict_code, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, status, create_by, create_time, update_by, update_time, remark) VALUES (114, 0, '导入', 'import', 'ai_skill_type', null, 'info', 'N', '0', 'admin', now(), 'admin', now(), '从skills目录下导入');
 
+
+
+drop table if exists agent_skill_mapping;
+create table agent_skill_mapping
+(
+    agent_id bigint unsigned not null,
+    skill_id  bigint unsigned not null,
+    primary key (agent_id, skill_id)
+) engine = innodb
+    comment ='agent_skill_mapping表(多对多关系映射)';

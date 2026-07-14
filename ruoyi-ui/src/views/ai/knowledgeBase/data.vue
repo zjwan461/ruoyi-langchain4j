@@ -21,7 +21,7 @@
     <el-table v-loading="loading" :data="segmentList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center"/>
       <el-table-column label="ID" align="center" prop="embeddingId"/>
-      <el-table-column label="文本分块" align="center" prop="text"/>
+      <el-table-column label="文本分块" align="left" prop="text"/>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)"

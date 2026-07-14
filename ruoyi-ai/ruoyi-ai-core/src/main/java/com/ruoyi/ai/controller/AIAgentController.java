@@ -105,7 +105,7 @@ public class AIAgentController extends BaseController {
     @PreAuthorize("@ss.hasPermi('ai:agent:query')")
     @GetMapping(value = "/{id}")
     public AjaxResult getInfo(@PathVariable("id") Long id) {
-        return success(aiAgentService.selectAiAgentWithToolById(id));
+        return success(aiAgentService.selectAiAgentWithToolAndSkillById(id));
     }
 
     /**

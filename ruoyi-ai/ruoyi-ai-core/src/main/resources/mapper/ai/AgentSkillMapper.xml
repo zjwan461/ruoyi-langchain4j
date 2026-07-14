@@ -118,4 +118,9 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             )
         </foreach>
     </insert>
+
+    <select id="selectAgentSkillByAgentId"  parameterType="java.lang.Long" resultMap="AgentSkillResult">
+        select a.* from agent_skill a join agent_skill_mapping b on a.id = b.skill_id join ai_agent c on b.agent_id = c.id
+        where c.id = #{agentId}
+    </select>
 </mapper>

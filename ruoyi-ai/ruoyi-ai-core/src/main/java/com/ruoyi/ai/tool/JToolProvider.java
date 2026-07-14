@@ -1,11 +1,12 @@
 package com.ruoyi.ai.tool;
 
+import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.domain.AIAgent;
-import com.ruoyi.ai.service.IAgentToolService;
+import com.ruoyi.ai.domain.AgentSkill;
+import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.util.SimplePythonFuncParser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DictUtils;
@@ -15,6 +16,9 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.service.tool.*;
+import dev.langchain4j.skills.DefaultSkill;
+import dev.langchain4j.skills.Skill;
+import dev.langchain4j.skills.Skills;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
@@ -35,13 +39,14 @@ public class JToolProvider implements ToolProvider {
 
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
-        IAgentToolService agentToolService = SpringUtils.getBean(IAgentToolService.class);
         ObjectMapper objectMapper = SpringUtils.getBean(ObjectMapper.class);
-        List<AgentTool> agentTools = agentToolService.selectAgentToolByAgentId(aiAgent.getId());
+        List<AgentTool> agentTools = aiAgent.getAgentTools();
+        List<AgentSkill> agentSkills = aiAgent.getAgentSkills();
         Map<ToolSpecification, ToolExecutor> toolsProvider = new LinkedHashMap<>();
         String sandboxDict = DictUtils.getDictValue("ai_tool_type", "sandbox");
         String builtinDict = DictUtils.getDictValue("ai_tool_type", "builtin");
         for (AgentTool tool : agentTools) {
+            // 处理sandbox类型tool
             if (tool.getToolType().equals(sandboxDict)) {
                 SandboxToolExecutor sandboxToolExecutor = new SandboxToolExecutor(tool);
                 ToolSpecification.Builder builder = ToolSpecification.builder()
@@ -77,7 +82,9 @@ public class JToolProvider implements ToolProvider {
                 }
                 ToolSpecification toolSpecification = builder.build();
                 toolsProvider.put(toolSpecification, sandboxToolExecutor);
-            } else if (tool.getToolType().equals(builtinDict)) {
+            }
+            // 处理内置java类型tool
+            else if (tool.getToolType().equals(builtinDict)) {
                 String clazz = tool.getClazz();
                 Object obj = null;
                 List<Method> methods = new ArrayList<>();
@@ -101,6 +108,20 @@ public class JToolProvider implements ToolProvider {
                 }
             } else {
                 throw new IllegalArgumentException("not support tool type: " + tool.getToolType());
+            }
+        }
+        // 处理skill
+        if (CollUtil.isNotEmpty(agentSkills)) {
+            List<DefaultSkill> list = agentSkills.stream().map(agentSkill -> Skill.builder()
+                    .name(agentSkill.getSkillName())
+                    .description(agentSkill.getSkillName())
+                    .content(agentSkill.getSkillContent())
+                    .build()).toList();
+            Skills skills = Skills.from(list);
+            ToolProvider toolProvider = skills.toolProvider();
+            ToolProviderResult toolProviderResult = toolProvider.provideTools(request);
+            for (AiServiceTool aiServiceTool : toolProviderResult.aiServiceTools()) {
+                toolsProvider.put(aiServiceTool.toolSpecification(), aiServiceTool.toolExecutor());
             }
         }
         return new ToolProviderResult(toolsProvider);

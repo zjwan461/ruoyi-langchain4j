@@ -66,4 +66,6 @@ public interface AgentSkillMapper
     public int deleteAgentSkillByNames(List<String> names);
 
     public int batchInsertAgentSkill(List<AgentSkill> agentSkills);
+
+    List<AgentSkill> selectAgentSkillByAgentId(Long agentId);
 }
