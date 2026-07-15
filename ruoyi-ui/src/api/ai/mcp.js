@@ -43,10 +43,18 @@ export function delMcp(id) {
   })
 }
 
-export function listMcpTools(query) {
+export function pullMcpTools(query) {
   return request({
-    url: '/ai/mcp/list-mcp-tool',
+    url: '/ai/mcp/pull-mcp-tool',
     method: 'get',
     params: query
   })
 }
+
+export function listMcpTools(mcpServiceId) {
+  return request({
+    url: '/ai/mcp/list-mcp-tool/' + mcpServiceId,
+    method: 'get'
+  })
+}
+

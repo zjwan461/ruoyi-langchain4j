@@ -138,4 +138,9 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
             }
         }
     }
+
+    @Override
+    public List<AgentMcpTool> selectAgentMcpToolList(Long mcpServiceId) {
+        return agentMcpServiceMapper.selectAgentMcpToolList(mcpServiceId);
+    }
 }

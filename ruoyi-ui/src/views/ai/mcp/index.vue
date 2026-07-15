@@ -179,7 +179,7 @@
 </template>
 
 <script>
-import {listMcp, getMcp, delMcp, addMcp, updateMcp, listMcpTools} from "@/api/ai/mcp"
+import {listMcp, getMcp, delMcp, addMcp, updateMcp, pullMcpTools} from "@/api/ai/mcp"
 
 export default {
   name: "Mcp",
@@ -371,7 +371,7 @@ export default {
       this.$refs["form"].validate(valid => {
         if (valid) {
           this.$modal.loading("拉取中...")
-          listMcpTools({
+          pullMcpTools({
             url: this.form.mcpUrl,
             transport: this.form.mcpTransport,
             authToken: this.form.authToken

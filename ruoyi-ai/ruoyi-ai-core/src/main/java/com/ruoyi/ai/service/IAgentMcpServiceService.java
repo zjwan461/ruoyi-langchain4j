@@ -1,6 +1,7 @@
 package com.ruoyi.ai.service;
 
 import com.ruoyi.ai.domain.AgentMcpService;
+import com.ruoyi.ai.domain.AgentMcpTool;
 
 import java.util.List;
 
@@ -59,4 +60,6 @@ public interface IAgentMcpServiceService
      * @return 结果
      */
     public int deleteAgentMcpServiceById(Long id);
+
+    List<AgentMcpTool> selectAgentMcpToolList(Long mcpServiceId);
 }

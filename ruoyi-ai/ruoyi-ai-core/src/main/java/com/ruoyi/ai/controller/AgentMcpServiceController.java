@@ -105,8 +105,8 @@ public class AgentMcpServiceController extends BaseController {
 
     @PreAuthorize("@ss.hasAnyPermi('ai:mcp:add')")
     @Log(title = "list-mcp-tool", businessType = BusinessType.OTHER)
-    @GetMapping("/list-mcp-tool")
-    public AjaxResult listMcpTool(String url, String transport, String authToken) {
+    @GetMapping("/pull-mcp-tool")
+    public AjaxResult pullMcpTool(String url, String transport, String authToken) {
         List<ToolSpecification> toolSpecifications = langChain4jService.listMcpTool(url, transport, authToken);
         List<AgentMcpTool> mcpTools = new ArrayList<>();
         for (ToolSpecification toolSpecification : toolSpecifications) {
@@ -125,5 +125,12 @@ public class AgentMcpServiceController extends BaseController {
             mcpTools.add(mcpTool);
         }
         return success(mcpTools);
+    }
+
+    @PreAuthorize("@ss.hasPermi('ai:mcp:list')")
+    @GetMapping("/list-mcp-tool/{mcpServiceId}")
+    public AjaxResult listMcpTool(@PathVariable Long mcpServiceId) {
+        List<AgentMcpTool> list = agentMcpServiceService.selectAgentMcpToolList(mcpServiceId);
+        return success(list);
     }
 }
