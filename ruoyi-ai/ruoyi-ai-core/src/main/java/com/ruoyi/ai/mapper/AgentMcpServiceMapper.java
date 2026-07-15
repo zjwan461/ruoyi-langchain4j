@@ -2,6 +2,7 @@ package com.ruoyi.ai.mapper;
 
 import com.ruoyi.ai.domain.AgentMcpService;
 import com.ruoyi.ai.domain.AgentMcpTool;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -85,4 +86,6 @@ public interface AgentMcpServiceMapper
      * @return 结果
      */
     public int deleteAgentMcpToolByPid(Long id);
+
+    public List<AgentMcpTool> selectAgentMcpToolList(@Param("pid") Long pid);
 }

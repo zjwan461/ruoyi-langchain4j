@@ -54,6 +54,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="createBy" column="skill_create_by"/>
             <result property="updateBy" column="skill_update_by"/>
         </collection>
+        <collection property="agentMcpTools" javaType="java.util.List" ofType="com.ruoyi.ai.domain.AgentMcpTool">
+            <result property="id" column="mcp_tool_id"/>
+            <result property="mcpToolName" column="mcp_tool_name"/>
+            <result property="mcpToolDescription" column="mcp_tool_description"/>
+            <result property="mcpToolParameters" column="mcp_tool_parameters"/>
+            <result property="pid" column="pid"/>
+            <result property="createTime" column="mcp_tool_create_time"/>
+            <result property="updateTime" column="mcp_tool_update_time"/>
+            <result property="createBy" column="mcp_tool_create_by"/>
+            <result property="updateBy" column="mcp_tool_update_by"/>
+        </collection>
     </resultMap>
 
     <sql id="selectAiAgentVo">
@@ -215,12 +226,23 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                e.create_time skill_create_time,
                e.update_time skill_update_time,
                e.create_by   skill_create_by,
-               e.update_by   skill_update_by
+               e.update_by   skill_update_by,
+               g.id          mcp_tool_id,
+               g.mcp_tool_name,
+               g.mcp_tool_description,
+               g.mcp_tool_parameters,
+               g.pid,
+               g.create_time mcp_tool_create_time,
+               g.update_time mcp_tool_update_time,
+               g.create_by   mcp_tool_create_by,
+               g.update_by   mcp_tool_update_by
         from ai_agent a
                  left join agent_tool_mapping b on a.id = b.agent_id
                  left join agent_tool c on b.tool_id = c.id
                  left join agent_skill_mapping d on a.id = d.agent_id
                  left join agent_skill e on d.skill_id = e.id
+                 left join agent_mcp_tool_mapping f on a.id = f.agent_id
+                 left join agent_mcp_tool g on f.mcp_tool_id = g.id
         where a.id = #{id}
     </select>
 
@@ -262,5 +284,25 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <delete id="deleteAgentSkillMappingByAgentId" parameterType="Long">
         delete from agent_skill_mapping where agent_id = #{agentId}
+    </delete>
+
+    <insert id="insertAgentMcpToolMapping" useGeneratedKeys="true" keyProperty="id">
+        insert into agent_mcp_tool_mapping (agent_id, mcp_tool_id)
+        values (#{agentId}, #{mcpToolId})
+    </insert>
+
+    <insert id="batchInsertAgentMcpToolMapping" useGeneratedKeys="true" keyProperty="id">
+        insert into agent_mcp_tool_mapping (agent_id, mcp_tool_id)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.agentId},
+            #{item.mcpToolId}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteAgentMcpToolMappingByAgentId" parameterType="Long">
+        delete from agent_mcp_tool_mapping where agent_id = #{agentId}
     </delete>
 </mapper>

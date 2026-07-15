@@ -127,6 +127,12 @@ public class AIAgent extends BaseEntity {
 
   private List<AgentSkill> agentSkills;
 
+  private String mcpToolIds;
+
+  private String mcpToolNames;
+
+  private List<AgentMcpTool> agentMcpTools;
+
   public void setId(Long id) {
     this.id = id;
   }
@@ -327,6 +333,30 @@ public class AIAgent extends BaseEntity {
     this.agentSkills = agentSkills;
   }
 
+  public String getMcpToolIds() {
+    return mcpToolIds;
+  }
+
+  public void setMcpToolIds(String mcpToolIds) {
+    this.mcpToolIds = mcpToolIds;
+  }
+
+  public String getMcpToolNames() {
+    return mcpToolNames;
+  }
+
+  public void setMcpToolNames(String mcpToolNames) {
+    this.mcpToolNames = mcpToolNames;
+  }
+
+  public List<AgentMcpTool> getAgentMcpTools() {
+    return agentMcpTools;
+  }
+
+  public void setAgentMcpTools(List<AgentMcpTool> agentMcpTools) {
+    this.agentMcpTools = agentMcpTools;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -359,6 +389,9 @@ public class AIAgent extends BaseEntity {
         .append("agentSkills", getAgentSkills())
         .append("skillNames", getSkillNames())
         .append("skillIds", getSkillIds())
+        .append("mcpToolIds", getMcpToolIds())
+        .append("mcpToolNames", getMcpToolNames())
+        .append("agentMcpTools", getAgentMcpTools())
         .toString();
   }
 

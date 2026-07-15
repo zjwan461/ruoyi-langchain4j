@@ -124,4 +124,5 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             ( #{item.id}, #{item.mcpToolName}, #{item.mcpToolDescription}, #{item.mcpToolParameters}, #{item.pid}, #{item.createTime}, #{item.updateTime}, #{item.createBy}, #{item.updateBy})
         </foreach>
     </insert>
+
 </mapper>

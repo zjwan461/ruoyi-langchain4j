@@ -85,3 +85,11 @@ values ('mcp导出', @parentId, '5', '#', '', 1, 0, 'F', '0', '0', 'ai:mcp:expor
         '');
 
 
+drop table if exists agent_mcp_tool_mapping;
+create table agent_mcp_tool_mapping
+(
+    agent_id    bigint unsigned not null,
+    mcp_tool_id bigint unsigned not null,
+    primary key (agent_id, mcp_tool_id)
+) engine = innodb
+    comment ='agent_mcp_tool_mapping表';
