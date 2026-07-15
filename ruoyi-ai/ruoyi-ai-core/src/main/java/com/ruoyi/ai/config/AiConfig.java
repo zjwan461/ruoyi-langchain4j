@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.time.Duration;
 
 @Component
 @ConfigurationProperties(prefix = "ai")
@@ -19,6 +20,8 @@ public class AiConfig {
     private Sandbox sandbox;
 
     private Skill skill;
+
+    private Mcp mcp;
 
     public PgVector getPgVector() {
         return pgVector;
@@ -58,6 +61,14 @@ public class AiConfig {
 
     public void setSkill(Skill skill) {
         this.skill = skill;
+    }
+
+    public Mcp getMcp() {
+        return mcp;
+    }
+
+    public void setMcp(Mcp mcp) {
+        this.mcp = mcp;
     }
 
     public static class PgVector {
@@ -252,6 +263,18 @@ public class AiConfig {
 
         public void setSync2Db(boolean sync2Db) {
             this.sync2Db = sync2Db;
+        }
+    }
+
+    public static class Mcp {
+        private Duration timeout = Duration.ofSeconds(30);
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration timeout) {
+            this.timeout = timeout;
         }
     }
 }

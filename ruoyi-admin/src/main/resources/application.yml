@@ -171,3 +171,5 @@ ai:
   skill:
     local-skill-path: skills
     sync2-db: true
+  mcp:
+    timeout: 30s

@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
+import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
@@ -7,13 +8,19 @@ import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.PgVectorUtil;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.system.service.ISysConfigService;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.transport.McpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.stdio.StdioMcpTransport;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.embedding.onnx.OnnxEmbeddingModel;
@@ -208,5 +215,38 @@ public class LangChain4jServiceImpl implements LangChain4jService {
     @Override
     public void removeSegmentByFilter(Filter filter) {
         embeddingStore.removeAll(filter);
+    }
+
+    @Override
+    public List<ToolSpecification> listMcpTool(String mcpUrl, String transport, String authToken) {
+        String sseTransport = DictUtils.getDictValue("ai_mcp_transport", "sse");
+        String stdioTransport = DictUtils.getDictValue("ai_mcp_transport", "stdio");
+        String streamableHttpTransport = DictUtils.getDictValue("ai_mcp_transport", "streamable-http");
+        McpTransport mcpTransport = null;
+        if (sseTransport.equals(transport)) {
+            mcpTransport = JHttpMcpTransport.builder()
+                    .sseUrl(mcpUrl)
+                    .customHeaders(mcpCallContext -> Map.of("Authorization", "Bearer " + authToken))
+                    .build();
+        } else if (stdioTransport.equals(transport)) {
+            mcpTransport = StdioMcpTransport.builder()
+                    .build();
+        } else if (streamableHttpTransport.equals(transport)) {
+            mcpTransport = StreamableHttpMcpTransport.builder()
+                    .url(mcpUrl)
+                    .customHeaders(mcpCallContext -> Map.of("Authorization", "Bearer " + authToken))
+                    .build();
+        } else {
+            throw new ServiceException("不支持的transport:" + transport);
+        }
+        try (DefaultMcpClient client = DefaultMcpClient.builder()
+                .transport(mcpTransport)
+                .toolExecutionTimeout(aiConfig.getMcp().getTimeout())
+                .build()) {
+            return client.listTools();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new ServiceException("拉取MCP工具列表失败");
+        }
     }
 }

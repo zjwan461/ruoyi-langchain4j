@@ -1,6 +1,8 @@
 package com.ruoyi.ai.test;
 
 import cn.hutool.core.util.RandomUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
@@ -13,6 +15,7 @@ import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.internal.JsonSchemaElementJsonUtils;
 import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpCallContext;
@@ -36,6 +39,7 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.AiServiceTool;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skills;
@@ -52,6 +56,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -399,7 +404,8 @@ public class AiTest {
     }
 
     @Test
-    public void testMcp() {
+    public void testMcp() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
         JHttpMcpTransport mcpTransport = JHttpMcpTransport.builder()
                 .sseUrl("http://localhost:8001/sse")
                 .customHeaders(new McpHeadersSupplier() {
@@ -410,34 +416,39 @@ public class AiTest {
                 })
                 .logRequests(true) // if you want to see the traffic in the log
                 .logResponses(true)
+                .timeout(Duration.ofSeconds(300))
                 .build();
         DefaultMcpClient client = DefaultMcpClient.builder()
                 .transport(mcpTransport)
+                .toolExecutionTimeout(Duration.ofSeconds(300))
                 .build();
 
         List<ToolSpecification> toolSpecifications = client.listTools();
         for (ToolSpecification toolSpecification : toolSpecifications) {
-            System.out.println(toolSpecification);
+//            System.out.println(toolSpecification);
+            Map<String, Object> map = JsonSchemaElementJsonUtils.toMap(toolSpecification.parameters());
+            String json = objectMapper.writeValueAsString(map);
+            System.out.println(json);
         }
 
 //        client.executeTool()
 
+
         McpToolProvider mcpToolProvider = McpToolProvider.builder()
                 .mcpClients(client)
                 .build();
-//        List<AiServiceTool> aiServiceTools = mcpToolProvider.provideTools(null).aiServiceTools();
+        List<AiServiceTool> aiServiceTools = mcpToolProvider.provideTools(null).aiServiceTools();
 
         OpenAiChatModel model = buildBlockModel();
         Assistant assistant = AiServices.builder(Assistant.class)
                 .chatModel(model)
                 .systemMessage("在必要时调用工具")
-//                .toolProvider(mcpToolProvider)
-//                .tool
+                .toolProvider(mcpToolProvider)
                 .chatMemory(buildChatMemory())
                 .build();
-//
-//        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
-//        System.out.println(resp);
+
+        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
+        System.out.println(resp);
     }
 
 }

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ai.mapper.AgentMcpServiceMapper">
+    
+    <resultMap type="AgentMcpService" id="AgentMcpServiceResult">
+        <result property="id"    column="id"    />
+        <result property="mcpServiceName"    column="mcp_service_name"    />
+        <result property="mcpUrl"    column="mcp_url"    />
+        <result property="mcpTransport"    column="mcp_transport"    />
+        <result property="authToken"    column="auth_token"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="updateBy"    column="update_by"    />
+    </resultMap>
+
+    <resultMap id="AgentMcpServiceAgentMcpToolResult" type="AgentMcpService" extends="AgentMcpServiceResult">
+        <collection property="agentMcpToolList" ofType="AgentMcpTool" column="id" select="selectAgentMcpToolList" />
+    </resultMap>
+
+    <resultMap type="AgentMcpTool" id="AgentMcpToolResult">
+        <result property="id"    column="id"    />
+        <result property="mcpToolName"    column="mcp_tool_name"    />
+        <result property="mcpToolDescription"    column="mcp_tool_description"    />
+        <result property="mcpToolParameters"    column="mcp_tool_parameters"    />
+        <result property="pid"    column="pid"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="updateBy"    column="update_by"    />
+    </resultMap>
+
+    <sql id="selectAgentMcpServiceVo">
+        select id, mcp_service_name, mcp_url, mcp_transport, auth_token, create_time, update_time, create_by, update_by from agent_mcp_service
+    </sql>
+
+    <select id="selectAgentMcpServiceList" parameterType="AgentMcpService" resultMap="AgentMcpServiceResult">
+        <include refid="selectAgentMcpServiceVo"/>
+        <where>  
+            <if test="mcpServiceName != null  and mcpServiceName != ''"> and mcp_service_name like concat('%', #{mcpServiceName}, '%')</if>
+            <if test="mcpUrl != null  and mcpUrl != ''"> and mcp_url = #{mcpUrl}</if>
+            <if test="mcpTransport != null  and mcpTransport != ''"> and mcp_transport = #{mcpTransport}</if>
+        </where>
+    </select>
+    
+    <select id="selectAgentMcpServiceById" parameterType="Long" resultMap="AgentMcpServiceAgentMcpToolResult">
+        select id, mcp_service_name, mcp_url, mcp_transport, auth_token, create_time, update_time, create_by, update_by
+        from agent_mcp_service
+        where id = #{id}
+    </select>
+
+    <select id="selectAgentMcpToolList" resultMap="AgentMcpToolResult">
+        select id, mcp_tool_name, mcp_tool_description, mcp_tool_parameters, pid, create_time, update_time, create_by, update_by
+        from agent_mcp_tool
+        where pid = #{pid}
+    </select>
+
+    <insert id="insertAgentMcpService" parameterType="AgentMcpService" useGeneratedKeys="true" keyProperty="id">
+        insert into agent_mcp_service
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="mcpServiceName != null and mcpServiceName != ''">mcp_service_name,</if>
+            <if test="mcpUrl != null and mcpUrl != ''">mcp_url,</if>
+            <if test="mcpTransport != null and mcpTransport != ''">mcp_transport,</if>
+            <if test="authToken != null and authToken != ''">auth_token,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="updateBy != null">update_by,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="mcpServiceName != null and mcpServiceName != ''">#{mcpServiceName},</if>
+            <if test="mcpUrl != null and mcpUrl != ''">#{mcpUrl},</if>
+            <if test="mcpTransport != null and mcpTransport != ''">#{mcpTransport},</if>
+            <if test="authToken != null and authToken != ''">#{authToken},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+         </trim>
+    </insert>
+
+    <update id="updateAgentMcpService" parameterType="AgentMcpService">
+        update agent_mcp_service
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="mcpServiceName != null and mcpServiceName != ''">mcp_service_name = #{mcpServiceName},</if>
+            <if test="mcpUrl != null and mcpUrl != ''">mcp_url = #{mcpUrl},</if>
+            <if test="mcpTransport != null and mcpTransport != ''">mcp_transport = #{mcpTransport},</if>
+            <if test="authToken != null and authToken != ''">auth_token = #{authToken},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAgentMcpServiceById" parameterType="Long">
+        delete from agent_mcp_service where id = #{id}
+    </delete>
+
+    <delete id="deleteAgentMcpServiceByIds" parameterType="String">
+        delete from agent_mcp_service where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+    <delete id="deleteAgentMcpToolByPids" parameterType="String">
+        delete from agent_mcp_tool where pid in 
+        <foreach item="pid" collection="array" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAgentMcpToolByPid" parameterType="Long">
+        delete from agent_mcp_tool where pid = #{pid}
+    </delete>
+
+    <insert id="batchAgentMcpTool">
+        insert into agent_mcp_tool( id, mcp_tool_name, mcp_tool_description, mcp_tool_parameters, pid, create_time, update_time, create_by, update_by) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            ( #{item.id}, #{item.mcpToolName}, #{item.mcpToolDescription}, #{item.mcpToolParameters}, #{item.pid}, #{item.createTime}, #{item.updateTime}, #{item.createBy}, #{item.updateBy})
+        </foreach>
+    </insert>
+</mapper>

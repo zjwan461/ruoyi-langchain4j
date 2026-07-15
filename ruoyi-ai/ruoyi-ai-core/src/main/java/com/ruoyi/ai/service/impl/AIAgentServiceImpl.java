@@ -141,8 +141,13 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param ids 需要删除的AI智能体主键
      * @return 结果
      */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public int deleteAiAgentByIds(Long[] ids) {
+        for (Long id : ids) {
+            aiAgentMapper.deleteAgentToolMappingByAgentId(id);
+            aiAgentMapper.deleteAgentSkillMappingByAgentId(id);
+        }
         return aiAgentMapper.deleteAiAgentByIds(ids);
     }
 

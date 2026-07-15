@@ -2,6 +2,7 @@ package com.ruoyi.ai.service;
 
 import com.ruoyi.ai.enums.ModelProvider;
 import com.ruoyi.ai.enums.ModelType;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
@@ -32,5 +33,5 @@ public interface LangChain4jService {
 
     void removeSegmentByFilter(Filter filter);
 
-
+    List<ToolSpecification> listMcpTool(String mcpUrl, String transport, String authToken);
 }
