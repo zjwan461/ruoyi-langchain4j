@@ -370,17 +370,21 @@ export default {
       console.log(this.form)
       this.$refs["form"].validate(valid => {
         if (valid) {
+          this.$modal.loading("拉取中...")
           listMcpTools({
             url: this.form.mcpUrl,
             transport: this.form.mcpTransport,
             authToken: this.form.authToken
           }).then(res => {
+            this.$modal.closeLoading()
             if (res.code !== 200) {
               this.$modal.msgError(res.msg)
               return false
             }
             this.$modal.msgSuccess("拉取成功")
             this.agentMcpToolList = res.data
+          }).catch(err=>{
+            this.$modal.closeLoading()
           })
         }
       })
