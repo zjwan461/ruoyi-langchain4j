@@ -61,6 +61,17 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
+            <el-collapse-item title="v1.2 - 2026-07-16">
+              <ol>
+                <li><b>新增 MCP 工具市场</b>：在【AI 工具箱 → MCP】统一维护 agent_mcp_service（服务地址 / transport / authToken）与子级 agent_mcp_tool（名称 / 描述 / 参数 / 元数据），支持 sse / stdio / streamable-http 三种传输方式（字典 ai_mcp_transport），底层通过 langchain4j-mcp 把远端 MCP 工具加载到 JToolProvider，原生智能体可直接调用。智能体侧通过 agent_mcp_tool_mapping 多对多绑定 MCP 工具。</li>
+                <li><b>新增 Skills 技能体系</b>：在【AI 工具箱 → Skill】维护 agent_skill 技能，支持 create（系统创建）与 import（从仓库 skills/ 目录导入）两种 ai_skill_type 字典。智能体通过 agent_skill_mapping 多对多挂载技能，平台会把技能列表按 Constants.SKILL_APPEND_SYSTEM_MESSAGE 模板拼接到 System Prompt，提示模型通过 activate_skill 工具先激活技能再继续作答。</li>
+                <li><b>新增 GitHub Skills 同步工具</b>：GitHubSkillsSyncUtil 支持一键把仓库 skills/ 目录（如 skills/json/SKILL.md）导入数据库，保持技能定义与代码同源。</li>
+                <li><b>新增 MCP 请求日志拦截器</b>：McpRequestLoggingInterceptor 基于 OkHttp 拦截器记录 MCP 请求 / 响应，便于排障。</li>
+                <li><b>新增数据库迁移脚本</b> sql/V3__create_skill_table.sql、sql/V4__create_mcp_table.sql，包含全部表结构、菜单与字典数据，请在 v1.1 数据库基础上继续按顺序执行。</li>
+                <li><b>新增 Monaco 代码编辑器</b>：Agent Tools（sandbox 类型）页面集成 Monaco 代码编辑器（ruoyi-ui/src/components/Editor/codeEditor.vue），在线编辑 Python 函数代码更友好。</li>
+                <li><b>修复 langchain4j-mcp 引入后的 jackson jar 包版本冲突</b></li>
+              </ol>
+            </el-collapse-item>
             <el-collapse-item title="v1.1 - 2026-07-12">
               <ol>
                 <li>新增 Dify 类型智能体：在【AI 工具箱 → Dify API 管理】统一维护外部 Dify 服务，通过 agentType=dify 即可一键纳管 Chatflow / Workflow / Agent 应用，对话与历史会话走本地 dify_session_mapping 映射，全链路流式输出。</li>
