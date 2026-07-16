@@ -59,6 +59,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="mcpToolName" column="mcp_tool_name"/>
             <result property="mcpToolDescription" column="mcp_tool_description"/>
             <result property="mcpToolParameters" column="mcp_tool_parameters"/>
+            <result property="mcpToolMetadata" column="mcp_tool_metadata"/>
             <result property="pid" column="pid"/>
             <result property="createTime" column="mcp_tool_create_time"/>
             <result property="updateTime" column="mcp_tool_update_time"/>
@@ -231,6 +232,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                g.mcp_tool_name,
                g.mcp_tool_description,
                g.mcp_tool_parameters,
+               g.mcp_tool_metadata,
                g.pid,
                g.create_time mcp_tool_create_time,
                g.update_time mcp_tool_update_time,

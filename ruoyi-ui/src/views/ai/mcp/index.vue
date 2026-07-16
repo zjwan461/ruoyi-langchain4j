@@ -116,7 +116,7 @@
     />
 
     <!-- 添加或修改mcp对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="900px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="75%" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="120px">
         <el-form-item label="mcp服务名称" prop="mcpServiceName">
           <el-input v-model="form.mcpServiceName" placeholder="请输入mcp服务名称"/>

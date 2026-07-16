@@ -147,10 +147,18 @@ public class JToolProvider implements ToolProvider {
             for (AgentMcpTool agentMcpTool : agentMcpTools) {
                 McpClient mcpClient = mcpClientMap.get(agentMcpTool.getPid());
                 LinkedHashMap<String, Object> map = null;
+                Map<String, Object> metadata = null;
                 try {
-                    map = objectMapper.readValue(agentMcpTool.getMcpToolParameters(), new TypeReference<>() {
-                    });
-                } catch (JsonProcessingException ignore) {
+                    if (agentMcpTool.getMcpToolParameters() != null) {
+                        map = objectMapper.readValue(agentMcpTool.getMcpToolParameters(), new TypeReference<>() {
+                        });
+                    }
+                    if (agentMcpTool.getMcpToolMetadata() != null) {
+                        metadata = objectMapper.readValue(agentMcpTool.getMcpToolMetadata(), new TypeReference<>() {
+                        });
+                    }
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
                 }
                 if (map != null) {
                     JsonObjectSchema jsonObjectSchema = (JsonObjectSchema) JsonSchemaElementJsonUtils.fromMap(map);
@@ -159,6 +167,7 @@ public class JToolProvider implements ToolProvider {
                             .parameters(jsonObjectSchema)
                             .name(agentMcpTool.getMcpToolName())
                             .description(agentMcpTool.getMcpToolDescription())
+                            .metadata(metadata)
                             .build();
                     toolsProvider.put(toolSpecification, mcpToolExecutor);
                 }
