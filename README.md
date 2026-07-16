@@ -6,11 +6,13 @@
 
 [![RuoYi-Vue](https://img.shields.io/badge/Base-RuoYi--Vue-blue)](https://github.com/yangzongzhuan/RuoYi-Vue)
 [![LangChain4j](https://img.shields.io/badge/AI-LangChain4j-green)](https://docs.langchain4j.info/)
+[![MCP](https://img.shields.io/badge/Protocol-MCP-9cf)](https://modelcontextprotocol.io/)
+[![Skills](https://img.shields.io/badge/AI-Skills-orange)]()
 [![Spring Boot](https://img.shields.io/badge/SpringBoot-2.x-brightgreen)](https://spring.io/projects/spring-boot)
 [![Vue](https://img.shields.io/badge/Vue-2.x-success)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange)](./LICENSE)
 
-> 前端 Vue / Element UI · 后端 Spring Boot / Spring Security / Redis & Jwt / WebSocket / LangChain4j / PgVector / Dify Sandbox
+> 前端 Vue / Element UI · 后端 Spring Boot / Spring Security / Redis & Jwt / WebSocket / LangChain4j / PgVector / Dify Sandbox / **MCP** / **Skills**
 
 [快速开始](#-快速开始) · [在线体验](#-在线体验) · [演示图](#-演示图) · [支持项目](#-支持项目)
 
@@ -20,19 +22,22 @@
 
 ## 📖 项目简介
 
-RuoYi-Langchain4j 是在经典后台管理框架 **[RuoYi-Vue](https://github.com/yangzongzhuan/RuoYi-Vue)** 之上，深度集成 **[LangChain4j](https://docs.langchain4j.info/)**、向量数据库 **PgVector** 与 **[Dify](https://dify.ai/)** 生态的扩展版本。
-项目在保留 RuoYi 原有权限、监控、定时任务、代码生成等全部能力的同时，新增了 **AI 模型管理 / 本地知识库 / 多类型智能体 / AI 对话** 等一站式 AI 能力，致力于帮助开发者以最低成本快速构建企业级 AI 应用。
+RuoYi-Langchain4j 是在经典后台管理框架 **[RuoYi-Vue](https://github.com/yangzongzhuan/RuoYi-Vue)** 之上，深度集成 **[LangChain4j](https://docs.langchain4j.info/)**、向量数据库 **PgVector**、**[Dify](https://dify.ai/)** 生态与 **[MCP（Model Context Protocol）](https://modelcontextprotocol.io/)** 协议 的扩展版本。
+项目在保留 RuoYi 原有权限、监控、定时任务、代码生成等全部能力的同时，新增了 **AI 模型管理 / 本地知识库 / 多类型智能体 / AI 对话 / MCP 工具市场 / Skills 技能体系** 等一站式 AI 能力，致力于帮助开发者以最低成本快速构建企业级 AI 应用。
 
-v1.1 起，平台内置 **Dify 类型智能体**、**原生智能体调用本地 Java Tool**、**调用 Dify Sandbox 执行 Python Tool** 三种智能体形态，覆盖 Chatflow / Workflow / 本地 Agent / 沙箱代码执行等多种落地场景。
+v1.1 起，平台内置 **Dify 类型智能体**、**原生智能体调用本地 Java Tool**、**调用 Dify Sandbox 执行 Python Tool** 三种智能体形态。
+v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系**：智能体既可挂载任意 MCP Server 暴露的工具（`sse` / `stdio` / `streamable-http`），也可绑定 Skills 技能目录，由 LLM 在匹配场景下自动 `activate_skill` 后再继续作答。
 
 ### 🧩 技术栈
 
 | 类别 | 技术 |
 | --- | --- |
-| 前端 | Vue、Element UI、Axios、Vue Router、Vuex |
+| 前端 | Vue、Element UI、Axios、Vue Router、Vuex、Monaco 代码编辑器 |
 | 后端 | Spring Boot、Spring Security、MyBatis-Plus、Redis、Jwt、WebSocket |
-| AI 框架 | [LangChain4j](https://docs.langchain4j.info/)（兼容 Ollama / OpenAI 协议） |
+| AI 框架 | [LangChain4j](https://docs.langchain4j.info/) + [langchain4j-mcp](https://docs.langchain4j.info/)（兼容 Ollama / OpenAI 协议） |
 | Dify 生态 | [Dify](https://dify.ai/) 应用接入 + [dify-sandbox](https://github.com/langgenius/dify-sandbox) 代码执行沙箱 |
+| **MCP** | **[Model Context Protocol](https://modelcontextprotocol.io/) 工具协议（`sse` / `stdio` / `streamable-http`）** |
+| **Skills** | **基于 `agent_skill` 的技能目录管理，支持 `create` / `import` 两种类型，自动追加到 System Prompt** |
 | 向量库 | [PgVector](https://github.com/pgvector/pgvector)（基于 PostgreSQL） |
 | 部署 | Docker、Docker Compose、Nginx |
 
@@ -47,7 +52,9 @@ v1.1 起，平台内置 **Dify 类型智能体**、**原生智能体调用本地
 - 🔐 **JWT 多端鉴权**：动态权限菜单 + 数据权限 + 按钮级别控制。
 - 🪄 **Dify 类型智能体**：通过 [Dify](https://dify.ai/) 平台统一纳管 Chatflow / Workflow / Agent 等 Dify 应用，对话与会话映射全部走本地 `dify_session_mapping`，流式输出 + 历史会话一键拉取，纳管入口在【AI 工具箱 → Dify API 管理】。
 - ☕️ **原生智能体调用本地 Java Tool**：原生（LangChain4j）智能体支持挂载 `builtin` 类型的 Java 工具（基于 `dev.langchain4j.agent.tool.Tool` 注解），在 `JToolProvider` 中通过反射扫描 `@Tool` 方法注册到 LangChain4j，实现 LLM ↔ 本地业务方法的工具调用。
-- 🐍 **原生智能体调用 Dify Sandbox 执行 Python Tool**：原生智能体支持挂载 `sandbox` 类型的 Python 工具，`SandboxToolExecutor` 会自动将 LLM 传入的参数按 `parameters` 元数据拼装成 Python 函数调用，远程下发 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 沙箱执行并回传 `print(result)` 结果。
+- 🐍 **原生智能体调用 Dify Sandbox 执行 Python Tool**：原生智能体支持挂载 `sandbox` 类型的 Python 工具，`SandboxToolExecutor` 会自动将 LLM 传入的参数按 `parameters` 元数据拼装成 Python 函数调用，远程下发 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 沙箱执行并回传 `print(result)` 结果。**v1.2 起新增 Monaco 代码编辑器**（`ruoyi-ui/src/components/Editor/codeEditor.vue`），在线编辑 Python 函数代码更友好。
+- 🔌 **MCP 工具市场（v1.2 新增）**：原生智能体支持挂载来自 [Model Context Protocol](https://modelcontextprotocol.io/) Server 的工具。在【AI 工具箱 → MCP】维护 `agent_mcp_service`（`url` + `transport` + `authToken`）与子级 `agent_mcp_tool`（`name` / `description` / `parameters` / `metadata`），支持 `sse` / `stdio` / `streamable-http` 三种传输方式；`JToolProvider` 通过 langchain4j-mcp 加载后注册到智能体，LLM 可直接调用远端 MCP 工具。智能体侧通过 `agent_mcp_tool_mapping` 多对多绑定 MCP 工具，已自带 OkHttp 请求日志拦截器（`McpRequestLoggingInterceptor`）便于排障。
+- 📜 **Skills 技能体系（v1.2 新增）**：在【AI 工具箱 → Skill】维护 `agent_skill` 技能（`skill_name` / `skill_description` / `skill_content` / `skill_type`），支持 `create`（系统创建）和 `import`（从仓库 `skills/` 目录导入）两种类型；智能体通过 `agent_skill_mapping` 多对多挂载技能，平台会把技能信息按 `Constants.SKILL_APPEND_SYSTEM_MESSAGE` 模板追加到 System Prompt，提示模型通过 `activate_skill` 工具在匹配场景下先激活技能再继续作答。
 - 📊 **工具调用与召回可观测**：自动记录 `agent_tool_invoke`（工具调用结果）与 `agent_kb_invoke`（知识库召回分段），与消息 ID 关联，方便排障与审计；前端可通过 `TOOL_CALL` / `TOOL_CALLED` / `RETRIEVED` 三类 SSE 事件实时观察调用过程。
 
 ---
@@ -59,13 +66,25 @@ v1.1 起，平台内置 **Dify 类型智能体**、**原生智能体调用本地
 > 3. **AI 对话需提前在【AI 工具箱 → 模型管理】中配置可用的大语言模型与向量模型。**
 > 4. **Dify 类型智能体**需提前在【AI 工具箱 → Dify API 管理】中配置外部 Dify 服务的 URL 前缀与 API Key；本地推荐使用 Docker Compose 部署 [Dify](https://github.com/langgenius/dify)。
 > 5. **Python 工具（Sandbox 类型）**依赖外部 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 服务，部署完成后请在 `application.yml` 中配置 `ai.sandbox.*` 相关地址与 API Key；本仓库 `sandbox/conf/config.yaml` 已附 dify-sandbox 启动配置模板。
-> 6. **数据库变更**：v1.1 起新增 `agent_tool`、`agent_tool_mapping`、`agent_tool_invoke`、`agent_kb_invoke` 等表，并补充 `ai_agent_type`、`ai_tool_type` 字典数据，请在已有环境上按顺序执行 `sql/V2__create_tool_table.sql`。
+> 6. **MCP 工具**需要在【AI 工具箱 → MCP】维护外部 MCP Server（`url` + `transport`），`sse` / `streamable-http` 需保证后端能访问到 MCP 服务的 HTTP 地址，`stdio` 需确保 MCP 进程在宿主环境可被拉起。
+> 7. **Skills 技能**支持两种录入方式：在【AI 工具箱 → Skill】直接 `create` 新增，或者在仓库 `skills/` 目录下维护 `SKILL.md` 后选择 `import` 同步入库；所有已挂载到智能体的技能都会通过 `SKILL_APPEND_SYSTEM_MESSAGE` 自动注入到系统提示词。
+> 8. **数据库变更**：v1.1 起新增 `agent_tool`、`agent_tool_mapping`、`agent_tool_invoke`、`agent_kb_invoke` 等表，并补充 `ai_agent_type`、`ai_tool_type` 字典数据，请在已有环境上按顺序执行 `sql/V2__create_tool_table.sql`；v1.2 起继续按顺序执行 `sql/V3__create_skill_table.sql`、`sql/V4__create_mcp_table.sql`，会自动建表并写入 Skill / MCP 菜单与字典数据。
 
 ---
 
 ## 🆕 最新更新
 
 > ⭐ **随手 Star 是一种美德**，你们的 Star 就是我持续维护的动力！
+
+### v1.2（MCP 工具市场 & Skills 技能体系）
+
+1. 🆕 新增 **MCP 工具市场**：在【AI 工具箱 → MCP】统一维护 `agent_mcp_service`（服务地址 / `transport` / `authToken`）与子级 `agent_mcp_tool`（名称 / 描述 / 参数 / 元数据）。支持 `sse` / `stdio` / `streamable-http` 三种传输方式（字典 `ai_mcp_transport`），底层通过 [langchain4j-mcp](https://docs.langchain4j.info/) 把远端 MCP 工具加载到 `JToolProvider`，原生智能体可直接调用。智能体侧通过 `agent_mcp_tool_mapping` 多对多绑定 MCP 工具。
+2. 🆕 新增 **Skills 技能体系**：在【AI 工具箱 → Skill】维护 `agent_skill` 技能，支持 `create`（系统创建）与 `import`（从仓库 `skills/` 目录导入）两种 `ai_skill_type` 字典。智能体通过 `agent_skill_mapping` 多对多挂载技能，平台会把技能列表按 `Constants.SKILL_APPEND_SYSTEM_MESSAGE` 模板拼接到 System Prompt，提示模型通过 `activate_skill` 工具先激活技能再继续作答。
+3. 🆕 新增 **GitHub Skills 同步工具**：`GitHubSkillsSyncUtil` 支持一键把仓库 `skills/` 目录（如 `skills/json/SKILL.md`）导入数据库，保持技能定义与代码同源。
+4. 🆕 新增 **MCP 请求日志拦截器**：`McpRequestLoggingInterceptor` 基于 OkHttp 拦截器记录 MCP 请求 / 响应，便于排障。
+5. 🆕 新增 **数据库迁移脚本** `sql/V3__create_skill_table.sql`、`sql/V4__create_mcp_table.sql`，包含全部表结构、菜单与字典数据，请在 v1.1 数据库基础上继续按顺序执行。
+6. 🆕 新增 **Monaco 代码编辑器**：Agent Tools（sandbox 类型）页面集成 Monaco 代码编辑器（`ruoyi-ui/src/components/Editor/codeEditor.vue`），在线编辑 Python 函数代码更友好。
+7. 🔧 修复 `langchain4j-mcp` 引入后的 jar 包版本冲突。
 
 ### v1.1（智能体工具化 & Dify 接入）
 
@@ -90,19 +109,62 @@ v1.1 起，平台内置 **Dify 类型智能体**、**原生智能体调用本地
 
 ---
 
-## 🪄 v1.1 新能力详解：三类智能体形态
+## 🪄 v1.2 新能力详解：MCP 工具市场 & Skills 技能体系
 
-v1.1 起平台支持三种智能体形态，可在【AI 工具箱 → 智能体管理】中按 `agentType` 字段切换：
+v1.2 在三类智能体形态（`origin` / `dify`）之上，进一步引入 **MCP（Model Context Protocol）工具市场** 与 **Skills 技能体系**，可在【AI 工具箱 → MCP】与【AI 工具箱 → Skill】独立维护，并在【智能体管理】中按需挂载到任意原生智能体。
 
-| 形态 | agentType | 底层实现 | 典型用途 |
-| --- | --- | --- | --- |
-| **原生智能体**（LangChain4j） | `origin` | `dev.langchain4j.service.AiServices` + 本地 LLM | 内置 RAG、Java Tool、Python Tool 调用 |
-| **Dify 智能体** | `dify` | 转发到外部 [Dify](https://dify.ai/) `/v1/chat-messages` 流式接口 | 纳管现有 Dify Chatflow / Workflow / Agent |
-| **（扩展位）** | 预留 | — | 后续接入更多智能体平台 |
+| 能力 | 入口 | 字典 | 关联表 | 典型用途 |
+| --- | --- | --- | --- | --- |
+| **MCP 工具市场** | AI 工具箱 → MCP | `ai_mcp_transport`（`sse` / `stdio` / `streamable-http`） | `agent_mcp_service`、`agent_mcp_tool`、`agent_mcp_tool_mapping` | 调用远端 MCP Server 暴露的工具（如 GitHub / 数据库 / 浏览器 / 自研服务） |
+| **Skills 技能体系** | AI 工具箱 → Skill | `ai_skill_type`（`create` / `import`） | `agent_skill`、`agent_skill_mapping` | 把可复用的领域提示 / 流程模板抽成技能，由 LLM 自动激活 |
 
-> 字典定义：`ai_agent_type` 下包含 `origin`、`dify` 两项枚举。
+### 1. Skills 技能体系
 
-### 1. 原生智能体调用本地 Java Tool
+实现路径：
+- 实体与映射：`ruoyi-ai-core/.../domain/AgentSkill.java`、`AgentSkillMapping.java`
+- 服务：`ruoyi-ai-core/.../service/impl/AgentSkillServiceImpl.java`
+- 同步工具：`ruoyi-ai-core/.../util/GitHubSkillsSyncUtil.java`
+- 前端：`ruoyi-ui/src/views/ai/skill/index.vue`、`ruoyi-ui/src/api/ai/skill.js`
+- 提示词模板：`ruoyi-ai-core/.../util/Constants.java` 中的 `SKILL_APPEND_SYSTEM_MESSAGE`
+
+- 在【AI 工具箱 → Skill】选择 `create`（系统创建）或 `import`（从仓库 `skills/` 目录的 `SKILL.md` 一键导入）维护技能定义（`skill_name` / `skill_description` / `skill_content` / `skill_type`）。
+- 在【智能体管理】编辑智能体时，通过 `agent_skill_mapping` 多对多绑定若干技能；保存后平台会把已绑定的技能列表按下面的模板拼接到 System Prompt。
+
+```text
+You have access to the following skills:
+
+<skill_name_1>: <skill_description_1>
+<skill_name_2>: <skill_description_2>
+...
+
+When the user's request relates to one of these skills, activate it first
+using the `activate_skill` tool before proceeding.
+```
+
+- 模型在匹配场景下会先调用 `activate_skill` 工具激活技能，再继续作答，从而把领域提示 / SOP 沉淀为可复用资产。
+
+> **目录约定**：仓库 `skills/` 目录下放置 `SKILL.md`（以及自定义目录如 `skills/json/SKILL.md`）作为技能的源代码版本，`import` 类型技能会同步这些文件内容到数据库。
+
+### 2. MCP 工具市场
+
+实现路径：
+- 实体与映射：`ruoyi-ai-core/.../domain/AgentMcpService.java`、`AgentMcpTool.java`、`AgentMcpToolMapping.java`
+- 服务：`ruoyi-ai-core/.../service/impl/AgentMcpServiceImpl.java`
+- 控制层：`ruoyi-ai-core/.../controller/AgentMcpServiceController.java`
+- 工具加载：`ruoyi-ai-core/.../tool/JToolProvider.java`
+- MCP 组件：`ruoyi-ai-core/.../component/mcp/JHttpMcpTransport.java`、`McpRequestLoggingInterceptor.java`
+- 前端：`ruoyi-ui/src/views/ai/mcp/index.vue`、`ruoyi-ui/src/api/ai/mcp.js`
+
+- 在【AI 工具箱 → MCP】新建 MCP 服务：填写 `mcp_service_name`、`mcp_url`、`mcp_transport`（`sse` / `stdio` / `streamable-http`）、可选的 `auth_token`。
+- 通过“同步工具”能力从远端 MCP Server 拉取工具列表，落地到 `agent_mcp_tool`（包含 `mcp_tool_name` / `mcp_tool_description` / `mcp_tool_parameters` / `mcp_tool_metadata`）。
+- 在【智能体管理】编辑智能体时，通过 `agent_mcp_tool_mapping` 多对多绑定 MCP 工具；保存后 `JToolProvider` 会按 `transport` 选择合适的客户端：
+  - `sse` / `streamable-http`：通过自定义 `JHttpMcpTransport` + OkHttp 调用 MCP HTTP 接口，并启用 `McpRequestLoggingInterceptor` 打印请求 / 响应日志。
+  - `stdio`：直接 fork 外部 MCP 进程，通过标准 I/O 与 MCP Server 通信（要求宿主环境可拉起进程）。
+- 加载完成后的 MCP 工具会自动注册为 LangChain4j 的 `ToolSpecification`，原生智能体（`agentType=origin`）即可在 LLM 推理过程中按需调用。
+
+> **依赖说明**：v1.2 起引入 `langchain4j-mcp` 依赖并升级 Spring Boot 至 `2.7.18`，如遇到 jar 包冲突请确认 `langchain4j-*` 系列版本统一。
+
+### 3. 原生智能体调用本地 Java Tool（沿用 v1.1）
 
 实现路径：`ruoyi-ai-core/.../tool/JToolProvider.java`
 
@@ -120,11 +182,11 @@ public class TimeTool {
 }
 ```
 
-### 2. 原生智能体调用 Dify Sandbox 执行 Python Tool
+### 4. 原生智能体调用 Dify Sandbox 执行 Python Tool（沿用 v1.1）
 
 实现路径：`ruoyi-ai-core/.../tool/SandboxToolExecutor.java`
 
-- 在【Agent Tools】新建工具，`toolType=sandbox`，`code` 填写 Python 函数定义，`parameters` 填写参数定义 JSON（如 `[{"name":"x","type":"int"}]`）。
+- 在【Agent Tools】新建工具，`toolType=sandbox`，`code` 填写 Python 函数定义，`parameters` 填写参数定义 JSON（如 `[{"name":"x","type":"int"}]`），v1.2 起页面集成 Monaco 代码编辑器。
 - `SandboxToolExecutor` 会按 LLM 实际传入的参数，把函数调用拼装成 `func_name(arg1=value1, arg2='value2')` 并加上 `print(result)` 发送到 dify-sandbox。
 - dify-sandbox 执行后回传 `print` 输出（即 `result` 的字符串表示），作为工具调用结果注入到 LLM 上下文中。
 
@@ -137,7 +199,7 @@ def calc_circle_area(radius):
 
 > **部署提示**：先按 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 官方文档启动沙箱服务（仓库 `sandbox/conf/config.yaml` 已附模板），后端 `application.yml` 中配置 `ai.sandbox.url-prefix` 与 `ai.sandbox.api-key`。
 
-### 3. Dify 类型智能体
+### 5. Dify 类型智能体（沿用 v1.1）
 
 实现路径：`ruoyi-ai-dify` 模块 + `ruoyi-ai-chat/.../controller/DifyChatController.java`
 
@@ -161,6 +223,7 @@ def calc_circle_area(radius):
 | PostgreSQL + PgVector | 14+ | 向量库（RAG 必选） |
 | Dify（可选） | 0.6+ | 仅在使用 Dify 类型智能体时需要 |
 | dify-sandbox（可选） | latest | 仅在使用 `sandbox` 类型 Python 工具时需要 |
+| MCP Server（可选） | — | 仅在使用 MCP 类型工具时需要，支持 `sse` / `stdio` / `streamable-http` |
 
 > 基础环境的安装与配置请参考 RuoYi 官方文档：<https://doc.ruoyi.vip/ruoyi-vue/>
 
@@ -186,6 +249,9 @@ sql/ry_*.sql
 sql/quartz.sql
 # v1.1 起还需执行工具相关迁移
 sql/V2__create_tool_table.sql
+# v1.2 起继续执行 Skill / MCP 相关迁移
+sql/V3__create_skill_table.sql
+sql/V4__create_mcp_table.sql
 
 # 启动后端
 mvn spring-boot:run -pl ruoyi-admin
@@ -225,8 +291,10 @@ AI 工具箱菜单下包含：
 
 - **模型管理**：LLM / Embedding 模型维护（Ollama / OpenAI 协议）。
 - **知识库管理**：文档分段、向量化、人工分段调整。
-- **智能体管理**：多类型智能体（`origin` / `dify`），支持系统提示词、记忆、知识库挂载、工具挂载、客户端限流。
-- **Agent Tools**：管理 `builtin`（Java Tool）与 `sandbox`（Python Tool）两种工具类型，可直接挂载到任意智能体上。
+- **智能体管理**：多类型智能体（`origin` / `dify`），支持系统提示词、记忆、知识库挂载、**MCP 工具挂载**、**Skill 技能挂载**、Agent Tools 挂载、客户端限流。
+- **Agent Tools**：管理 `builtin`（Java Tool）与 `sandbox`（Python Tool）两种工具类型，`sandbox` 工具页面集成 Monaco 代码编辑器，可直接挂载到任意智能体上。
+- **Skill**（v1.2 新增）：维护 `agent_skill` 技能，支持 `create` / `import` 两种类型，支持从仓库 `skills/` 目录的 `SKILL.md` 一键导入，技能列表会拼接到 System Prompt 并通过 `activate_skill` 工具激活。
+- **MCP**（v1.2 新增）：维护 `agent_mcp_service` 与子级 `agent_mcp_tool`，支持 `sse` / `stdio` / `streamable-http` 三种传输方式，自动同步远端 MCP 工具列表，可挂载到任意原生智能体。
 - **Dify API 管理**：统一维护外部 Dify 服务接入（URL 前缀 + API Key）。
 - **AI 聊天**：流式对话、深度思考 UI 渲染、历史会话管理。
 
@@ -302,10 +370,15 @@ RuoYi-Langchain4j 的源码全部开源免费，如果你觉得这个项目帮�
 - 若依框架：<http://www.ruoyi.vip>
 - RuoYi-Vue 文档：<https://doc.ruoyi.vip/ruoyi-vue/>
 - LangChain4j 中文文档：<https://docs.langchain4j.info/category/教程>
+- LangChain4j MCP 模块：<https://docs.langchain4j.info/category/tools/mcp>
 - Ollama 官网：<https://ollama.com/>
 - Ollama 本地部署教程：<https://developer.aliyun.com/article/1656872>
 - Dify 官方仓库：<https://github.com/langgenius/dify>
 - dify-sandbox 官方仓库：<https://github.com/langgenius/dify-sandbox>
+- Model Context Protocol 官网：<https://modelcontextprotocol.io/>
+- MCP Java SDK：<https://github.com/modelcontextprotocol/java-sdk>
+- MCP Server 示例合集：<https://github.com/modelcontextprotocol/servers>
+- Anthropic Skills 介绍：<https://docs.anthropic.com/en/docs/agents-and-tools/agent-skills/overview>
 
 ---
 
