@@ -1,8 +1,9 @@
 package com.ruoyi.ai.mapper;
 
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.AgentMcpToolMapping;
 import com.ruoyi.ai.domain.AgentSkillMapping;
 import com.ruoyi.ai.domain.AgentToolMapping;
-import com.ruoyi.ai.domain.AIAgent;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -79,4 +80,10 @@ public interface AIAgentMapper
     int batchInsertAgentSkillMapping(@Param("list") List<AgentSkillMapping> mappings);
 
     void deleteAgentSkillMappingByAgentId(@Param("agentId") Long agentId);
+
+    int insertAgentMcpToolMapping(@Param("agentId") Long agentId, @Param("mcpToolId") Long mcpToolId);
+
+    int batchInsertAgentMcpToolMapping(@Param("list") List<AgentMcpToolMapping> mappings);
+
+    void deleteAgentMcpToolMappingByAgentId(@Param("agentId") Long agentId);
 }

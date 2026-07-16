@@ -77,7 +77,7 @@
       @pagination="getList" />
 
     <!-- 添加或修改AI智能体对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="800px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="900px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="130px">
         <el-form-item label="智能体类型" prop="agentType">
           <el-select v-model="form.agentType" placeholder="请选择智能体类型">
@@ -94,43 +94,78 @@
         </el-form-item>
         <!-- origin 类型专属字段:dify 类型时整块隐藏 -->
         <template v-if="form.agentType !== 'dify'">
-          <el-form-item label="AI模型" prop="modelId">
-            <el-select v-model="form.modelId">
-              <el-option v-for="item in llms" :key="item.id" :value="item.id" :label="item.name"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="temperature" prop="temperature">
-            <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
-          </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="AI模型" prop="modelId">
+                <el-select v-model="form.modelId">
+                  <el-option v-for="item in llms" :key="item.id" :value="item.id" :label="item.name"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="temperature" prop="temperature">
+                <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-form-item label="token最大生成数" prop="maxOutputToken">
             <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数" />
             <br>
             <i class="color: grey">Tips: <b
               style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
           </el-form-item>
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="工具" prop="toolIds">
+                <el-select v-model="form.toolIds" filterable multiple style="width: 100%">
+                  <el-option v-for="item in tools" :key="item.id" :value="item.id" :label="item.toolName"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="skill" prop="skillIds">
+                <el-select v-model="form.skillIds" filterable multiple style="width: 100%">
+                  <el-option v-for="item in skills" :key="item.id" :value="item.id" :label="item.skillName"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="MCP Service" prop="mcpServiceId">
+                <el-select v-model="form.mcpServiceId" placeholder="请选择MCP服务" clearable style="width: 100%" @change="handleMcpServiceChange">
+                  <el-option v-for="item in mcpServices" :key="item.id" :value="item.id" :label="item.mcpServiceName"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="MCP Tool" prop="mcpToolIds">
+                <el-select v-model="form.mcpToolIds" placeholder="请选择MCP工具" filterable multiple style="width: 100%">
+                  <el-option v-for="item in mcpTools" :key="item.id" :value="item.id" :label="item.mcpToolName"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-form-item label="知识库" prop="kbIds">
             <el-select v-model="form.kbIds" filterable multiple>
               <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="工具" prop="toolIds">
-            <el-select v-model="form.toolIds" filterable multiple>
-              <el-option v-for="item in tools" :key="item.id" :value="item.id" :label="item.toolName"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="skill" prop="skillIds">
-            <el-select v-model="form.skillIds" filterable multiple>
-              <el-option v-for="item in skills" :key="item.id" :value="item.id" :label="item.skillName"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="最小得分" prop="minScore"
-            v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
-            <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
-          </el-form-item>
-          <el-form-item label="最大查询记录数" prop="maxResult"
-            v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
-            <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
-          </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="最小得分" prop="minScore"
+                v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+                <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="最大查询记录数" prop="maxResult"
+                v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+                <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-form-item label="系统提示词" prop="systemMessage">
             <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="3000"
               show-word-limit clearable />
@@ -175,6 +210,7 @@ import { listKnowledgeBase } from "@/api/ai/knowledgeBase"
 import { listDifyApi } from "@/api/ai/difyApi"
 import { listAgent_tool } from "@/api/ai/agent_tool"
 import { listSkill } from "@/api/ai/skill"
+import { listMcp, listMcpTools } from "@/api/ai/mcp"
 
 export default {
   name: "Agent",
@@ -187,6 +223,8 @@ export default {
       tools: [],
       skills: [],
       difyApis: [],
+      mcpServices: [],
+      mcpTools: [],
       // 遮罩层
       loading: true,
       // 选中数组
@@ -318,11 +356,13 @@ export default {
         maxOutputToken: -1,
         promptTemplate: "已知信息：{data}\n用户问题：{question}\n回答要求：\n- 请使用中文回答用户问题",
         minScore: 0.7,
-        maxResult: 3
+        maxResult: 3,
+        mcpServiceId: null,
+        mcpToolIds: []
       }
+      this.mcpTools = []
       this.resetForm("form")
     },
-    /** 搜索按钮操作 */
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
@@ -348,6 +388,7 @@ export default {
       this.listTools()
       this.listDifyApis()
       this.listSkills()
+      this.listMcpServices()
     },
     /** 修改按钮操作 */
     handleUpdate(row) {
@@ -358,6 +399,7 @@ export default {
       this.listTools()
       this.listDifyApis()
       this.listSkills()
+      this.listMcpServices()
       getAgent(id).then(response => {
         this.form = response.data
         if (this.form) {
@@ -366,17 +408,27 @@ export default {
           }
           if (this.form.agentTools) {
             let toolIds = []
-            this.form.agentTools.forEach(item=>{
+            this.form.agentTools.forEach(item => {
               toolIds.push(item.id)
             })
             this.form.toolIds = toolIds
           }
           if (this.form.agentSkills) {
             let skillIds = []
-            this.form.agentSkills.forEach(item=>{
+            this.form.agentSkills.forEach(item => {
               skillIds.push(item.id)
             })
             this.form.skillIds = skillIds
+          }
+          if (this.form.agentMcpTools) {
+            let mcpToolsId = []
+            this.form.agentMcpTools.forEach(item=>{
+              mcpToolsId.push(item.id)
+              listMcpTools(item.pid).then(res => {
+                this.mcpTools = res.data || []
+              })
+            })
+            this.form.mcpToolIds = mcpToolsId
           }
         }
         this.open = true
@@ -395,6 +447,11 @@ export default {
           }
           if (this.form.skillIds) {
             this.form.skillIds = this.form.skillIds.join(',')
+          }
+          if (this.form.mcpToolIds && this.form.mcpToolIds.length > 0) {
+            this.form.mcpToolIds = this.form.mcpToolIds.join(',')
+          } else {
+            this.form.mcpToolIds = null
           }
           if (this.form.id != null) {
             updateAgent(this.form).then(response => {
@@ -420,7 +477,8 @@ export default {
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess("删除成功")
-      }).catch(() => { })
+      }).catch(() => {
+      })
     },
     /** 导出按钮操作 */
     handleExport() {
@@ -429,7 +487,7 @@ export default {
       }, `agent_${new Date().getTime()}.xlsx`)
     },
     listLLM() {
-      listModel({ type: 0 }).then(res => {
+      listModel({type: 0}).then(res => {
         this.llms = res.rows
       })
     },
@@ -439,19 +497,40 @@ export default {
       })
     },
     listDifyApis() {
-      listDifyApi({ pageNum: 1, pageSize: 9999 }).then(res => {
+      listDifyApi({pageNum: 1, pageSize: 9999}).then(res => {
         this.difyApis = res.rows
       })
     },
     listTools() {
-      listAgent_tool().then(res=>{
+      listAgent_tool().then(res => {
         this.tools = res.rows
       })
     },
     listSkills() {
-      listSkill().then(res=>{
+      listSkill().then(res => {
         this.skills = res.rows
       })
+    },
+    /** 查询MCP服务列表(第一个下拉框数据源) */
+    listMcpServices() {
+      listMcp({pageNum: 1, pageSize: 9999}).then(res => {
+        this.mcpServices = res.rows || []
+      })
+    },
+    /** 根据所选MCP服务加载对应的MCP工具列表(第二个下拉框数据源) */
+    loadMcpTools(mcpServiceId) {
+      if (!mcpServiceId) {
+        this.mcpTools = []
+        return
+      }
+      listMcpTools(mcpServiceId).then(res => {
+        this.mcpTools = res.data || []
+      })
+    },
+    /** 第一个下拉框切换时:清空已选工具并重新加载该服务下的工具列表 */
+    handleMcpServiceChange(value) {
+      // this.form.mcpToolIds = []
+      this.loadMcpTools(value)
     }
   }
 }

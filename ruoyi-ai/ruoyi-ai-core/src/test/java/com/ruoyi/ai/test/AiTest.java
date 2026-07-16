@@ -1,9 +1,13 @@
 package com.ruoyi.ai.test;
 
 import cn.hutool.core.util.RandomUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.agent.tool.Tool;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
@@ -11,6 +15,11 @@ import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.internal.JsonSchemaElementJsonUtils;
+import dev.langchain4j.mcp.McpToolProvider;
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.McpCallContext;
+import dev.langchain4j.mcp.client.McpHeadersSupplier;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -30,7 +39,10 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.skills.*;
+import dev.langchain4j.service.tool.AiServiceTool;
+import dev.langchain4j.skills.FileSystemSkill;
+import dev.langchain4j.skills.FileSystemSkillLoader;
+import dev.langchain4j.skills.Skills;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -44,7 +56,9 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
@@ -387,6 +401,56 @@ public class AiTest {
                 .build();
         String resp = assistant.chat("你好,Spring的3个重点，帮我使用json格式输出");
         System.out.println(resp);
+    }
+
+    @Test
+    public void testMcp() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JHttpMcpTransport mcpTransport = JHttpMcpTransport.builder()
+                .sseUrl("http://localhost:8001/sse")
+                .customHeaders(new McpHeadersSupplier() {
+                    @Override
+                    public Map<String, String> apply(McpCallContext mcpCallContext) {
+                        return Map.of("Authorization", "Bearer " + IdUtils.fastSimpleUUID());
+                    }
+                })
+                .logRequests(true) // if you want to see the traffic in the log
+                .logResponses(true)
+                .timeout(Duration.ofSeconds(300))
+                .build();
+        DefaultMcpClient client = DefaultMcpClient.builder()
+                .transport(mcpTransport)
+                .toolExecutionTimeout(Duration.ofSeconds(300))
+                .build();
+
+        List<ToolSpecification> toolSpecifications = client.listTools();
+        for (ToolSpecification toolSpecification : toolSpecifications) {
+//            System.out.println(toolSpecification);
+            Map<String, Object> map = JsonSchemaElementJsonUtils.toMap(toolSpecification.parameters());
+            String json = objectMapper.writeValueAsString(map);
+            System.out.println(json);
+            System.out.println(toolSpecification.metadata());
+            System.out.println(toolSpecification.strict());
+        }
+
+//        client.executeTool()
+
+
+//        McpToolProvider mcpToolProvider = McpToolProvider.builder()
+//                .mcpClients(client)
+//                .build();
+//        List<AiServiceTool> aiServiceTools = mcpToolProvider.provideTools(null).aiServiceTools();
+//
+//        OpenAiChatModel model = buildBlockModel();
+//        Assistant assistant = AiServices.builder(Assistant.class)
+//                .chatModel(model)
+//                .systemMessage("在必要时调用工具")
+//                .toolProvider(mcpToolProvider)
+//                .chatMemory(buildChatMemory())
+//                .build();
+//
+//        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
+//        System.out.println(resp);
     }
 
 }

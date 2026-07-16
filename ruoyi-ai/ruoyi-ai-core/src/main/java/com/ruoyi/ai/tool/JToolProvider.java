@@ -4,9 +4,10 @@ import cn.hutool.core.collection.CollUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ruoyi.ai.domain.AIAgent;
-import com.ruoyi.ai.domain.AgentSkill;
-import com.ruoyi.ai.domain.AgentTool;
+import com.ruoyi.ai.config.AiConfig;
+import com.ruoyi.ai.domain.*;
+import com.ruoyi.ai.service.IAgentMcpService;
+import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.ai.util.SimplePythonFuncParser;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DictUtils;
@@ -14,6 +15,11 @@ import com.ruoyi.common.utils.spring.SpringUtils;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agent.tool.ToolSpecifications;
+import dev.langchain4j.internal.JsonSchemaElementJsonUtils;
+import dev.langchain4j.mcp.McpToolExecutor;
+import dev.langchain4j.mcp.client.DefaultMcpClient;
+import dev.langchain4j.mcp.client.McpClient;
+import dev.langchain4j.mcp.client.transport.McpTransport;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.service.tool.*;
 import dev.langchain4j.skills.DefaultSkill;
@@ -23,10 +29,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class JToolProvider implements ToolProvider {
@@ -40,8 +44,10 @@ public class JToolProvider implements ToolProvider {
     @Override
     public ToolProviderResult provideTools(ToolProviderRequest request) {
         ObjectMapper objectMapper = SpringUtils.getBean(ObjectMapper.class);
+        AiConfig aiConfig = SpringUtils.getBean(AiConfig.class);
         List<AgentTool> agentTools = aiAgent.getAgentTools();
         List<AgentSkill> agentSkills = aiAgent.getAgentSkills();
+        List<AgentMcpTool> agentMcpTools = aiAgent.getAgentMcpTools();
         Map<ToolSpecification, ToolExecutor> toolsProvider = new LinkedHashMap<>();
         String sandboxDict = DictUtils.getDictValue("ai_tool_type", "sandbox");
         String builtinDict = DictUtils.getDictValue("ai_tool_type", "builtin");
@@ -122,6 +128,49 @@ public class JToolProvider implements ToolProvider {
             ToolProviderResult toolProviderResult = toolProvider.provideTools(request);
             for (AiServiceTool aiServiceTool : toolProviderResult.aiServiceTools()) {
                 toolsProvider.put(aiServiceTool.toolSpecification(), aiServiceTool.toolExecutor());
+            }
+        }
+        if (CollUtil.isNotEmpty(agentMcpTools)) {
+            IAgentMcpService mcpService = SpringUtils.getBean(IAgentMcpService.class);
+            LangChain4jService langChain4jService = SpringUtils.getBean(LangChain4jService.class);
+            Set<Long> mcpServiceIds = agentMcpTools.stream().map(AgentMcpTool::getPid).collect(Collectors.toSet());
+            List<AgentMcpService> mcpServices = mcpService.selectAgentMcpServiceByIds(mcpServiceIds.toArray(Long[]::new));
+            Map<Long, McpClient> mcpClientMap = new LinkedHashMap<>();
+            for (AgentMcpService service : mcpServices) {
+                McpTransport mcpTransport = langChain4jService.getMcpTransport(service.getMcpUrl(), service.getMcpTransport(), service.getAuthToken());
+                DefaultMcpClient client = DefaultMcpClient.builder()
+                        .transport(mcpTransport)
+                        .toolExecutionTimeout(aiConfig.getMcp().getTimeout())
+                        .build();
+                mcpClientMap.put(service.getId(), client);
+            }
+            for (AgentMcpTool agentMcpTool : agentMcpTools) {
+                McpClient mcpClient = mcpClientMap.get(agentMcpTool.getPid());
+                LinkedHashMap<String, Object> map = null;
+                Map<String, Object> metadata = null;
+                try {
+                    if (agentMcpTool.getMcpToolParameters() != null) {
+                        map = objectMapper.readValue(agentMcpTool.getMcpToolParameters(), new TypeReference<>() {
+                        });
+                    }
+                    if (agentMcpTool.getMcpToolMetadata() != null) {
+                        metadata = objectMapper.readValue(agentMcpTool.getMcpToolMetadata(), new TypeReference<>() {
+                        });
+                    }
+                } catch (Exception e) {
+                    log.error(e.getMessage(), e);
+                }
+                if (map != null) {
+                    JsonObjectSchema jsonObjectSchema = (JsonObjectSchema) JsonSchemaElementJsonUtils.fromMap(map);
+                    McpToolExecutor mcpToolExecutor = new McpToolExecutor(mcpClient, agentMcpTool.getMcpToolName());
+                    ToolSpecification toolSpecification = ToolSpecification.builder()
+                            .parameters(jsonObjectSchema)
+                            .name(agentMcpTool.getMcpToolName())
+                            .description(agentMcpTool.getMcpToolDescription())
+                            .metadata(metadata)
+                            .build();
+                    toolsProvider.put(toolSpecification, mcpToolExecutor);
+                }
             }
         }
         return new ToolProviderResult(toolsProvider);

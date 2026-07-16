@@ -78,4 +78,6 @@ public interface IAIAgentService {
     public int insertAgentKBInvoked(AgentKbInvoke agentKbInvoke);
 
     public int insertAgentToolInvoked(AgentToolInvoke agentToolInvoke);
+
+    public int batchInsertAgentMcpToolMapping(List<AgentMcpToolMapping> mappings);
 }

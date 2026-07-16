@@ -114,17 +114,20 @@ public class AgentSkillServiceImpl implements IAgentSkillService, InitializingBe
         List<FileSystemSkill> skills = FileSystemSkillLoader.loadSkills(localSkillPath);
         if (CollUtil.isNotEmpty(skills)) {
             List<String> skillNames = skills.stream().map(Skill::name).toList();
-            agentSkillMapper.deleteAgentSkillByNames(skillNames);
-            List<AgentSkill> agentSkills = skills.stream().map(x -> {
+            List<AgentSkill> existsSkills = agentSkillMapper.selectAgentSkillByNames(skillNames);
+
+            List<AgentSkill> agentSkills = skills.stream().filter(x -> existsSkills.stream().noneMatch(y -> y.getSkillName().equals(x.name()))).map(x -> {
                 AgentSkill agentSkill = new AgentSkill();
                 agentSkill.setCreateTime(DateUtils.getNowDate());
                 agentSkill.setSkillName(x.name());
                 agentSkill.setSkillContent(x.content());
                 agentSkill.setSkillDescription(x.description());
-                agentSkill.setSkillType(DictUtils.getDictValue("ai_skill_type","导入"));
+                agentSkill.setSkillType(DictUtils.getDictValue("ai_skill_type", "导入"));
                 return agentSkill;
             }).toList();
-            agentSkillMapper.batchInsertAgentSkill(agentSkills);
+            if (CollUtil.isNotEmpty(agentSkills)) {
+                agentSkillMapper.batchInsertAgentSkill(agentSkills);
+            }
         }
     }
 

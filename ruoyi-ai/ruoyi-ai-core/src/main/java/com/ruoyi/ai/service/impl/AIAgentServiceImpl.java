@@ -81,6 +81,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
         int insertCount = aiAgentMapper.insertAiAgent(aiAgent);
         updateAgentToolMapping(aiAgent);
         updateAgentSkillMapping(aiAgent);
+        updateAgentMcpToolMapping(aiAgent);
         return insertCount;
     }
 
@@ -98,6 +99,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
         int updateCount = aiAgentMapper.updateAiAgent(aiAgent);
         updateAgentToolMapping(aiAgent);
         updateAgentSkillMapping(aiAgent);
+        updateAgentMcpToolMapping(aiAgent);
         return updateCount;
     }
 
@@ -135,14 +137,36 @@ public class AIAgentServiceImpl implements IAIAgentService {
         }
     }
 
+    private void updateAgentMcpToolMapping(AIAgent aiAgent) {
+        if (StringUtils.isNotBlank(aiAgent.getMcpToolIds())) {
+            List<AgentMcpToolMapping> mappings = Arrays.stream(aiAgent.getMcpToolIds().split(",")).map(x -> {
+                AgentMcpToolMapping mapping = new AgentMcpToolMapping();
+                mapping.setAgentId(aiAgent.getId());
+                mapping.setMcpToolId(Long.valueOf(x));
+                return mapping;
+            }).toList();
+            if (CollUtil.isNotEmpty(mappings)) {
+                aiAgentMapper.deleteAgentMcpToolMappingByAgentId(aiAgent.getId());
+                this.batchInsertAgentMcpToolMapping(mappings);
+            }
+        } else {
+            aiAgentMapper.deleteAgentMcpToolMappingByAgentId(aiAgent.getId());
+        }
+    }
+
     /**
      * 批量删除AI智能体
      *
      * @param ids 需要删除的AI智能体主键
      * @return 结果
      */
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public int deleteAiAgentByIds(Long[] ids) {
+        for (Long id : ids) {
+            aiAgentMapper.deleteAgentToolMappingByAgentId(id);
+            aiAgentMapper.deleteAgentSkillMappingByAgentId(id);
+        }
         return aiAgentMapper.deleteAiAgentByIds(ids);
     }
 
@@ -185,5 +209,10 @@ public class AIAgentServiceImpl implements IAIAgentService {
     @Override
     public int insertAgentToolInvoked(AgentToolInvoke agentToolInvoke) {
         return agentToolInvokeMapper.insertAgentToolInvoke(agentToolInvoke);
+    }
+
+    @Override
+    public int batchInsertAgentMcpToolMapping(List<AgentMcpToolMapping> mappings) {
+        return aiAgentMapper.batchInsertAgentMcpToolMapping(mappings);
     }
 }

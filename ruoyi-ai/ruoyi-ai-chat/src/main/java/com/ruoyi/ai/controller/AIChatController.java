@@ -3,13 +3,11 @@ package com.ruoyi.ai.controller;
 import cn.hutool.core.collection.CollUtil;
 import com.ruoyi.ai.agent.AgentType;
 import com.ruoyi.ai.controller.model.ChatReq;
+import com.ruoyi.ai.domain.AgentMcpTool;
 import com.ruoyi.ai.domain.AgentSkill;
 import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.domain.AIAgent;
-import com.ruoyi.ai.service.IAgentSkillService;
-import com.ruoyi.ai.service.IAgentToolService;
-import com.ruoyi.ai.service.IAIAgentService;
-import com.ruoyi.ai.service.IAIChatService;
+import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.service.impl.AIAssistantExecutor;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
@@ -36,6 +34,9 @@ public class AIChatController extends ChatController {
     IAgentSkillService agentSkillService;
 
     @Resource
+    IAgentMcpService agentMcpService;
+
+    @Resource
     private AIAssistantExecutor aiAssistantExecutor;
 
     public AIChatController(IAIChatService aiChatService) {
@@ -45,7 +46,8 @@ public class AIChatController extends ChatController {
     protected AgentType getAgentType(AIAgent aiAgent) {
         List<AgentTool> agentTools = agentToolService.selectAgentToolByAgentId(aiAgent.getId());
         List<AgentSkill> agentSkills = agentSkillService.selectAgentSkillByAgentId(aiAgent.getId());
-        return CollUtil.isEmpty(agentTools) && CollUtil.isEmpty(agentSkills) ? AgentType.simple : AgentType.service;
+        List<AgentMcpTool> agentMcpTools = agentMcpService.selectAgentMcpServiceByAgentId(aiAgent.getId());
+        return CollUtil.isEmpty(agentTools) && CollUtil.isEmpty(agentSkills) && CollUtil.isEmpty(agentMcpTools) ? AgentType.simple : AgentType.service;
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
