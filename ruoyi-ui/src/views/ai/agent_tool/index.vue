@@ -127,7 +127,8 @@
           </el-select>
         </el-form-item>
         <el-form-item label="工具代码" prop="code">
-          <el-input v-model="form.code" type="textarea" placeholder="请输入内容" rows="10" />
+<!--          <el-input v-model="form.code" type="textarea" placeholder="请输入内容" rows="10" />-->
+          <code-editor v-model="form.code" :language="python" :height="300"></code-editor>
           <i>Tips: 工具代码仅在sandbox类型工具中被支持，当前仅支持python</i>
         </el-form-item>
         <el-form-item label="工具描述" prop="description">
