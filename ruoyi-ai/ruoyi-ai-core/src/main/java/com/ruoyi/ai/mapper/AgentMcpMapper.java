@@ -12,7 +12,7 @@ import java.util.List;
  * @author Jerry
  * @date 2026-07-15
  */
-public interface AgentMcpServiceMapper 
+public interface AgentMcpMapper
 {
     /**
      * 查询mcp
@@ -88,4 +88,8 @@ public interface AgentMcpServiceMapper
     public int deleteAgentMcpToolByPid(Long id);
 
     public List<AgentMcpTool> selectAgentMcpToolList(@Param("pid") Long pid);
+
+    List<AgentMcpTool> selectAgentMcpServiceByAgentId(Long agentId);
+
+    public List<AgentMcpService> selectAgentMcpServiceByIds(Long[] ids);
 }

@@ -7,91 +7,106 @@ import com.ruoyi.common.core.domain.BaseEntity;
 
 /**
  * agent_mcp_tool对象 agent_mcp_tool
- * 
+ *
  * @author Jerry
  * @date 2026-07-15
  */
-public class AgentMcpTool extends BaseEntity
-{
+public class AgentMcpTool extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
-    /** 主键ID */
+    /**
+     * 主键ID
+     */
     private Long id;
 
-    /** mcp工具名称 */
+    /**
+     * mcp工具名称
+     */
     @Excel(name = "mcp工具名称")
     private String mcpToolName;
 
-    /** mcp工具描述 */
+    /**
+     * mcp工具描述
+     */
     @Excel(name = "mcp工具描述")
     private String mcpToolDescription;
 
-    /** mcp工具参数 */
+    /**
+     * mcp工具参数
+     */
     @Excel(name = "mcp工具参数")
     private String mcpToolParameters;
 
-    /** 所属mcp service id */
+    @Excel(name = "mcp工具元数据")
+    private String mcpToolMetadata;
+
+    /**
+     * 所属mcp service id
+     */
     @Excel(name = "所属mcp service id")
     private Long pid;
 
-    public void setId(Long id) 
-    {
+    public void setId(Long id) {
         this.id = id;
     }
 
-    public Long getId() 
-    {
+    public Long getId() {
         return id;
     }
-    public void setMcpToolName(String mcpToolName) 
-    {
+
+    public void setMcpToolName(String mcpToolName) {
         this.mcpToolName = mcpToolName;
     }
 
-    public String getMcpToolName() 
-    {
+    public String getMcpToolName() {
         return mcpToolName;
     }
-    public void setMcpToolDescription(String mcpToolDescription) 
-    {
+
+    public void setMcpToolDescription(String mcpToolDescription) {
         this.mcpToolDescription = mcpToolDescription;
     }
 
-    public String getMcpToolDescription() 
-    {
+    public String getMcpToolDescription() {
         return mcpToolDescription;
     }
-    public void setMcpToolParameters(String mcpToolParameters) 
-    {
+
+    public void setMcpToolParameters(String mcpToolParameters) {
         this.mcpToolParameters = mcpToolParameters;
     }
 
-    public String getMcpToolParameters() 
-    {
+    public String getMcpToolParameters() {
         return mcpToolParameters;
     }
-    public void setPid(Long pid) 
-    {
+
+    public void setPid(Long pid) {
         this.pid = pid;
     }
 
-    public Long getPid() 
-    {
+    public Long getPid() {
         return pid;
+    }
+
+    public String getMcpToolMetadata() {
+        return mcpToolMetadata;
+    }
+
+    public void setMcpToolMetadata(String mcpToolMetadata) {
+        this.mcpToolMetadata = mcpToolMetadata;
     }
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
-            .append("id", getId())
-            .append("mcpToolName", getMcpToolName())
-            .append("mcpToolDescription", getMcpToolDescription())
-            .append("mcpToolParameters", getMcpToolParameters())
-            .append("pid", getPid())
-            .append("createTime", getCreateTime())
-            .append("updateTime", getUpdateTime())
-            .append("createBy", getCreateBy())
-            .append("updateBy", getUpdateBy())
-            .toString();
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+                .append("id", getId())
+                .append("mcpToolName", getMcpToolName())
+                .append("mcpToolDescription", getMcpToolDescription())
+                .append("mcpToolParameters", getMcpToolParameters())
+                .append("mcpToolMetadata", getMcpToolMetadata())
+                .append("pid", getPid())
+                .append("createTime", getCreateTime())
+                .append("updateTime", getUpdateTime())
+                .append("createBy", getCreateBy())
+                .append("updateBy", getUpdateBy())
+                .toString();
     }
 }

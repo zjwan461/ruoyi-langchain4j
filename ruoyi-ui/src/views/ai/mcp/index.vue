@@ -168,6 +168,11 @@
               <el-input v-model="scope.row.mcpToolParameters" placeholder="请输入mcp工具参数" type="textarea"/>
             </template>
           </el-table-column>
+          <el-table-column label="mcp工具元数据" prop="mcpToolMetadata" width="300">
+            <template slot-scope="scope">
+              <el-input v-model="scope.row.mcpToolMetadata" placeholder="请输入mcp工具参数" type="textarea"/>
+            </template>
+          </el-table-column>
         </el-table>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -342,6 +347,7 @@ export default {
       obj.mcpToolName = ""
       obj.mcpToolDescription = ""
       obj.mcpToolParameters = ""
+      obj.mcpToolMetadata = ""
       this.agentMcpToolList.push(obj)
     },
     /** agent_mcp_tool删除按钮操作 */

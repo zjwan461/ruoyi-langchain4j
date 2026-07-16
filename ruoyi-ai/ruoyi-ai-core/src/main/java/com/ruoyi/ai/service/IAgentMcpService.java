@@ -11,7 +11,7 @@ import java.util.List;
  * @author Jerry
  * @date 2026-07-15
  */
-public interface IAgentMcpServiceService 
+public interface IAgentMcpService
 {
     /**
      * 查询mcp
@@ -62,4 +62,8 @@ public interface IAgentMcpServiceService
     public int deleteAgentMcpServiceById(Long id);
 
     List<AgentMcpTool> selectAgentMcpToolList(Long mcpServiceId);
+
+    List<AgentMcpTool> selectAgentMcpServiceByAgentId(Long agentId);
+
+    public List<AgentMcpService> selectAgentMcpServiceByIds(Long[] ids);
 }

@@ -2,8 +2,8 @@ package com.ruoyi.ai.service.impl;
 
 import com.ruoyi.ai.domain.AgentMcpService;
 import com.ruoyi.ai.domain.AgentMcpTool;
-import com.ruoyi.ai.mapper.AgentMcpServiceMapper;
-import com.ruoyi.ai.service.IAgentMcpServiceService;
+import com.ruoyi.ai.mapper.AgentMcpMapper;
+import com.ruoyi.ai.service.IAgentMcpService;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
@@ -22,10 +22,10 @@ import java.util.List;
  * @date 2026-07-15
  */
 @Service
-public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService 
+public class AgentMcpServiceImpl implements IAgentMcpService
 {
     @Autowired
-    private AgentMcpServiceMapper agentMcpServiceMapper;
+    private AgentMcpMapper agentMcpMapper;
 
     /**
      * 查询mcp
@@ -36,7 +36,7 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
     @Override
     public AgentMcpService selectAgentMcpServiceById(Long id)
     {
-        return agentMcpServiceMapper.selectAgentMcpServiceById(id);
+        return agentMcpMapper.selectAgentMcpServiceById(id);
     }
 
     /**
@@ -48,7 +48,7 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
     @Override
     public List<AgentMcpService> selectAgentMcpServiceList(AgentMcpService agentMcpService)
     {
-        return agentMcpServiceMapper.selectAgentMcpServiceList(agentMcpService);
+        return agentMcpMapper.selectAgentMcpServiceList(agentMcpService);
     }
 
     /**
@@ -63,7 +63,7 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
     {
         agentMcpService.setCreateTime(DateUtils.getNowDate());
         agentMcpService.setCreateBy(SecurityUtils.getUsername());
-        int rows = agentMcpServiceMapper.insertAgentMcpService(agentMcpService);
+        int rows = agentMcpMapper.insertAgentMcpService(agentMcpService);
         insertAgentMcpTool(agentMcpService);
         return rows;
     }
@@ -80,9 +80,9 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
     {
         agentMcpService.setUpdateTime(DateUtils.getNowDate());
         agentMcpService.setUpdateBy(SecurityUtils.getUsername());
-        agentMcpServiceMapper.deleteAgentMcpToolByPid(agentMcpService.getId());
+        agentMcpMapper.deleteAgentMcpToolByPid(agentMcpService.getId());
         insertAgentMcpTool(agentMcpService);
-        return agentMcpServiceMapper.updateAgentMcpService(agentMcpService);
+        return agentMcpMapper.updateAgentMcpService(agentMcpService);
     }
 
     /**
@@ -95,8 +95,8 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
     @Override
     public int deleteAgentMcpServiceByIds(Long[] ids)
     {
-        agentMcpServiceMapper.deleteAgentMcpToolByPids(ids);
-        return agentMcpServiceMapper.deleteAgentMcpServiceByIds(ids);
+        agentMcpMapper.deleteAgentMcpToolByPids(ids);
+        return agentMcpMapper.deleteAgentMcpServiceByIds(ids);
     }
 
     /**
@@ -109,8 +109,8 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
     @Override
     public int deleteAgentMcpServiceById(Long id)
     {
-        agentMcpServiceMapper.deleteAgentMcpToolByPid(id);
-        return agentMcpServiceMapper.deleteAgentMcpServiceById(id);
+        agentMcpMapper.deleteAgentMcpToolByPid(id);
+        return agentMcpMapper.deleteAgentMcpServiceById(id);
     }
 
     /**
@@ -134,13 +134,23 @@ public class AgentMcpServiceServiceImpl implements IAgentMcpServiceService
             }
             if (list.size() > 0)
             {
-                agentMcpServiceMapper.batchAgentMcpTool(list);
+                agentMcpMapper.batchAgentMcpTool(list);
             }
         }
     }
 
     @Override
     public List<AgentMcpTool> selectAgentMcpToolList(Long mcpServiceId) {
-        return agentMcpServiceMapper.selectAgentMcpToolList(mcpServiceId);
+        return agentMcpMapper.selectAgentMcpToolList(mcpServiceId);
+    }
+
+    @Override
+    public List<AgentMcpTool> selectAgentMcpServiceByAgentId(Long agentId) {
+        return agentMcpMapper.selectAgentMcpServiceByAgentId(agentId);
+    }
+
+    @Override
+    public List<AgentMcpService> selectAgentMcpServiceByIds(Long[] ids) {
+        return agentMcpMapper.selectAgentMcpServiceByIds(ids);
     }
 }

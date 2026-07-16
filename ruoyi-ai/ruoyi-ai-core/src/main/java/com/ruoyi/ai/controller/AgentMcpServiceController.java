@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.AgentMcpService;
 import com.ruoyi.ai.domain.AgentMcpTool;
-import com.ruoyi.ai.service.IAgentMcpServiceService;
+import com.ruoyi.ai.service.IAgentMcpService;
 import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.common.annotation.Log;
 import com.ruoyi.common.core.controller.BaseController;
@@ -35,7 +35,7 @@ import java.util.Map;
 @RequestMapping("/ai/mcp")
 public class AgentMcpServiceController extends BaseController {
     @Autowired
-    private IAgentMcpServiceService agentMcpServiceService;
+    private IAgentMcpService agentMcpServiceService;
     @Resource
     private LangChain4jService langChain4jService;
     @Resource
@@ -112,16 +112,21 @@ public class AgentMcpServiceController extends BaseController {
         for (ToolSpecification toolSpecification : toolSpecifications) {
             AgentMcpTool mcpTool = new AgentMcpTool();
             mcpTool.setMcpToolName(toolSpecification.name());
+            mcpTool.setMcpToolDescription(toolSpecification.description());
             Map<String, Object> paramMap = JsonSchemaElementJsonUtils.toMap(toolSpecification.parameters());
-            String json = null;
             try {
-                json = objectMapper.writeValueAsString(paramMap);
+                String json = objectMapper.writeValueAsString(paramMap);
+                mcpTool.setMcpToolParameters(json);
             } catch (JsonProcessingException e) {
-                logger.error(e.getMessage(), e);
+                logger.error("mcp参数提取失败", e);
                 throw new ServiceException("MCP参数提取失败");
             }
-            mcpTool.setMcpToolParameters(json);
-            mcpTool.setMcpToolDescription(toolSpecification.description());
+            try {
+                String metadata = objectMapper.writeValueAsString(toolSpecification.metadata());
+                mcpTool.setMcpToolMetadata(metadata);
+            } catch (JsonProcessingException e) {
+                logger.error("mcp元数据提取失败", e);
+            }
             mcpTools.add(mcpTool);
         }
         return success(mcpTools);

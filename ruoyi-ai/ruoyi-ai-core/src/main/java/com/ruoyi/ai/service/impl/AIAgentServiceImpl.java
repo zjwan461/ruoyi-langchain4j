@@ -81,6 +81,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
         int insertCount = aiAgentMapper.insertAiAgent(aiAgent);
         updateAgentToolMapping(aiAgent);
         updateAgentSkillMapping(aiAgent);
+        updateAgentMcpToolMapping(aiAgent);
         return insertCount;
     }
 
@@ -98,6 +99,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
         int updateCount = aiAgentMapper.updateAiAgent(aiAgent);
         updateAgentToolMapping(aiAgent);
         updateAgentSkillMapping(aiAgent);
+        updateAgentMcpToolMapping(aiAgent);
         return updateCount;
     }
 
@@ -132,6 +134,23 @@ public class AIAgentServiceImpl implements IAIAgentService {
             }
         } else {
             aiAgentMapper.deleteAgentSkillMappingByAgentId(aiAgent.getId());
+        }
+    }
+
+    private void updateAgentMcpToolMapping(AIAgent aiAgent) {
+        if (StringUtils.isNotBlank(aiAgent.getMcpToolIds())) {
+            List<AgentMcpToolMapping> mappings = Arrays.stream(aiAgent.getMcpToolIds().split(",")).map(x -> {
+                AgentMcpToolMapping mapping = new AgentMcpToolMapping();
+                mapping.setAgentId(aiAgent.getId());
+                mapping.setMcpToolId(Long.valueOf(x));
+                return mapping;
+            }).toList();
+            if (CollUtil.isNotEmpty(mappings)) {
+                aiAgentMapper.deleteAgentMcpToolMappingByAgentId(aiAgent.getId());
+                this.batchInsertAgentMcpToolMapping(mappings);
+            }
+        } else {
+            aiAgentMapper.deleteAgentMcpToolMappingByAgentId(aiAgent.getId());
         }
     }
 
@@ -190,5 +209,10 @@ public class AIAgentServiceImpl implements IAIAgentService {
     @Override
     public int insertAgentToolInvoked(AgentToolInvoke agentToolInvoke) {
         return agentToolInvokeMapper.insertAgentToolInvoke(agentToolInvoke);
+    }
+
+    @Override
+    public int batchInsertAgentMcpToolMapping(List<AgentMcpToolMapping> mappings) {
+        return aiAgentMapper.batchInsertAgentMcpToolMapping(mappings);
     }
 }

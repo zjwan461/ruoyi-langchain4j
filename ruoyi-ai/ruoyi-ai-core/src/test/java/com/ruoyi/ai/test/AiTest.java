@@ -429,26 +429,28 @@ public class AiTest {
             Map<String, Object> map = JsonSchemaElementJsonUtils.toMap(toolSpecification.parameters());
             String json = objectMapper.writeValueAsString(map);
             System.out.println(json);
+            System.out.println(toolSpecification.metadata());
+            System.out.println(toolSpecification.strict());
         }
 
 //        client.executeTool()
 
 
-        McpToolProvider mcpToolProvider = McpToolProvider.builder()
-                .mcpClients(client)
-                .build();
-        List<AiServiceTool> aiServiceTools = mcpToolProvider.provideTools(null).aiServiceTools();
-
-        OpenAiChatModel model = buildBlockModel();
-        Assistant assistant = AiServices.builder(Assistant.class)
-                .chatModel(model)
-                .systemMessage("在必要时调用工具")
-                .toolProvider(mcpToolProvider)
-                .chatMemory(buildChatMemory())
-                .build();
-
-        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
-        System.out.println(resp);
+//        McpToolProvider mcpToolProvider = McpToolProvider.builder()
+//                .mcpClients(client)
+//                .build();
+//        List<AiServiceTool> aiServiceTools = mcpToolProvider.provideTools(null).aiServiceTools();
+//
+//        OpenAiChatModel model = buildBlockModel();
+//        Assistant assistant = AiServices.builder(Assistant.class)
+//                .chatModel(model)
+//                .systemMessage("在必要时调用工具")
+//                .toolProvider(mcpToolProvider)
+//                .chatMemory(buildChatMemory())
+//                .build();
+//
+//        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
+//        System.out.println(resp);
     }
 
 }

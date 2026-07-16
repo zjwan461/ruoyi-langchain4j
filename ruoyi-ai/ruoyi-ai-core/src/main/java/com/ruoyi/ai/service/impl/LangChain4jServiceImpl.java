@@ -219,6 +219,20 @@ public class LangChain4jServiceImpl implements LangChain4jService {
 
     @Override
     public List<ToolSpecification> listMcpTool(String mcpUrl, String transport, String authToken) {
+        McpTransport mcpTransport = getMcpTransport(mcpUrl, transport, authToken);
+        try (DefaultMcpClient client = DefaultMcpClient.builder()
+                .transport(mcpTransport)
+                .toolExecutionTimeout(aiConfig.getMcp().getTimeout())
+                .build()) {
+            return client.listTools();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new ServiceException("拉取MCP工具列表失败");
+        }
+    }
+
+    @Override
+    public McpTransport getMcpTransport(String mcpUrl, String transport, String authToken) {
         String sseTransport = DictUtils.getDictValue("ai_mcp_transport", "sse");
         String stdioTransport = DictUtils.getDictValue("ai_mcp_transport", "stdio");
         String streamableHttpTransport = DictUtils.getDictValue("ai_mcp_transport", "streamable-http");
@@ -239,14 +253,6 @@ public class LangChain4jServiceImpl implements LangChain4jService {
         } else {
             throw new ServiceException("不支持的transport:" + transport);
         }
-        try (DefaultMcpClient client = DefaultMcpClient.builder()
-                .transport(mcpTransport)
-                .toolExecutionTimeout(aiConfig.getMcp().getTimeout())
-                .build()) {
-            return client.listTools();
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-            throw new ServiceException("拉取MCP工具列表失败");
-        }
+        return mcpTransport;
     }
 }

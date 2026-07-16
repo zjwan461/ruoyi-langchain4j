@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.ruoyi.ai.mapper.AgentMcpServiceMapper">
+<mapper namespace="com.ruoyi.ai.mapper.AgentMcpMapper">
     
     <resultMap type="AgentMcpService" id="AgentMcpServiceResult">
         <result property="id"    column="id"    />
@@ -25,6 +25,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="mcpToolName"    column="mcp_tool_name"    />
         <result property="mcpToolDescription"    column="mcp_tool_description"    />
         <result property="mcpToolParameters"    column="mcp_tool_parameters"    />
+        <result property="mcpToolMetadata"    column="mcp_tool_metadata"    />
         <result property="pid"    column="pid"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
@@ -52,7 +53,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </select>
 
     <select id="selectAgentMcpToolList" resultMap="AgentMcpToolResult">
-        select id, mcp_tool_name, mcp_tool_description, mcp_tool_parameters, pid, create_time, update_time, create_by, update_by
+        select id, mcp_tool_name, mcp_tool_description, mcp_tool_parameters, mcp_tool_metadata, pid, create_time, update_time, create_by, update_by
         from agent_mcp_tool
         where pid = #{pid}
     </select>
@@ -119,10 +120,22 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <insert id="batchAgentMcpTool">
-        insert into agent_mcp_tool( id, mcp_tool_name, mcp_tool_description, mcp_tool_parameters, pid, create_time, update_time, create_by, update_by) values
+        insert into agent_mcp_tool( id, mcp_tool_name, mcp_tool_description, mcp_tool_parameters, mcp_tool_metadata, pid, create_time, update_time, create_by, update_by) values
         <foreach item="item" index="index" collection="list" separator=",">
-            ( #{item.id}, #{item.mcpToolName}, #{item.mcpToolDescription}, #{item.mcpToolParameters}, #{item.pid}, #{item.createTime}, #{item.updateTime}, #{item.createBy}, #{item.updateBy})
+            ( #{item.id}, #{item.mcpToolName}, #{item.mcpToolDescription}, #{item.mcpToolParameters}, #{item.mcpToolMetadata}, #{item.pid}, #{item.createTime}, #{item.updateTime}, #{item.createBy}, #{item.updateBy})
         </foreach>
     </insert>
 
+    <select id="selectAgentMcpServiceByAgentId" parameterType="java.lang.Long" resultMap="AgentMcpToolResult">
+        select a.*
+        from agent_mcp_tool a join agent_mcp_tool_mapping b on a.id = b.mcp_tool_id join ai_agent c on b.agent_id = c.id
+        where c.id = #{agentId}
+    </select>
+
+    <select id="selectAgentMcpServiceByIds" parameterType="java.lang.Long" resultMap="AgentMcpServiceResult">
+        select * from agent_mcp_service where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

@@ -77,7 +77,7 @@
       @pagination="getList" />
 
     <!-- 添加或修改AI智能体对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="800px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="900px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="130px">
         <el-form-item label="智能体类型" prop="agentType">
           <el-select v-model="form.agentType" placeholder="请选择智能体类型">
@@ -94,25 +94,27 @@
         </el-form-item>
         <!-- origin 类型专属字段:dify 类型时整块隐藏 -->
         <template v-if="form.agentType !== 'dify'">
-          <el-form-item label="AI模型" prop="modelId">
-            <el-select v-model="form.modelId">
-              <el-option v-for="item in llms" :key="item.id" :value="item.id" :label="item.name"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="temperature" prop="temperature">
-            <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
-          </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="AI模型" prop="modelId">
+                <el-select v-model="form.modelId">
+                  <el-option v-for="item in llms" :key="item.id" :value="item.id" :label="item.name"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="temperature" prop="temperature">
+                <el-input-number v-model="form.temperature" :step="0.1" :max="1.0" :min="0.1" placeholder="请输入temperature" />
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-form-item label="token最大生成数" prop="maxOutputToken">
             <el-input-number v-model="form.maxOutputToken" :step="100" :min="-1" placeholder="请输入token最大生成数" />
             <br>
             <i class="color: grey">Tips: <b
               style="color: red;">-1</b>表示不限制长度;部分模型不支持此参数，请设置为-1</i>
           </el-form-item>
-          <el-form-item label="知识库" prop="kbIds">
-            <el-select v-model="form.kbIds" filterable multiple>
-              <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
-            </el-select>
-          </el-form-item>
+
           <el-row :gutter="20">
             <el-col :span="12">
               <el-form-item label="工具" prop="toolIds">
@@ -131,7 +133,7 @@
           </el-row>
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item label="MCP" prop="mcpServiceId">
+              <el-form-item label="MCP Service" prop="mcpServiceId">
                 <el-select v-model="form.mcpServiceId" placeholder="请选择MCP服务" clearable style="width: 100%" @change="handleMcpServiceChange">
                   <el-option v-for="item in mcpServices" :key="item.id" :value="item.id" :label="item.mcpServiceName"></el-option>
                 </el-select>
@@ -139,20 +141,31 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="MCP Tool" prop="mcpToolIds">
-                <el-select v-model="form.mcpToolIds" placeholder="请选择MCP工具" filterable multiple :disabled="!form.mcpServiceId" style="width: 100%">
+                <el-select v-model="form.mcpToolIds" placeholder="请选择MCP工具" filterable multiple style="width: 100%">
                   <el-option v-for="item in mcpTools" :key="item.id" :value="item.id" :label="item.mcpToolName"></el-option>
                 </el-select>
               </el-form-item>
             </el-col>
           </el-row>
-          <el-form-item label="最小得分" prop="minScore"
-            v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
-            <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
+          <el-form-item label="知识库" prop="kbIds">
+            <el-select v-model="form.kbIds" filterable multiple>
+              <el-option v-for="item in kbs" :key="item.id" :value="item.id" :label="item.name"></el-option>
+            </el-select>
           </el-form-item>
-          <el-form-item label="最大查询记录数" prop="maxResult"
-            v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
-            <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
-          </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="最小得分" prop="minScore"
+                v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+                <el-input-number v-model="form.minScore" :max="1.0" :step="0.01"></el-input-number>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="最大查询记录数" prop="maxResult"
+                v-show="this.form.kbIds && this.form.kbIds !== null && this.form.kbIds !== ''">
+                <el-input-number v-model="form.maxResult" :max="5" :step="1"></el-input-number>
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-form-item label="系统提示词" prop="systemMessage">
             <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="3000"
               show-word-limit clearable />
@@ -407,19 +420,15 @@ export default {
             })
             this.form.skillIds = skillIds
           }
-          // MCP 字段回显:服务端存储为逗号分隔字符串,转成数字数组;
-          // 同时按所选服务加载对应工具列表
-          if (this.form.mcpServiceId) {
-            const serviceId = this.form.mcpServiceId
-            if (this.form.mcpToolIds) {
-              this.form.mcpToolIds = String(this.form.mcpToolIds)
-                .split(',')
-                .map(str => parseInt(str, 10))
-                .filter(item => !isNaN(item))
-            } else {
-              this.form.mcpToolIds = []
-            }
-            this.loadMcpTools(serviceId)
+          if (this.form.agentMcpTools) {
+            let mcpToolsId = []
+            this.form.agentMcpTools.forEach(item=>{
+              mcpToolsId.push(item.id)
+              listMcpTools(item.pid).then(res => {
+                this.mcpTools = res.data || []
+              })
+            })
+            this.form.mcpToolIds = mcpToolsId
           }
         }
         this.open = true
@@ -520,7 +529,7 @@ export default {
     },
     /** 第一个下拉框切换时:清空已选工具并重新加载该服务下的工具列表 */
     handleMcpServiceChange(value) {
-      this.form.mcpToolIds = []
+      // this.form.mcpToolIds = []
       this.loadMcpTools(value)
     }
   }

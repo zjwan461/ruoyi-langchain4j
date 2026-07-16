@@ -21,6 +21,7 @@ create table agent_mcp_tool
     mcp_tool_name        varchar(255)    not null comment 'mcp工具名称',
     mcp_tool_description varchar(500)    not null comment 'mcp工具描述',
     mcp_tool_parameters  longtext        not null comment 'mcp工具参数',
+    mcp_tool_metadata    longtext        null null comment 'mcp工具元数据',
     pid                  bigint unsigned not null comment '所属mcp service id',
     create_time          DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
     update_time          datetime        null default null comment '更新时间',
