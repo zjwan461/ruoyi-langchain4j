@@ -27,6 +27,8 @@ import RightToolbar from "@/components/RightToolbar"
 import Editor from "@/components/Editor"
 // markdown组件
 import MarkdownEditor from "@/components/Editor/mdEditor.vue"
+// code组件
+import CodeEditor from "@/components/Editor/codeEditor.vue"
 // 文件上传组件
 import FileUpload from "@/components/FileUpload"
 // 图片上传组件
@@ -55,6 +57,7 @@ Vue.component('Pagination', Pagination)
 Vue.component('RightToolbar', RightToolbar)
 Vue.component('Editor', Editor)
 Vue.component('MarkdownEditor', MarkdownEditor)
+Vue.component('CodeEditor', CodeEditor)
 Vue.component('FileUpload', FileUpload)
 Vue.component('ImageUpload', ImageUpload)
 Vue.component('ImagePreview', ImagePreview)
