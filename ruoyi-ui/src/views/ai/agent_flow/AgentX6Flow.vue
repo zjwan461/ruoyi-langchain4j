@@ -84,15 +84,20 @@
 </template>
 
 <script>
-import { Graph } from '@antv/x6'
-import { Dnd } from '@antv/x6-plugin-dnd'
-import { Snapline } from '@antv/x6-plugin-snapline'
-import { History } from '@antv/x6-plugin-history'
+import {Graph} from '@antv/x6'
+import {Dnd} from '@antv/x6-plugin-dnd'
+import {Snapline} from '@antv/x6-plugin-snapline'
+import {History} from '@antv/x6-plugin-history'
+import {getAgent_flow, updateAgent_flow} from '@/api/ai/agent_flow'
 
 export default {
   name: 'AgentX6Flow',
   data() {
     return {
+      // 当前路由中的 agentFlowId
+      agentFlowId: null,
+      // agent_flow 详情数据
+      flowData: {},
       graph: null,
       dnd: null,
       selectedCell: null,
@@ -103,6 +108,11 @@ export default {
         description: '',
         showReasoning: false,
       },
+      // 自动保存相关
+      autoSaveTimer: null,
+      autoSaveDelay: 5000, // 5秒无操作自动保存
+      hasUnsavedChanges: false,
+      isSaving: false,
       // Agent 基础配置
       agentList: [
         {
@@ -149,12 +159,21 @@ export default {
   },
 
   mounted() {
+    // 从路由路径变量中取出 agentFlowId
+    const params = this.$route && this.$route.params
+    this.agentFlowId = (params && params.agentFlowId) ? params.agentFlowId : null
+
     this.$nextTick(() => {
       this.initGraph()
       this.initDnd()
       window.addEventListener('resize', this.onResize)
       window.addEventListener('keydown', this.handleKeydown)
     })
+
+    // 加载 agent_flow 详情到 flowData
+    this.loadAgentFlow()
+    // 启动自动保存计时器
+    this.startAutoSaveTimer()
   },
 
   beforeDestroy() {
@@ -163,9 +182,167 @@ export default {
     if (this.graph) {
       this.graph.dispose()
     }
+    // 清理自动保存计时器
+    this.clearAutoSaveTimer()
   },
 
   methods: {
+    // ========== 自动保存相关方法 ==========
+    // 启动自动保存计时器
+    startAutoSaveTimer() {
+      this.clearAutoSaveTimer()
+      this.autoSaveTimer = setTimeout(() => {
+        this.autoSave()
+      }, this.autoSaveDelay)
+    },
+
+    // 清除自动保存计时器
+    clearAutoSaveTimer() {
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer)
+        this.autoSaveTimer = null
+      }
+    },
+
+    // 重置自动保存计时器（用户操作时调用）
+    resetAutoSaveTimer() {
+      if (!this.isSaving) {
+        this.hasUnsavedChanges = true
+        this.startAutoSaveTimer()
+      }
+    },
+
+    // 自动保存方法
+    autoSave() {
+      if (!this.hasUnsavedChanges || this.isSaving) {
+        return
+      }
+      if (!this.agentFlowId) {
+        console.warn('agentFlowId 缺失，无法保存')
+        return
+      }
+      this.saveFlowData()
+    },
+
+    // 保存流程数据到后端
+    saveFlowData() {
+      if (this.isSaving) {
+        return
+      }
+      this.isSaving = true
+
+      // 获取当前画布的 JSON 数据
+      const flowJson = this.graph.toJSON()
+
+      const data = {
+        id: this.agentFlowId,
+        flowJson: JSON.stringify(flowJson)
+      }
+
+      updateAgent_flow(data).then(res => {
+        this.isSaving = false
+        this.hasUnsavedChanges = false
+        if (res.code === 200) {
+          console.log('自动保存成功')
+        } else {
+          console.warn('自动保存返回异常:', res.msg)
+        }
+      }).catch(err => {
+        this.isSaving = false
+        console.error('自动保存失败:', err)
+      })
+    },
+
+    // ========== 加载与渲染 ==========
+    // 加载 agent_flow 详情
+    loadAgentFlow() {
+      if (!this.agentFlowId) {
+        this.$message.warning('路由参数 agentFlowId 缺失，无法加载流程详情')
+        return
+      }
+      getAgent_flow(this.agentFlowId).then(res => {
+        this.flowData = (res && res.data) || {}
+        console.log('agent_flow 详情加载完成:', this.flowData)
+        // 详情加载完成后渲染画布
+        this.$nextTick(() => {
+          this.renderFlow()
+        })
+      }).catch(err => {
+        console.error('agent_flow 详情加载失败:', err)
+        this.$message.error('加载 agent_flow 详情失败')
+      })
+    },
+
+    // 从 flowData.flowJson 解析并渲染流程
+    renderFlow() {
+      if (!this.graph) {
+        console.warn('画布未初始化，跳过渲染')
+        return
+      }
+      const raw = this.flowData && this.flowData.flowJson
+      if (!raw) {
+        console.log('flowJson 为空，跳过渲染')
+        return
+      }
+
+      // 解析 JSON 字符串
+      let flowJson
+      try {
+        flowJson = typeof raw === 'string' ? JSON.parse(raw) : raw
+      } catch (e) {
+        console.error('flowJson 解析失败:', e)
+        this.$message.error('流程 JSON 解析失败')
+        return
+      }
+      if (!flowJson || typeof flowJson !== 'object') {
+        return
+      }
+
+      // 优先使用 X6 标准格式（包含 cells 数组）
+      if (Array.isArray(flowJson.cells)) {
+        this.graph.fromJSON(flowJson)
+        console.log('使用 X6 标准格式渲染流程')
+        return
+      }
+
+      // 自定义格式：nodes / edges
+      if (Array.isArray(flowJson.nodes)) {
+        const nodeIdMap = {}
+        flowJson.nodes.forEach(n => {
+          const position = n.position || {}
+          const node = this.graph.addNode({
+            id: n.nodeId,
+            shape: 'agent-node',
+            x: position.x || 0,
+            y: position.y || 0,
+            label: n.agentName || n.name || '',
+            data: {
+              agentId: n.agentId,
+              name: n.agentName || n.name || '',
+              description: n.description || '',
+              showReasoning: !!n.showReasoning,
+            },
+          })
+          nodeIdMap[n.nodeId] = node
+        })
+
+        if (Array.isArray(flowJson.edges)) {
+          flowJson.edges.forEach(e => {
+            const sourceCell = nodeIdMap[e.sourceNodeId]
+            const targetCell = nodeIdMap[e.targetNodeId]
+            if (sourceCell && targetCell) {
+              this.graph.addEdge({
+                id: e.edgeId,
+                source: {cell: sourceCell.id},
+                target: {cell: targetCell.id},
+              })
+            }
+          })
+        }
+        console.log('使用自定义 nodes/edges 格式渲染流程')
+      }
+    },
+
     initGraph() {
       const container = this.$refs.graphContainer
       const width = container.clientWidth || 800
@@ -306,6 +483,8 @@ export default {
             }
           }
         })
+        // 重置自动保存计时器
+        this.resetAutoSaveTimer()
       })
 
       // 连线成功：更新目标节点根状态
@@ -317,6 +496,8 @@ export default {
         if (this.currentNode === targetNode) {
           this.currentNodeData = { ...targetNode.getData() }
         }
+        // 重置自动保存计时器
+        this.resetAutoSaveTimer()
       })
 
       // 连线删除：目标节点若变为根节点，强制开启推理
@@ -332,6 +513,18 @@ export default {
             }
           }
         })
+        // 重置自动保存计时器
+        this.resetAutoSaveTimer()
+      })
+
+      // 节点位置变化
+      this.graph.on('node:moved', () => {
+        this.resetAutoSaveTimer()
+      })
+
+      // 节点大小变化
+      this.graph.on('node:resized', () => {
+        this.resetAutoSaveTimer()
       })
     },
 
@@ -393,6 +586,8 @@ export default {
       this.currentNode.setData({ ...this.currentNodeData })
       // 同步更新画布上节点的显示名称
       this.currentNode.attr('label/text', this.currentNodeData.name)
+      // 重置自动保存计时器
+      this.resetAutoSaveTimer()
     },
 
     // ========== 键盘事件 ==========
@@ -431,6 +626,8 @@ export default {
       this.graph.removeCells([this.selectedCell])
       this.clearSelected()
       this.$message.success('删除成功')
+      // 重置自动保存计时器
+      this.resetAutoSaveTimer()
     },
 
     // ========== 导出编排JSON ==========
@@ -472,9 +669,30 @@ export default {
         edges,
       }
 
-      console.log('📋 完整编排JSON结构：', flowData)
-      this.$message.success('编排JSON已输出到浏览器控制台')
+      // 序列化为 JSON 字符串并下载为文件
+      const jsonStr = JSON.stringify(flowData, null, 2)
+      const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.style.display = 'none'
+      link.download = this.buildExportFileName()
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      this.$message.success('编排 JSON 已导出为文件')
       return flowData
+    },
+
+    // 生成导出文件名
+    buildExportFileName() {
+      const d = new Date()
+      const pad = (n) => String(n).padStart(2, '0')
+      const ts = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds())
+      const baseName = (this.flowData && this.flowData.agentFlowName) ? this.flowData.agentFlowName : 'agent-flow'
+      return baseName + '-' + ts + '.json'
     },
 
     onResize() {

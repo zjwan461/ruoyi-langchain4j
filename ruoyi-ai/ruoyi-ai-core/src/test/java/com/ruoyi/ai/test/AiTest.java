@@ -10,13 +10,14 @@ import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
+import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.internal.JsonSchemaElementJsonUtils;
-import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpCallContext;
 import dev.langchain4j.mcp.client.McpHeadersSupplier;
@@ -39,7 +40,6 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.tool.AiServiceTool;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skills;
@@ -451,6 +451,15 @@ public class AiTest {
 //
 //        String resp = assistant.chat("帮我写一篇200字的短文，使用markdown格式。写完以后调用工具转成docx。完成后给我docx下载链接");
 //        System.out.println(resp);
+    }
+
+    @Test
+    public void testDoc() {
+        Document document = FileSystemDocumentLoader.loadDocument(Path.of("C:\\Users\\jerry\\Desktop\\Spring Boot技术介绍文档.pdf"), new ApacheTikaDocumentParser());
+        String text = document.text();
+        Metadata metadata = document.metadata();
+        System.out.println(text);
+        System.out.println(metadata);
     }
 
 }
