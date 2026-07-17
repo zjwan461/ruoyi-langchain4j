@@ -186,6 +186,20 @@ export const dynamicRoutes = [
       }
     ]
   },
+  {
+    path: '/ai/agent-flow',
+    component: Layout,
+    hidden: true,
+    permissions: ['ai:agent-flow:list'],
+    children: [
+      {
+        path: 'index/:agentId(\\d+)',
+        component: () => import('@/views/ai/flow/AgentX6Flow'),
+        name: 'AgentFlow',
+        meta: { title: '智能体编排', activeMenu: '/ai/agentFlow' }
+      }
+    ]
+  }
 ]
 
 // 防止连续点击多次路由报错
