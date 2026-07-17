@@ -1,5 +1,6 @@
 package com.ruoyi.ai.controller;
 
+import com.ruoyi.ai.controller.model.FlowAgent;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
 import com.ruoyi.ai.service.IAIAgentService;
@@ -113,6 +114,12 @@ public class AgentFlowController extends BaseController {
         AIAgent aiAgent = new AIAgent();
         aiAgent.setAgentType(DictUtils.getDictValue("ai_agent_type", "origin"));
         List<AIAgent> aiAgents = agentService.selectAiAgentList(aiAgent);
-        return success(aiAgents);
+        List<FlowAgent> list = aiAgents.stream().map(x -> FlowAgent.builder()
+                .id(x.getId())
+                .name(x.getName())
+                //todo
+                .description(x.getName())
+                .showReasoning(Boolean.TRUE).build()).toList();
+        return success(list);
     }
 }
