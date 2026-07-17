@@ -187,15 +187,15 @@ export const dynamicRoutes = [
     ]
   },
   {
-    path: '/ai/agent-flow',
+    path: '/ai/agent_flow_edit',
     component: Layout,
     hidden: true,
-    permissions: ['ai:agent-flow:list'],
+    permissions: ['ai:agent_flow:list'],
     children: [
       {
         path: 'index/:agentId(\\d+)',
-        component: () => import('@/views/ai/flow/AgentX6Flow'),
-        name: 'AgentFlow',
+        component: () => import('@/views/ai/agent_flow/AgentX6Flow.vue'),
+        name: 'AgentFlowEdit',
         meta: { title: '智能体编排', activeMenu: '/ai/agentFlow' }
       }
     ]
