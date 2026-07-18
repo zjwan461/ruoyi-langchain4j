@@ -42,3 +42,11 @@ export function delAgent_flow(id) {
     method: 'delete'
   })
 }
+
+// 查询可用于编排的agent列表
+export function listAgent() {
+  return request({
+    url: '/ai/agent_flow/list-agent',
+    method: 'get'
+  })
+}

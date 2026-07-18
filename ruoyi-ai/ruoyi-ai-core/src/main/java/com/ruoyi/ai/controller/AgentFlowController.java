@@ -117,8 +117,7 @@ public class AgentFlowController extends BaseController {
         List<FlowAgent> list = aiAgents.stream().map(x -> FlowAgent.builder()
                 .id(x.getId())
                 .name(x.getName())
-                //todo
-                .description(x.getName())
+                .description(x.getDescription())
                 .showReasoning(Boolean.TRUE).build()).toList();
         return success(list);
     }

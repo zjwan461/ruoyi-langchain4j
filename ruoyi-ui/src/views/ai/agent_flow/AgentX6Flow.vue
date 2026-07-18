@@ -88,7 +88,7 @@ import {Graph} from '@antv/x6'
 import {Dnd} from '@antv/x6-plugin-dnd'
 import {Snapline} from '@antv/x6-plugin-snapline'
 import {History} from '@antv/x6-plugin-history'
-import {getAgent_flow, updateAgent_flow} from '@/api/ai/agent_flow'
+import {getAgent_flow, updateAgent_flow, listAgent} from '@/api/ai/agent_flow'
 
 export default {
   name: 'AgentX6Flow',
@@ -174,6 +174,8 @@ export default {
     this.loadAgentFlow()
     // 启动自动保存计时器
     this.startAutoSaveTimer()
+    // 加载可用于编排的agent列表
+    this.loadFlowAgent()
   },
 
   beforeDestroy() {
@@ -187,6 +189,11 @@ export default {
   },
 
   methods: {
+    loadFlowAgent(){
+      listAgent().then(res=>{
+        this.agentList = res.data
+      })
+    },
     // ========== 自动保存相关方法 ==========
     // 启动自动保存计时器
     startAutoSaveTimer() {

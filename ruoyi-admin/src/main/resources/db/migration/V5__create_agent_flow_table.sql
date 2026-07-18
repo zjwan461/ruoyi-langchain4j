@@ -48,3 +48,6 @@ insert into sys_menu (menu_name, parent_id, order_num, path, component, is_frame
                       perms, icon, create_by, create_time, update_by, update_time, remark)
 values ('agent_flow导出', @parentId, '5', '#', '', 1, 0, 'F', '0', '0', 'ai:agent_flow:export', '#', 'admin', sysdate(),
         '', null, '');
+
+ALTER TABLE ai_agent
+    ADD COLUMN description longtext NULL COMMENT 'Agent描述';

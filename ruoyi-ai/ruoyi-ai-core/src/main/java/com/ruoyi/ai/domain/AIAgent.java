@@ -115,6 +115,9 @@ public class AIAgent extends BaseEntity {
   @Excel(name = "知识库查询最多条数")
   private Integer maxResult;
 
+  @Excel(name = "智能体描述")
+  private String description;
+
   private String toolIds;
 
   private String toolNames;
@@ -357,6 +360,14 @@ public class AIAgent extends BaseEntity {
     this.agentMcpTools = agentMcpTools;
   }
 
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -379,6 +390,7 @@ public class AIAgent extends BaseEntity {
         .append("temperature", getTemperature())
         .append("maxOutputToken", getMaxOutputToken())
         .append("promptTemplate", getPromptTemplate())
+        .append("description", getDescription())
         .append("difyApiId", getDifyApiId())
         .append("difyApiName", getDifyApiName())
         .append("minScore", getMinScore())
