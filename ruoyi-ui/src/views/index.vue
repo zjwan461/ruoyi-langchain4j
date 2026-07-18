@@ -36,7 +36,7 @@
               <li>Element-ui</li>
               <li>Axios</li>
               <li>Sass</li>
-              <li>Quill</li>
+              <li>Antv/x6</li>
               <li>...</li>
             </ul>
           </el-col>

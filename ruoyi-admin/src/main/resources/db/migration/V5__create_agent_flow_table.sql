@@ -51,3 +51,5 @@ values ('agent_flow导出', @parentId, '5', '#', '', 1, 0, 'F', '0', '0', 'ai:ag
 
 ALTER TABLE ai_agent
     ADD COLUMN description longtext NULL COMMENT 'Agent描述';
+
+update sys_menu set menu_name='Gitee地址', path = 'https://gitee.com/zjwan461/ruoyi-langchain4j' where menu_id = 4;
