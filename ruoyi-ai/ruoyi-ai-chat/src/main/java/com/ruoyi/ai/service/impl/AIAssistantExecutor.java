@@ -5,22 +5,16 @@ import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.domain.*;
+import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.service.*;
-import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ChatMessageType;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
-import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
-import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
-import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,17 +23,15 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import javax.annotation.Resource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class AIAssistantExecutor extends AIBaseChatServiceImpl {
-
-    @Resource
-    private PgVectorEmbeddingStore pgVectorEmbeddingStore;
 
     private static final Logger log = LoggerFactory.getLogger(AIAssistantExecutor.class);
 
@@ -53,7 +45,9 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                ISysConfigService sysConfigService,
                                IKnowledgeBaseService knowledgeBaseService,
                                IModelService modelService,
-                               ModelBuilder modelBuilder, IAIAgentService aiAgentService) {
+                               ModelBuilder modelBuilder,
+                               IAIAgentService aiAgentService,
+                               PgVectorEmbeddingStore pgVectorEmbeddingStore) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -64,7 +58,9 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                 sysConfigService,
                 knowledgeBaseService,
                 modelService,
-                modelBuilder, aiAgentService);
+                modelBuilder,
+                aiAgentService,
+                pgVectorEmbeddingStore);
     }
 
     @Override
@@ -80,7 +76,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
         String finalPromptTemplate = promptTemplate;
-        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId);
+        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId, false);
         return Flux.create(fluxSink -> {
             AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
             AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();
@@ -156,78 +152,6 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                     .onError(fluxSink::error)
                     .start();
         });
-    }
-
-
-    protected AIAssistant buildAIAssistant(AIAgent aiAgent, String sessionId) {
-        Long modelId = aiAgent.getModelId();
-        Model model = modelService.selectModelById(modelId);
-        StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
-        ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
-                redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
-        AiServices<AIAssistant> builder = AiServices.builder(AIAssistant.class);
-        EmbeddingStoreContentRetriever contentRetriever = null;
-        String kbIds = aiAgent.getKbIds();
-        if (StringUtils.isNotBlank(kbIds)) {
-            List<Long> ids = Arrays.stream(kbIds.split(",")).map(Long::valueOf).toList();
-            List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
-            List<Long> kbIdList = kbs.stream().map(KnowledgeBase::getId).toList();
-            contentRetriever = EmbeddingStoreContentRetriever.builder()
-                    .embeddingModel(getEmbeddingModel())
-                    .minScore(aiAgent.getMinScore())
-                    .maxResults(aiAgent.getMaxResult())
-                    .embeddingStore(pgVectorEmbeddingStore)
-                    .filter(new IsIn("kb_id", kbIdList))
-                    .build();
-            builder.contentRetriever(contentRetriever);
-        }
-
-        return builder.streamingChatModel(llm)
-                .systemMessageProvider(x -> {
-                    if (CollUtil.isNotEmpty(aiAgent.getAgentSkills())) {
-                        return aiAgent.getSystemMessage() + String.format(Constants.SKILL_APPEND_SYSTEM_MESSAGE, formatAvailableSkills(aiAgent.getAgentSkills()));
-                    } else {
-                        return aiAgent.getSystemMessage();
-                    }
-                })
-                .chatMemory(MessageWindowChatMemory.builder()
-                        .id(sessionId)
-                        .chatMemoryStore(memoryStore)
-                        .maxMessages(aiAgent.getMemoryCount())
-                        .build())
-                .toolProvider(new JToolProvider(aiAgent))
-                .maxToolCallingRoundTrips(aiConfig.getAgent().getMaxSequentialToolsInvocations())
-                .build();
-    }
-
-
-    private static String formatAvailableSkills(Collection<AgentSkill> skills) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<available_skills>\n");
-        for (AgentSkill skill : skills) {
-            sb.append("<skill>\n")
-                    .append("<name>")
-                    .append(escapeXml(skill.getSkillName()))
-                    .append("</name>\n")
-                    .append("<description>")
-                    .append(escapeXml(skill.getSkillDescription()))
-                    .append("</description>\n")
-                    .append("</skill>\n");
-        }
-        sb.append("</available_skills>");
-        return sb.toString();
-    }
-
-    private static String escapeXml(String input) {
-        if (input == null) {
-            return null;
-        }
-        return input
-                .replace("&", "&amp;") // must be first
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&apos;");
     }
 
 }

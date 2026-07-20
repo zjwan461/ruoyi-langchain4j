@@ -29,6 +29,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,9 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                              ISysConfigService sysConfigService,
                              IKnowledgeBaseService knowledgeBaseService,
                              IModelService modelService,
-                             ModelBuilder modelBuilder, IAIAgentService aiAgentService) {
+                             ModelBuilder modelBuilder,
+                             IAIAgentService aiAgentService,
+                             PgVectorEmbeddingStore pgVectorEmbeddingStore) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -74,7 +77,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 knowledgeBaseService,
                 modelService,
                 modelBuilder,
-                aiAgentService);
+                aiAgentService,
+                pgVectorEmbeddingStore);
     }
 
 

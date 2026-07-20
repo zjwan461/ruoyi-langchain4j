@@ -80,7 +80,7 @@ public class AIAssistantTest {
                 .streamingChatModel(buildStreamingModel())
                 .systemMessageProvider(x -> "在必要的时候调用工具")
                 .contentRetriever(contentRetriever)
-                .toolProvider(new JToolProvider(aiAgent));
+                .toolProvider(new JToolProvider(aiAgent, false));
     }
 
 }

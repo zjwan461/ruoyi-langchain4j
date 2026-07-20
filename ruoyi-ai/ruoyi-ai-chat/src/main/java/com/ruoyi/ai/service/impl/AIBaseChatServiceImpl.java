@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,13 +9,21 @@ import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.enums.ModelType;
 import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.embedding.filter.comparison.IsIn;
+import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +32,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public abstract class AIBaseChatServiceImpl implements IAIChatService {
@@ -55,6 +61,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
     protected final IAIAgentService aiAgentService;
 
+    protected final PgVectorEmbeddingStore pgVectorEmbeddingStore;
+
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     public AIBaseChatServiceImpl(IChatMessageService chatMessageService,
@@ -67,7 +75,9 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                                  ISysConfigService sysConfigService,
                                  IKnowledgeBaseService knowledgeBaseService,
                                  IModelService modelService,
-                                 ModelBuilder modelBuilder, IAIAgentService aiAgentService) {
+                                 ModelBuilder modelBuilder,
+                                 IAIAgentService aiAgentService,
+                                 PgVectorEmbeddingStore pgVectorEmbeddingStore) {
         this.chatMessageService = chatMessageService;
         this.inMemoryChatMemoryStore = inMemoryChatMemoryStore;
         this.redisMemoryChatMemoryStore = redisMemoryChatMemoryStore;
@@ -80,11 +90,17 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         this.modelService = modelService;
         this.modelBuilder = modelBuilder;
         this.aiAgentService = aiAgentService;
+        this.pgVectorEmbeddingStore = pgVectorEmbeddingStore;
     }
 
     @Override
     public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
-        throw new ServiceException("not supported");
+        throw new ServiceException("not implemented");
+    }
+
+    @Override
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
+        throw new ServiceException("not implemented");
     }
 
     @Override
@@ -234,5 +250,75 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         } catch (Exception e) {
             log.error("save kb retrieved error:", e);
         }
+    }
+
+    protected AIAssistant buildAIAssistant(AIAgent currentAgent, String sessionId, boolean enableFlowTool) {
+        Long modelId = currentAgent.getModelId();
+        Model model = modelService.selectModelById(modelId);
+        StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
+        ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
+                redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
+        AiServices<AIAssistant> builder = AiServices.builder(AIAssistant.class);
+        EmbeddingStoreContentRetriever contentRetriever = null;
+        String kbIds = currentAgent.getKbIds();
+        if (StringUtils.isNotBlank(kbIds)) {
+            List<Long> ids = Arrays.stream(kbIds.split(",")).map(Long::valueOf).toList();
+            List<KnowledgeBase> kbs = knowledgeBaseService.selectKnowledgeBaseByIds(ids);
+            List<Long> kbIdList = kbs.stream().map(KnowledgeBase::getId).toList();
+            contentRetriever = EmbeddingStoreContentRetriever.builder()
+                    .embeddingModel(getEmbeddingModel())
+                    .minScore(currentAgent.getMinScore())
+                    .maxResults(currentAgent.getMaxResult())
+                    .embeddingStore(pgVectorEmbeddingStore)
+                    .filter(new IsIn("kb_id", kbIdList))
+                    .build();
+            builder.contentRetriever(contentRetriever);
+        }
+
+        return builder.streamingChatModel(llm)
+                .systemMessageProvider(x -> {
+                    if (CollUtil.isNotEmpty(currentAgent.getAgentSkills())) {
+                        return currentAgent.getSystemMessage() + String.format(Constants.SKILL_APPEND_SYSTEM_MESSAGE, formatAvailableSkills(currentAgent.getAgentSkills()));
+                    } else {
+                        return currentAgent.getSystemMessage();
+                    }
+                })
+                .chatMemory(MessageWindowChatMemory.builder()
+                        .id(sessionId)
+                        .chatMemoryStore(memoryStore)
+                        .maxMessages(currentAgent.getMemoryCount())
+                        .build())
+                .toolProvider(new JToolProvider(currentAgent, enableFlowTool))
+                .maxToolCallingRoundTrips(aiConfig.getAgent().getMaxSequentialToolsInvocations())
+                .build();
+    }
+
+    protected String formatAvailableSkills(Collection<AgentSkill> skills) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<available_skills>\n");
+        for (AgentSkill skill : skills) {
+            sb.append("<skill>\n")
+                    .append("<name>")
+                    .append(escapeXml(skill.getSkillName()))
+                    .append("</name>\n")
+                    .append("<description>")
+                    .append(escapeXml(skill.getSkillDescription()))
+                    .append("</description>\n")
+                    .append("</skill>\n");
+        }
+        sb.append("</available_skills>");
+        return sb.toString();
+    }
+
+    private static String escapeXml(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input
+                .replace("&", "&amp;") // must be first
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 }

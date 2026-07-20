@@ -37,8 +37,11 @@ public class JToolProvider implements ToolProvider {
 
     private final AIAgent aiAgent;
 
-    public JToolProvider(AIAgent aiAgent) {
+    private final boolean enableFlowTool;
+
+    public JToolProvider(AIAgent aiAgent, boolean enableFlowTool) {
         this.aiAgent = aiAgent;
+        this.enableFlowTool = enableFlowTool;
     }
 
     @Override
@@ -174,5 +177,13 @@ public class JToolProvider implements ToolProvider {
             }
         }
         return new ToolProviderResult(toolsProvider);
+    }
+
+    public AIAgent getAiAgent() {
+        return aiAgent;
+    }
+
+    public boolean isEnableFlowTool() {
+        return enableFlowTool;
     }
 }

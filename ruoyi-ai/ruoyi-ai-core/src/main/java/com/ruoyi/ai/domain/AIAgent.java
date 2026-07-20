@@ -1,5 +1,7 @@
 package com.ruoyi.ai.domain;
 
+import com.ruoyi.ai.component.flow.AgentSpecAdaptor;
+import com.ruoyi.ai.component.flow.dto.AgentSpec;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -13,7 +15,7 @@ import java.util.List;
  * @author jerry
  * @date 2025-09-02
  */
-public class AIAgent extends BaseEntity {
+public class AIAgent extends BaseEntity implements AgentSpecAdaptor {
 
   private static final long serialVersionUID = 1L;
 
@@ -408,4 +410,12 @@ public class AIAgent extends BaseEntity {
   }
 
 
+  @Override
+  public AgentSpec toAgentSpec() {
+    return AgentSpec.builder()
+            .agentId(this.id)
+            .agentName(this.name)
+            .description(this.description)
+            .build();
+  }
 }
