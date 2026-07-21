@@ -92,6 +92,7 @@
             {{ scope.row.visitUrl }}</el-link>
         </template>
       </el-table-column>
+      <el-table-column label="单个Client每日访问限制次数" align="center" prop="dayLmtPerClient"/>
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
           <el-button
@@ -125,6 +126,9 @@
       <el-form ref="form" :model="form" :rules="rules" label-width="120px">
         <el-form-item label="agent flow名称" prop="agentFlowName">
           <el-input v-model="form.agentFlowName" placeholder="请输入agent flow名称" />
+        </el-form-item>
+        <el-form-item label="Client LMT" prop="dayLmtPerClient">
+          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容"/>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -184,6 +188,9 @@ export default {
         agentFlowName: [
           { required: true, message: "agent flow名称不能为空", trigger: "blur" }
         ],
+        dayLmtPerClient: [
+          {required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur"}
+        ],
         status: [
           { required: true, message: "状态不能为空", trigger: "change" }
         ],
@@ -217,6 +224,7 @@ export default {
     reset() {
       this.form = {
         id: null,
+        dayLmtPerClient: 1000,
         agentFlowName: null,
         flowJson: null,
         status: null,

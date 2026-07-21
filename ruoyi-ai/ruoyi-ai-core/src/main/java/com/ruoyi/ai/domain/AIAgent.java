@@ -1,7 +1,5 @@
 package com.ruoyi.ai.domain;
 
-import com.ruoyi.ai.component.flow.AgentSpecAdaptor;
-import com.ruoyi.ai.component.flow.dto.AgentSpec;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.core.domain.BaseEntity;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -15,407 +13,399 @@ import java.util.List;
  * @author jerry
  * @date 2025-09-02
  */
-public class AIAgent extends BaseEntity implements AgentSpecAdaptor {
-
-  private static final long serialVersionUID = 1L;
-
-  /**
-   * 主键ID
-   */
-  private Long id;
-
-  /**
-   * 应用名
-   */
-  @Excel(name = "应用名")
-  private String name;
-
-  /**
-   * 知识库ID
-   */
-  @Excel(name = "知识库ID")
-  private String kbIds;
-
-  @Excel(name = "知识库名")
-  private String kbNames;
+public class AIAgent extends BaseEntity {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 应用名
+     */
+    @Excel(name = "应用名")
+    private String name;
+
+    /**
+     * 知识库ID
+     */
+    @Excel(name = "知识库ID")
+    private String kbIds;
+
+    @Excel(name = "知识库名")
+    private String kbNames;
 
-  /**
-   * 系统提示词
-   */
-  @Excel(name = "系统提示词")
-  private String systemMessage;
-
-  /**
-   * 记忆轮次
-   */
-  @Excel(name = "记忆轮次")
-  private Integer memoryCount;
+    /**
+     * 系统提示词
+     */
+    @Excel(name = "系统提示词")
+    private String systemMessage;
+
+    /**
+     * 记忆轮次
+     */
+    @Excel(name = "记忆轮次")
+    private Integer memoryCount;
 
-  /**
-   * 模型ID
-   */
-  @Excel(name = "模型ID")
-  private Long modelId;
-
-  @Excel(name = "模型名")
-  private String modelName;
+    /**
+     * 模型ID
+     */
+    @Excel(name = "模型ID")
+    private Long modelId;
+
+    @Excel(name = "模型名")
+    private String modelName;
 
-  /**
-   * 智能体类型
-   */
-  @Excel(name = "智能体类型")
-  private String agentType;
-
-  /**
-   * 状态
-   */
-  @Excel(name = "状态")
-  private Integer status;
+    /**
+     * 智能体类型
+     */
+    @Excel(name = "智能体类型")
+    private String agentType;
+
+    /**
+     * 状态
+     */
+    @Excel(name = "状态")
+    private Integer status;
 
-  /**
-   * 访问链接
-   */
-  @Excel(name = "访问链接")
-  private String visitUrl;
-
-  /**
-   * dify应用主键id(dify类型专用)
-   */
-  @Excel(name = "dify应用ID")
-  private Long difyApiId;
+    /**
+     * 访问链接
+     */
+    @Excel(name = "访问链接")
+    private String visitUrl;
+
+    /**
+     * dify应用主键id(dify类型专用)
+     */
+    @Excel(name = "dify应用ID")
+    private Long difyApiId;
 
-  /**
-   * dify应用主名称(dify类型专用)
-   */
-  @Excel(name = "dify应用名称")
-  private String difyApiName;
-
-  /**
-   * 单个Client每日访问限制次数
-   */
-  @Excel(name = "单个Client每日访问限制次数")
-  private Integer dayLmtPerClient;
+    /**
+     * dify应用主名称(dify类型专用)
+     */
+    @Excel(name = "dify应用名称")
+    private String difyApiName;
+
+    /**
+     * 单个Client每日访问限制次数
+     */
+    @Excel(name = "单个Client每日访问限制次数")
+    private Integer dayLmtPerClient;
 
-  /**
-   * temperature
-   */
-  @Excel(name = "temperature")
-  private Double temperature;
-
-  /**
-   * token最大生成数
-   */
-  @Excel(name = "token最大生成数")
-  private Integer maxOutputToken;
+    /**
+     * temperature
+     */
+    @Excel(name = "temperature")
+    private Double temperature;
+
+    /**
+     * token最大生成数
+     */
+    @Excel(name = "token最大生成数")
+    private Integer maxOutputToken;
 
-  @Excel(name = "提示词模板")
-  private String promptTemplate;
+    @Excel(name = "提示词模板")
+    private String promptTemplate;
 
-  @Excel(name = "知识库查询最小得分")
-  private Double minScore;
-
-  @Excel(name = "知识库查询最多条数")
-  private Integer maxResult;
+    @Excel(name = "知识库查询最小得分")
+    private Double minScore;
+
+    @Excel(name = "知识库查询最多条数")
+    private Integer maxResult;
 
-  @Excel(name = "智能体描述")
-  private String description;
+    @Excel(name = "智能体描述")
+    private String description;
 
-  private String toolIds;
+    private String toolIds;
 
-  private String toolNames;
+    private String toolNames;
 
-  private List<AgentTool> agentTools;
+    private List<AgentTool> agentTools;
 
-  private String skillIds;
+    private String skillIds;
 
-  private String skillNames;
+    private String skillNames;
 
-  private List<AgentSkill> agentSkills;
+    private List<AgentSkill> agentSkills;
 
-  private String mcpToolIds;
+    private String mcpToolIds;
 
-  private String mcpToolNames;
+    private String mcpToolNames;
 
-  private List<AgentMcpTool> agentMcpTools;
+    private List<AgentMcpTool> agentMcpTools;
 
-  public void setId(Long id) {
-    this.id = id;
-  }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-  public Long getId() {
-    return id;
-  }
+    public Long getId() {
+        return id;
+    }
 
-  public void setName(String name) {
-    this.name = name;
-  }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-  public String getName() {
-    return name;
-  }
+    public String getName() {
+        return name;
+    }
 
-  public void setSystemMessage(String systemMessage) {
-    this.systemMessage = systemMessage;
-  }
+    public void setSystemMessage(String systemMessage) {
+        this.systemMessage = systemMessage;
+    }
 
-  public String getSystemMessage() {
-    return systemMessage;
-  }
+    public String getSystemMessage() {
+        return systemMessage;
+    }
 
-  public void setMemoryCount(Integer memoryCount) {
-    this.memoryCount = memoryCount;
-  }
+    public void setMemoryCount(Integer memoryCount) {
+        this.memoryCount = memoryCount;
+    }
 
-  public Integer getMemoryCount() {
-    return memoryCount;
-  }
+    public Integer getMemoryCount() {
+        return memoryCount;
+    }
 
-  public void setModelId(Long modelId) {
-    this.modelId = modelId;
-  }
+    public void setModelId(Long modelId) {
+        this.modelId = modelId;
+    }
 
-  public Long getModelId() {
-    return modelId;
-  }
+    public Long getModelId() {
+        return modelId;
+    }
 
-  public String getAgentType() {
-    return agentType;
-  }
+    public String getAgentType() {
+        return agentType;
+    }
 
-  public void setAgentType(String agentType) {
-    this.agentType = agentType;
-  }
+    public void setAgentType(String agentType) {
+        this.agentType = agentType;
+    }
 
-  public void setStatus(Integer status) {
-    this.status = status;
-  }
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
 
-  public Integer getStatus() {
-    return status;
-  }
+    public Integer getStatus() {
+        return status;
+    }
 
-  public void setVisitUrl(String visitUrl) {
-    this.visitUrl = visitUrl;
-  }
+    public void setVisitUrl(String visitUrl) {
+        this.visitUrl = visitUrl;
+    }
 
-  public String getVisitUrl() {
-    return visitUrl;
-  }
+    public String getVisitUrl() {
+        return visitUrl;
+    }
 
-  public Integer getDayLmtPerClient() {
-    return dayLmtPerClient;
-  }
+    public Integer getDayLmtPerClient() {
+        return dayLmtPerClient;
+    }
 
-  public void setDayLmtPerClient(Integer dayLmtPerClient) {
-    this.dayLmtPerClient = dayLmtPerClient;
-  }
+    public void setDayLmtPerClient(Integer dayLmtPerClient) {
+        this.dayLmtPerClient = dayLmtPerClient;
+    }
 
-  public Long getDifyApiId() {
-    return difyApiId;
-  }
+    public Long getDifyApiId() {
+        return difyApiId;
+    }
 
-  public void setDifyApiId(Long difyApiId) {
-    this.difyApiId = difyApiId;
-  }
+    public void setDifyApiId(Long difyApiId) {
+        this.difyApiId = difyApiId;
+    }
 
-  public String getKbIds() {
-    return kbIds;
-  }
+    public String getKbIds() {
+        return kbIds;
+    }
 
-  public void setKbIds(String kbIds) {
-    this.kbIds = kbIds;
-  }
+    public void setKbIds(String kbIds) {
+        this.kbIds = kbIds;
+    }
 
-  public String getKbNames() {
-    return kbNames;
-  }
+    public String getKbNames() {
+        return kbNames;
+    }
 
-  public void setKbNames(String kbNames) {
-    this.kbNames = kbNames;
-  }
+    public void setKbNames(String kbNames) {
+        this.kbNames = kbNames;
+    }
 
-  public String getModelName() {
-    return modelName;
-  }
+    public String getModelName() {
+        return modelName;
+    }
 
-  public void setModelName(String modelName) {
-    this.modelName = modelName;
-  }
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
 
-  public Double getTemperature() {
-    return temperature;
-  }
+    public Double getTemperature() {
+        return temperature;
+    }
 
-  public void setTemperature(Double temperature) {
-    this.temperature = temperature;
-  }
+    public void setTemperature(Double temperature) {
+        this.temperature = temperature;
+    }
 
-  public Integer getMaxOutputToken() {
-    return maxOutputToken;
-  }
+    public Integer getMaxOutputToken() {
+        return maxOutputToken;
+    }
 
-  public void setMaxOutputToken(Integer maxOutputToken) {
-    this.maxOutputToken = maxOutputToken;
-  }
+    public void setMaxOutputToken(Integer maxOutputToken) {
+        this.maxOutputToken = maxOutputToken;
+    }
 
-  public String getPromptTemplate() {
-    return promptTemplate;
-  }
+    public String getPromptTemplate() {
+        return promptTemplate;
+    }
 
-  public void setPromptTemplate(String promptTemplate) {
-    this.promptTemplate = promptTemplate;
-  }
+    public void setPromptTemplate(String promptTemplate) {
+        this.promptTemplate = promptTemplate;
+    }
 
-  public Double getMinScore() {
-    return minScore;
-  }
+    public Double getMinScore() {
+        return minScore;
+    }
 
-  public void setMinScore(Double minScore) {
-    this.minScore = minScore;
-  }
+    public void setMinScore(Double minScore) {
+        this.minScore = minScore;
+    }
 
-  public Integer getMaxResult() {
-    return maxResult;
-  }
+    public Integer getMaxResult() {
+        return maxResult;
+    }
 
-  public void setMaxResult(Integer maxResult) {
-    this.maxResult = maxResult;
-  }
+    public void setMaxResult(Integer maxResult) {
+        this.maxResult = maxResult;
+    }
 
-  public String getDifyApiName() {
-    return difyApiName;
-  }
+    public String getDifyApiName() {
+        return difyApiName;
+    }
 
-  public void setDifyApiName(String difyApiName) {
-    this.difyApiName = difyApiName;
-  }
+    public void setDifyApiName(String difyApiName) {
+        this.difyApiName = difyApiName;
+    }
 
-  public List<AgentTool> getAgentTools() {
-    return agentTools;
-  }
-
-  public void setAgentTools(List<AgentTool> agentTools) {
-    this.agentTools = agentTools;
-  }
-
-  public String getToolIds() {
-    return toolIds;
-  }
-
-  public void setToolIds(String toolIds) {
-    this.toolIds = toolIds;
-  }
-
-  public String getToolNames() {
-    return toolNames;
-  }
-
-  public void setToolNames(String toolNames) {
-    this.toolNames = toolNames;
-  }
-
-  public String getSkillIds() {
-    return skillIds;
-  }
-
-  public void setSkillIds(String skillIds) {
-    this.skillIds = skillIds;
-  }
-
-  public String getSkillNames() {
-    return skillNames;
-  }
-
-  public void setSkillNames(String skillNames) {
-    this.skillNames = skillNames;
-  }
-
-  public List<AgentSkill> getAgentSkills() {
-    return agentSkills;
-  }
-
-  public void setAgentSkills(List<AgentSkill> agentSkills) {
-    this.agentSkills = agentSkills;
-  }
-
-  public String getMcpToolIds() {
-    return mcpToolIds;
-  }
-
-  public void setMcpToolIds(String mcpToolIds) {
-    this.mcpToolIds = mcpToolIds;
-  }
-
-  public String getMcpToolNames() {
-    return mcpToolNames;
-  }
-
-  public void setMcpToolNames(String mcpToolNames) {
-    this.mcpToolNames = mcpToolNames;
-  }
-
-  public List<AgentMcpTool> getAgentMcpTools() {
-    return agentMcpTools;
-  }
-
-  public void setAgentMcpTools(List<AgentMcpTool> agentMcpTools) {
-    this.agentMcpTools = agentMcpTools;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  @Override
-  public String toString() {
-    return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
-        .append("id", getId())
-        .append("name", getName())
-        .append("kbIds", getKbIds())
-        .append("systemMessage", getSystemMessage())
-        .append("memoryCount", getMemoryCount())
-        .append("modelId", getModelId())
-        .append("createBy", getCreateBy())
-        .append("createTime", getCreateTime())
-        .append("updateBy", getUpdateBy())
-        .append("updateTime", getUpdateTime())
-        .append("status", getStatus())
-        .append("visitUrl", getVisitUrl())
-        .append("dayLmtPerClient", getDayLmtPerClient())
-        .append("modelName", getModelName())
-        .append("kbNames", getKbNames())
-        .append("agentType", getAgentType())
-        .append("temperature", getTemperature())
-        .append("maxOutputToken", getMaxOutputToken())
-        .append("promptTemplate", getPromptTemplate())
-        .append("description", getDescription())
-        .append("difyApiId", getDifyApiId())
-        .append("difyApiName", getDifyApiName())
-        .append("minScore", getMinScore())
-        .append("maxResult", getMaxResult())
-        .append("agentTools", getAgentTools())
-        .append("toolIds", getToolIds())
-        .append("toolNames", getToolNames())
-        .append("agentSkills", getAgentSkills())
-        .append("skillNames", getSkillNames())
-        .append("skillIds", getSkillIds())
-        .append("mcpToolIds", getMcpToolIds())
-        .append("mcpToolNames", getMcpToolNames())
-        .append("agentMcpTools", getAgentMcpTools())
-        .toString();
-  }
-
-
-  @Override
-  public AgentSpec toAgentSpec() {
-    return AgentSpec.builder()
-            .agentId(this.id)
-            .agentName(this.name)
-            .description(this.description)
-            .build();
-  }
+    public List<AgentTool> getAgentTools() {
+        return agentTools;
+    }
+
+    public void setAgentTools(List<AgentTool> agentTools) {
+        this.agentTools = agentTools;
+    }
+
+    public String getToolIds() {
+        return toolIds;
+    }
+
+    public void setToolIds(String toolIds) {
+        this.toolIds = toolIds;
+    }
+
+    public String getToolNames() {
+        return toolNames;
+    }
+
+    public void setToolNames(String toolNames) {
+        this.toolNames = toolNames;
+    }
+
+    public String getSkillIds() {
+        return skillIds;
+    }
+
+    public void setSkillIds(String skillIds) {
+        this.skillIds = skillIds;
+    }
+
+    public String getSkillNames() {
+        return skillNames;
+    }
+
+    public void setSkillNames(String skillNames) {
+        this.skillNames = skillNames;
+    }
+
+    public List<AgentSkill> getAgentSkills() {
+        return agentSkills;
+    }
+
+    public void setAgentSkills(List<AgentSkill> agentSkills) {
+        this.agentSkills = agentSkills;
+    }
+
+    public String getMcpToolIds() {
+        return mcpToolIds;
+    }
+
+    public void setMcpToolIds(String mcpToolIds) {
+        this.mcpToolIds = mcpToolIds;
+    }
+
+    public String getMcpToolNames() {
+        return mcpToolNames;
+    }
+
+    public void setMcpToolNames(String mcpToolNames) {
+        this.mcpToolNames = mcpToolNames;
+    }
+
+    public List<AgentMcpTool> getAgentMcpTools() {
+        return agentMcpTools;
+    }
+
+    public void setAgentMcpTools(List<AgentMcpTool> agentMcpTools) {
+        this.agentMcpTools = agentMcpTools;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
+                .append("id", getId())
+                .append("name", getName())
+                .append("kbIds", getKbIds())
+                .append("systemMessage", getSystemMessage())
+                .append("memoryCount", getMemoryCount())
+                .append("modelId", getModelId())
+                .append("createBy", getCreateBy())
+                .append("createTime", getCreateTime())
+                .append("updateBy", getUpdateBy())
+                .append("updateTime", getUpdateTime())
+                .append("status", getStatus())
+                .append("visitUrl", getVisitUrl())
+                .append("dayLmtPerClient", getDayLmtPerClient())
+                .append("modelName", getModelName())
+                .append("kbNames", getKbNames())
+                .append("agentType", getAgentType())
+                .append("temperature", getTemperature())
+                .append("maxOutputToken", getMaxOutputToken())
+                .append("promptTemplate", getPromptTemplate())
+                .append("description", getDescription())
+                .append("difyApiId", getDifyApiId())
+                .append("difyApiName", getDifyApiName())
+                .append("minScore", getMinScore())
+                .append("maxResult", getMaxResult())
+                .append("agentTools", getAgentTools())
+                .append("toolIds", getToolIds())
+                .append("toolNames", getToolNames())
+                .append("agentSkills", getAgentSkills())
+                .append("skillNames", getSkillNames())
+                .append("skillIds", getSkillIds())
+                .append("mcpToolIds", getMcpToolIds())
+                .append("mcpToolNames", getMcpToolNames())
+                .append("agentMcpTools", getAgentMcpTools())
+                .toString();
+    }
+
+
 }

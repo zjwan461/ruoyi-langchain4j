@@ -2,20 +2,22 @@ package com.ruoyi.ai.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.map.MapUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.flow.FlowTreeParser;
+import com.ruoyi.ai.component.flow.dto.AgentNode;
+import com.ruoyi.ai.component.flow.dto.AgentSpec;
 import com.ruoyi.ai.component.flow.dto.TreeNode;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
-import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -98,17 +100,6 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
         this.currentAssistant = this.buildAIAssistant(this.currentAgent, sessionId, true);
     }
 
-    // todo build flow agent Assistant
-
-
-    protected void changeAgent(AIAgent aiAgent, String sessionId, String clientId, String request, FluxSink<String> fluxSink) {
-        this.currentAgent = aiAgent;
-        this.currentAssistant = this.buildAIAssistant(this.currentAgent, sessionId, true);
-
-        this.invoke(sessionId, clientId, request, fluxSink);
-    }
-
-
     @Override
     public void invoke(String sessionId, String clientId, String request, FluxSink<String> fluxSink) {
         String promptTemplate = currentAgent.getPromptTemplate();
@@ -120,7 +111,7 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
         if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isNotBlank(currentAgent.getKbIds())) {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
-        String finalPromptTemplate = promptTemplate;
+        String finalPromptTemplate = this.attachSubAgentPrompt(promptTemplate);
         AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
         AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();
         TokenStream tokenStream = currentAssistant.chatStream(finalPromptTemplate);
@@ -140,13 +131,20 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
                     this.emitFluxEvent(Constants.SSE_EVENT_MSG, chunk, fluxSink);
                 }).onCompleteResponse(resp -> {
                     fluxSink.complete();
+                    // todo save too-call kb-retrieve to mysql
                 })
                 .onToolExecuted(toolExecuted -> {
-                    String result = toolExecuted.result();
                     ToolExecutionRequest req = toolExecuted.request();
+                    String result = toolExecuted.result();
                     log.info("调用工具完成{}, result={}", req.name(), result);
-                    Map<String, Object> value = MapUtil.<String, Object>builder().put("toolName", req.name()).put("toolInvokeResult", result).build();
+                    Map<String, Object> value = MapUtil.<String, Object>builder()
+                            .put("toolName", req.name())
+                            .put("toolInvokeResult", result).build();
                     this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, value, fluxSink);
+                    if (Constants.AGENT_SELECTOR_TOOL.equals(req.name()) && StringUtils.isNotBlank(result)) {
+                        this.nextAIAssistant(result, sessionId, clientId, request, fluxSink);
+                    }
+                    // todo save tool call record
                     List<Map<String, Object>> toolCalls = toolCallList.get() == null ? new ArrayList<>() : toolCallList.get();
                     toolCalls.add(value);
                     toolCallList.set(toolCalls);
@@ -157,6 +155,7 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
                     this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, fluxSink);
                 }).onRetrieved(contents -> {
                     log.info("知识库查询完成，共{}条", contents.size());
+                    // todo save kb retrieve record
                     retrieveList.set(contents.stream().map(content -> {
                         String text = content.textSegment().text();
                         Long kbId = content.textSegment().metadata().getLong("kb_id");
@@ -175,19 +174,22 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
                 .start();
     }
 
-    @Override
-    public void registerSubAgent() {
-        // todo register sub agent for current AIAgent
-    }
 
     @Override
-    public AIAgent nextAIAssistant() {
-        // todo call llm get next AI ASSISTANT, if not need return null
-        Model model = modelService.selectModelById(this.currentAgent.getModelId());
-        ChatModel llm = modelBuilder.getBlockingLLM(model);
-        TreeNode tree = parser.findTreeNodeById(this.treeNode, this.currentNodeId);
-        List<TreeNode> children = tree.getChildren();
-        return null;
+    public void nextAIAssistant(String agentSpecStr, String sessionId, String clientId, String request, FluxSink<String> fluxSink) {
+        AgentSpec nextAgentSpec = null;
+        try {
+            nextAgentSpec = objectMapper.readValue(agentSpecStr, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            log.error("Agent spec json processing error", e);
+        }
+        if (nextAgentSpec != null) {
+            this.currentNodeId = nextAgentSpec.getNodeId();
+            this.currentAgent = aiAgentService.selectAiAgentWithToolAndSkillById(nextAgentSpec.getAgentId());
+            this.currentAssistant = this.buildAIAssistant(this.currentAgent, sessionId, true);
+            this.invoke(sessionId, clientId, request, fluxSink);
+        }
     }
 
     @Override
@@ -196,5 +198,28 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
             this.init(sessionId, agentFlow);
             this.invoke(sessionId, clientId, prompt, fluxSink);
         });
+    }
+
+    @Override
+    public String attachSubAgentPrompt(String prompt) {
+        TreeNode tree = parser.findTreeNodeById(this.treeNode, this.currentNodeId);
+        List<TreeNode> children = tree.getChildren();
+        if (CollUtil.isNotEmpty(children)) {
+            prompt += """
+                    你拥有如下子Agents, 他们的描述如下。请根据需要调用子Agent完成用户需求。
+                    """;
+            StringBuilder promptBuilder = new StringBuilder(prompt);
+            for (TreeNode child : children) {
+                AgentNode node = child.getNode();
+                promptBuilder.append("- agentId: ").append(node.getAgentId())
+                        .append(" agentName: ").append(node.getAgentName())
+                        .append(" description: ").append(node.getDescription())
+                        .append(" nodeId: ").append(node.getNodeId())
+                        .append("\n");
+            }
+            promptBuilder.append("请调用agent_selector工具，获取需要调用的子Agent详细信息。");
+            prompt = promptBuilder.toString();
+        }
+        return prompt;
     }
 }

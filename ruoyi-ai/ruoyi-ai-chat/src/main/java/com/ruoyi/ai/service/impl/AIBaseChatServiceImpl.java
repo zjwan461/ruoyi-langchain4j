@@ -274,7 +274,6 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                     .build();
             builder.contentRetriever(contentRetriever);
         }
-
         return builder.streamingChatModel(llm)
                 .systemMessageProvider(x -> {
                     if (CollUtil.isNotEmpty(currentAgent.getAgentSkills())) {

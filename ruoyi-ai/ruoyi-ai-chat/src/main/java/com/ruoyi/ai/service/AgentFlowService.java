@@ -1,6 +1,5 @@
 package com.ruoyi.ai.service;
 
-import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
 import reactor.core.publisher.FluxSink;
 
@@ -10,7 +9,8 @@ public interface AgentFlowService {
 
     void invoke(String sessionId, String clientId, String request, FluxSink<String> fluxSink);
 
-    void registerSubAgent();
+    void nextAIAssistant(String agentSpecStr, String sessionId, String clientId, String request, FluxSink<String> fluxSink);
 
-    AIAgent nextAIAssistant();
+    String attachSubAgentPrompt(String prompt);
+
 }

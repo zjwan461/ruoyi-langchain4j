@@ -29,6 +29,9 @@ public class AgentFlow extends BaseEntity
     @Excel(name = "状态")
     private String status;
 
+    @Excel(name = "单个Client每日访问限制次数")
+    private Integer dayLmtPerClient;
+
     private String visitUrl;
 
     public void setId(Long id) 
@@ -79,6 +82,14 @@ public class AgentFlow extends BaseEntity
         this.visitUrl = visitUrl;
     }
 
+    public Integer getDayLmtPerClient() {
+        return dayLmtPerClient;
+    }
+
+    public void setDayLmtPerClient(Integer dayLmtPerClient) {
+        this.dayLmtPerClient = dayLmtPerClient;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -87,6 +98,7 @@ public class AgentFlow extends BaseEntity
             .append("flowJson", getFlowJson())
             .append("visitUrl", getVisitUrl())
             .append("status", getStatus())
+            .append("dayLmtPerClient", getDayLmtPerClient())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
             .append("createBy", getCreateBy())

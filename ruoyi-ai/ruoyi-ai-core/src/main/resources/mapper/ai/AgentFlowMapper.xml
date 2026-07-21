@@ -10,6 +10,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="flowJson"    column="flow_json"    />
         <result property="visitUrl"    column="visit_url"    />
         <result property="status"    column="status"    />
+        <result property="dayLmtPerClient"    column="day_lmt_per_client"    />
         <result property="createTime"    column="create_time"    />
         <result property="updateTime"    column="update_time"    />
         <result property="createBy"    column="create_by"    />
@@ -17,7 +18,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectAgentFlowVo">
-        select id, agent_flow_name, flow_json,visit_url, status, create_time, update_time, create_by, update_by from agent_flow
+        select id, agent_flow_name, flow_json,visit_url, status, day_lmt_per_client, create_time, update_time, create_by, update_by from agent_flow
     </sql>
 
     <select id="selectAgentFlowList" parameterType="AgentFlow" resultMap="AgentFlowResult">
@@ -40,6 +41,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="flowJson != null">flow_json,</if>
             <if test="visitUrl != null">visit_url,</if>
             <if test="status != null and status != ''">status,</if>
+            <if test="dayLmtPerClient != null">day_lmt_per_client,</if>
             <if test="createTime != null">create_time,</if>
             <if test="updateTime != null">update_time,</if>
             <if test="createBy != null">create_by,</if>
@@ -50,6 +52,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="flowJson != null">#{flowJson},</if>
             <if test="visitUrl != null">#{visitUrl},</if>
             <if test="status != null and status != ''">#{status},</if>
+            <if test="dayLmtPerClient != null">#{dayLmtPerClient},</if>
             <if test="createTime != null">#{createTime},</if>
             <if test="updateTime != null">#{updateTime},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -64,6 +67,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="flowJson != null">flow_json = #{flowJson},</if>
             <if test="visitUrl != null">visit_url = #{visitUrl},</if>
             <if test="status != null and status != ''">status = #{status},</if>
+            <if test="dayLmtPerClient != null">day_lmt_per_client = #{dayLmtPerClient},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="createBy != null">create_by = #{createBy},</if>

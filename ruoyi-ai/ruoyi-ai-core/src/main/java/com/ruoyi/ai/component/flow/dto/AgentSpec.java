@@ -12,4 +12,6 @@ public class AgentSpec {
     private String agentName;
 
     private String description;
+
+    private String nodeId;
 }

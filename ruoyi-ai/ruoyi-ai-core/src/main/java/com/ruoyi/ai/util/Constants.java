@@ -51,4 +51,6 @@ public interface Constants {
             %s
 
             When the user's request relates to one of these skills, activate it first using the `activate_skill` tool before proceeding.""";
+
+    String AGENT_SELECTOR_TOOL = "agent_selector";
 }

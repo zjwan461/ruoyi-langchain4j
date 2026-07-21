@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ai.mapper.ChatFlowMessageMapper">
+
+    <resultMap type="ChatFlowMessage" id="ChatFlowMessageResult">
+        <result property="id" column="id"/>
+        <result property="role" column="role"/>
+        <result property="content" column="content"/>
+        <result property="clientId" column="client_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="agentFlowId" column="agent_flow_id"/>
+        <result property="agentName" column="agent_name"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <resultMap id="ChatFlowMessageResultWithInvokeData" type="ChatFlowMessage" extends="ChatFlowMessageResult">
+        <!-- 嵌套查询知识库调用记录 -->
+        <collection
+                property="retrievedList"
+                javaType="java.util.List"
+                ofType="com.ruoyi.ai.domain.AgentKbInvoke"
+                select="selectKbInvokeByMsgId"
+                column="{msgId=id, msgRole=role}"
+        />
+        <collection
+                property="toolCalledList"
+                javaType="java.util.List"
+                ofType="com.ruoyi.ai.domain.AgentToolInvoke"
+                select="selectToolInvokeByMsgId"
+                column="{msgId=id, msgRole=role}"
+        />
+    </resultMap>
+
+    <sql id="selectChatMessageVo">
+        select id, role, content, client_id, session_id, agent_id, agent_flow_id, agent_name, create_time
+        from chat_flow_message
+    </sql>
+
+    <select id="selectChatMessageList" parameterType="ChatFlowMessage" resultMap="ChatFlowMessageResult">
+        <include refid="selectChatMessageVo"/>
+        <where>
+            <if test="role != null  and role != ''">and role = #{role}</if>
+            <if test="content != null  and content != ''">and content = #{content}</if>
+            <if test="clientId != null  and clientId != ''">and client_id = #{clientId}</if>
+            <if test="sessionId != null  and sessionId != ''">and session_id = #{sessionId}</if>
+            <if test="agentId != null  and agentId != ''">and agent_id = #{agentId}</if>
+            <if test="agentFlowId != null  and agentFlowId != ''">and agent_flow_id = #{agentId}</if>
+        </where>
+    </select>
+
+    <select id="selectChatMessageById" parameterType="Long" resultMap="ChatFlowMessageResult">
+        <include refid="selectChatMessageVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertChatMessage" parameterType="ChatFlowMessage" useGeneratedKeys="true"
+            keyProperty="id">
+        insert into chat_flow_message
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="role != null and role != ''">role,</if>
+            <if test="content != null and content != ''">content,</if>
+            <if test="clientId != null and clientId != ''">client_id,</if>
+            <if test="sessionId != null and sessionId != ''">session_id,</if>
+            <if test="agentId != null and agentId != ''">agent_id,</if>
+            <if test="agentFlowId != null and agentFlowId != ''">agent_flow_id,</if>
+            <if test="agentName != null and agentName != ''">agent_name,</if>
+            <if test="createTime != null">create_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="role != null and role != ''">#{role},</if>
+            <if test="content != null and content != ''">#{content},</if>
+            <if test="clientId != null and clientId != ''">#{clientId},</if>
+            <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
+            <if test="agentId != null and agentId != ''">#{agentId},</if>
+            <if test="agentFlowId != null and agentFlowId != ''">#{agentFlowId},</if>
+            <if test="agentName != null and agentName != ''">#{agentName},</if>
+            <if test="createTime != null">#{createTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateChatMessage" parameterType="ChatFlowMessage">
+        update chat_message
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="role != null and role != ''">role = #{role},</if>
+            <if test="content != null and content != ''">content = #{content},</if>
+            <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
+            <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
+            <if test="agentId != null and agentId != ''">agent_id = #{agentId},</if>
+            <if test="agentFlowId != null and agentFlowId != ''">agent_flow_id = #{agentFlowId},</if>
+            <if test="agentName != null and agentName != ''">agent_name = #{agentName},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteChatMessageById" parameterType="Long">
+        delete
+        from chat_flow_message
+        where id = #{id}
+    </delete>
+
+    <delete id="deleteChatMessageByIds" parameterType="String">
+        delete from chat_flow_message where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectSessionList" resultType="java.util.Map">
+        SELECT a.session_id sessionId, a.content title
+        from chat_flow_message a
+        where client_id
+            = #{clientId}
+          and agent_flow_id = #{agentFlowId}
+        group by a.session_id
+        order by a.create_time desc
+        <if test="limit !=null">
+        limit #{limit};
+        </if>
+    </select>
+
+    <select id="selectAgentChatMessageBySessionId" resultMap="ChatFlowMessageResult">
+        <include refid="selectChatMessageVo"/>
+        where session_id = #{sessionId} and agent_flow_id = #{agentFlowId}
+    </select>
+
+    <delete id="deleteBySessionId" parameterType="String">
+        delete from chat_flow_message where session_id = #{sessionId}
+    </delete>
+
+    <!-- 子查询：仅role=assistant才查询kb调用 -->
+    <select id="selectKbInvokeByMsgId" resultType="com.ruoyi.ai.domain.AgentKbInvoke">
+        select id,
+               agent_id agentId,
+               message_id messageId,
+               session_id sessionId,
+               client_id clientId,
+               text,
+               file_name fileName,
+               create_time createTime
+        from agent_kb_invoke
+        where message_id = #{msgId}
+          AND #{msgRole} = 'assistant'
+    </select>
+
+    <!-- 子查询：仅role=assistant才查询工具调用 -->
+    <select id="selectToolInvokeByMsgId" resultType="com.ruoyi.ai.domain.AgentToolInvoke">
+        select id,
+               agent_id agentId,
+               message_id messageId,
+               session_id sessionId,
+               client_id clientId,
+               tool_name toolName,
+               tool_invoke_result toolInvokeResult,
+               create_time createTIME
+        from agent_tool_invoke
+        where message_id = #{msgId}
+          AND #{msgRole} = 'assistant'
+    </select>
+<select id="selectAgentChatMessageBySessionIdWithInvokeData" resultMap="ChatFlowMessageResultWithInvokeData">
+    <include refid="selectChatMessageVo"/>
+    where session_id = #{sessionId} and agent_flow_id = #{agentFlowId}
+    order by create_time asc
+</select>
+
+<!-- 倒序分页专用：PageHelper 会自动附加 LIMIT，但不会覆盖已有 ORDER BY；按 create_time desc, id desc 保证同毫秒下的稳定顺序 -->
+<select id="selectAgentChatMessageBySessionIdWithInvokeDataOrderDesc" resultMap="ChatFlowMessageResultWithInvokeData">
+    <include refid="selectChatMessageVo"/>
+    where session_id = #{sessionId} and agent_flow_id = #{agentFlowId}
+    order by create_time desc, id desc
+</select>
+</mapper>
