@@ -1,15 +1,15 @@
 drop table if exists agent_flow;
 create table agent_flow
 (
-    id                 bigint unsigned not null auto_increment comment '主键ID',
-    agent_flow_name    varchar(255)    not null comment 'agent flow名称',
-    flow_json          longtext        null comment 'agent flow的json',
-    visit_url          varchar(255)    not null comment '访问url',
-    status             varchar(255)    not null comment '状态',
-    create_time        DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
-    update_time        datetime        null default null comment '更新时间',
-    create_by          varchar(64)          default '' comment '创建者',
-    update_by          varchar(64)          default '' comment '更新者',
+    id              bigint unsigned not null auto_increment comment '主键ID',
+    agent_flow_name varchar(255)    not null comment 'agent flow名称',
+    flow_json       longtext        null comment 'agent flow的json',
+    visit_url       varchar(255)    not null comment '访问url',
+    status          int unsigned         default 0 not null comment '状态',
+    create_time     DATETIME        NULL DEFAULT NULL COMMENT '创建时间',
+    update_time     datetime        null default null comment '更新时间',
+    create_by       varchar(64)          default '' comment '创建者',
+    update_by       varchar(64)          default '' comment '更新者',
     primary key (id)
 ) engine = innodb
     comment ='agent_flow';

@@ -59,4 +59,6 @@ public interface AgentFlowMapper
      * @return 结果
      */
     public int deleteAgentFlowByIds(Long[] ids);
+
+    AgentFlow selectAgentFlowByVisitUrl(String visitUrl);
 }

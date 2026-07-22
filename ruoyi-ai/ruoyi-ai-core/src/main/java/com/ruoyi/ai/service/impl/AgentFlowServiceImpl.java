@@ -95,4 +95,9 @@ public class AgentFlowServiceImpl implements IAgentFlowService
     {
         return agentFlowMapper.deleteAgentFlowById(id);
     }
+
+    @Override
+    public AgentFlow selectAgentFlowByVisitId(String visitId) {
+        return agentFlowMapper.selectAgentFlowByVisitUrl(visitId);
+    }
 }

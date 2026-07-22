@@ -59,4 +59,6 @@ public interface IAgentFlowService
      * @return 结果
      */
     public int deleteAgentFlowById(Long id);
+
+    AgentFlow selectAgentFlowByVisitId(String visitId);
 }

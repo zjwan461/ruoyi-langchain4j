@@ -82,7 +82,7 @@ public class AgentFlowController extends BaseController {
     public void constructInfo(AgentFlow agentFlow) {
         if (agentFlow.getVisitUrl() == null || "".equals(agentFlow.getVisitUrl())) {
             String seed = IdUtils.fastSimpleUUID();
-            String visitUrl = "/ai-chat-flow/" + seed;
+            String visitUrl = "/ai-flow-chat/" + seed;
             agentFlow.setVisitUrl(visitUrl);
         }
     }

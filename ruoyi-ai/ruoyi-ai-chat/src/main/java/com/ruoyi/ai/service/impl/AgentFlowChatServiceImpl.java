@@ -13,6 +13,7 @@ import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
+import com.ruoyi.ai.domain.ChatFlowMessage;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
@@ -42,9 +43,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @Getter
 @Setter
-@Component
+@Component("agentFlowChatService")
 @Scope("prototype")
-public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements AgentFlowService {
+public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements AgentFlowService {
 
     private AIAssistant currentAssistant;
 
@@ -59,19 +60,22 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
     @Resource
     private FlowTreeParser parser;
 
-    public AgentFlowServiceImpl(IChatMessageService chatMessageService,
-                                InMemoryChatMemoryStore inMemoryChatMemoryStore,
-                                RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
-                                AiConfig aiConfig,
-                                ObjectMapper objectMapper,
-                                RedisTemplate<Object, Object> redisTemplate,
-                                RedisScript<Long> limitScript,
-                                ISysConfigService sysConfigService,
-                                IKnowledgeBaseService knowledgeBaseService,
-                                IModelService modelService,
-                                ModelBuilder modelBuilder,
-                                IAIAgentService aiAgentService,
-                                PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+    @Resource
+    private IChatFlowMessageService chatFlowMessageService;
+
+    public AgentFlowChatServiceImpl(IChatMessageService chatMessageService,
+                                    InMemoryChatMemoryStore inMemoryChatMemoryStore,
+                                    RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
+                                    AiConfig aiConfig,
+                                    ObjectMapper objectMapper,
+                                    RedisTemplate<Object, Object> redisTemplate,
+                                    RedisScript<Long> limitScript,
+                                    ISysConfigService sysConfigService,
+                                    IKnowledgeBaseService knowledgeBaseService,
+                                    IModelService modelService,
+                                    ModelBuilder modelBuilder,
+                                    IAIAgentService aiAgentService,
+                                    PgVectorEmbeddingStore pgVectorEmbeddingStore) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -221,5 +225,33 @@ public class AgentFlowServiceImpl extends AIBaseChatServiceImpl implements Agent
             prompt = promptBuilder.toString();
         }
         return prompt;
+    }
+
+    @Override
+    public List<Map<String, String>> listClientSession(String clientId, Long agentId) {
+        String value = sysConfigService.selectConfigByKey("ai.agent.sessionNum");
+        Integer limit = null;
+        if (StringUtils.isNotEmpty(value)) {
+            limit = Integer.valueOf(value);
+        }
+        List<Map<String, String>> res = chatFlowMessageService.selectSessionList(clientId, agentId, limit);
+        res.forEach(x -> {
+            String title = x.get("title");
+            if (title.length() > 5) {
+                title = title.substring(0, 5) + "...";
+            }
+            x.put("title", title);
+        });
+        return res;
+    }
+
+    @Override
+    public List<ChatFlowMessage> listAgentFlowChatMessageBySessionIdOrderDesc(String sessionId, Long agentId) {
+        return chatFlowMessageService.selectAgentChatMessageBySessionIdOrderDesc(sessionId, agentId);
+    }
+
+    @Override
+    public void deleteSession(String sessionId) {
+        chatFlowMessageService.deleteBySessionId(sessionId);
     }
 }

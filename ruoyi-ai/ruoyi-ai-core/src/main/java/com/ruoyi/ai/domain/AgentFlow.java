@@ -27,7 +27,7 @@ public class AgentFlow extends BaseEntity
 
     /** 状态 */
     @Excel(name = "状态")
-    private String status;
+    private Integer status;
 
     @Excel(name = "单个Client每日访问限制次数")
     private Integer dayLmtPerClient;
@@ -64,14 +64,12 @@ public class AgentFlow extends BaseEntity
         return flowJson;
     }
 
-    public void setStatus(String status) 
-    {
-        this.status = status;
+    public Integer getStatus() {
+        return status;
     }
 
-    public String getStatus() 
-    {
-        return status;
+    public void setStatus(Integer status) {
+        this.status = status;
     }
 
     public String getVisitUrl() {

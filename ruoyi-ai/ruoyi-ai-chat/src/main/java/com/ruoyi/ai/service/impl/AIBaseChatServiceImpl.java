@@ -320,4 +320,14 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                 .replace("\"", "&quot;")
                 .replace("'", "&apos;");
     }
+
+    @Override
+    public List<ChatFlowMessage> listAgentFlowChatMessageBySessionId(String sessionId, Long agentId) {
+        throw new ServiceException("not implemented");
+    }
+
+    @Override
+    public List<ChatFlowMessage> listAgentFlowChatMessageBySessionIdOrderDesc(String sessionId, Long agentId) {
+        throw new ServiceException("not implemented");
+    }
 }

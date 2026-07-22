@@ -48,6 +48,7 @@
             <if test="sessionId != null  and sessionId != ''">and session_id = #{sessionId}</if>
             <if test="agentId != null  and agentId != ''">and agent_id = #{agentId}</if>
             <if test="agentFlowId != null  and agentFlowId != ''">and agent_flow_id = #{agentId}</if>
+            <if test="agentName != null  and agentName != ''">and agent_name = #{agentName}</if>
         </where>
     </select>
 

@@ -52,6 +52,11 @@ export const constantRoutes = [
     hidden: true
   },
   {
+    path: '/ai-flow-chat/:agentId(.*)',
+    component: () => import('@/views/ai/agent/aiFlowChat.vue'),
+    hidden: true
+  },
+  {
     path: '/login',
     component: () => import('@/views/login'),
     hidden: true
