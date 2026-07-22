@@ -639,44 +639,9 @@ export default {
 
     // ========== 导出编排JSON ==========
     exportFlow() {
-      const nodes = this.graph.getNodes().map(node => {
-        const data = node.getData() || {}
-        const position = node.position()
-        return {
-          nodeId: node.id,
-          agentId: data.agentId,
-          agentName: data.name,
-          description: data.description,
-          showReasoning: data.showReasoning,
-          position: {
-            x: Math.round(position.x),
-            y: Math.round(position.y),
-          },
-        }
-      })
-
-      const edges = this.graph.getEdges().map(edge => {
-        const sourceNode = edge.getSourceCell()
-        const targetNode = edge.getTargetCell()
-        return {
-          edgeId: edge.id,
-          sourceNodeId: sourceNode?.id,
-          targetNodeId: targetNode?.id,
-          sourceAgentName: sourceNode?.getData()?.name,
-          targetAgentName: targetNode?.getData()?.name,
-        }
-      })
-
-      const flowData = {
-        version: '1.0.0',
-        exportTime: new Date().toLocaleString(),
-        nodeCount: nodes.length,
-        edgeCount: edges.length,
-        nodes,
-        edges,
-      }
 
       // 序列化为 JSON 字符串并下载为文件
+      const flowData = this.graph.toJSON()
       const jsonStr = JSON.stringify(flowData, null, 2)
       const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' })
       const url = URL.createObjectURL(blob)
