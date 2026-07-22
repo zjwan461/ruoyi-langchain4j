@@ -1,55 +1,43 @@
 package com.ruoyi.ai.component.flow.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
+/**
+ * X6 智能体节点。
+ * 画布单元格 ID 位于 id，业务属性位于 data。
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AgentNode {
-    private String nodeId;
-    private Integer agentId;
-    private String agentName;
-    private String description;
-    private Boolean showReasoning;
+@JsonTypeName("agent-node")
+public class AgentNode extends FlowCell {
     private Position position;
+    private Boolean visible;
+    private AgentNodeData data;
 
-    // getter & setter
+    @JsonIgnore
     public String getNodeId() {
-        return nodeId;
+        return getId();
     }
 
-    public void setNodeId(String nodeId) {
-        this.nodeId = nodeId;
-    }
-
+    @JsonIgnore
     public Integer getAgentId() {
-        return agentId;
+        return data == null ? null : data.getAgentId();
     }
 
-    public void setAgentId(Integer agentId) {
-        this.agentId = agentId;
-    }
-
+    @JsonIgnore
     public String getAgentName() {
-        return agentName;
+        return data == null ? null : data.getName();
     }
 
-    public void setAgentName(String agentName) {
-        this.agentName = agentName;
-    }
-
+    @JsonIgnore
     public String getDescription() {
-        return description;
+        return data == null ? null : data.getDescription();
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
+    @JsonIgnore
     public Boolean getShowReasoning() {
-        return showReasoning;
-    }
-
-    public void setShowReasoning(Boolean showReasoning) {
-        this.showReasoning = showReasoning;
+        return data == null ? null : data.getShowReasoning();
     }
 
     public Position getPosition() {
@@ -60,5 +48,19 @@ public class AgentNode {
         this.position = position;
     }
 
+    public Boolean getVisible() {
+        return visible;
+    }
 
+    public void setVisible(Boolean visible) {
+        this.visible = visible;
+    }
+
+    public AgentNodeData getData() {
+        return data;
+    }
+
+    public void setData(AgentNodeData data) {
+        this.data = data;
+    }
 }

@@ -1,53 +1,46 @@
 package com.ruoyi.ai.component.flow.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 
+/**
+ * X6 流程连线，起止节点 ID 分别位于 source.cell 和 target.cell。
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class FlowEdge {
-    private String edgeId;
-    private String sourceNodeId;
-    private String targetNodeId;
-    private String sourceAgentName;
-    private String targetAgentName;
+@JsonTypeName("edge")
+public class FlowEdge extends FlowCell {
+    private EdgeEndpoint source;
+    private EdgeEndpoint target;
 
-    // getter & setter
+    @JsonIgnore
     public String getEdgeId() {
-        return edgeId;
+        return getId();
     }
 
-    public void setEdgeId(String edgeId) {
-        this.edgeId = edgeId;
-    }
-
+    @JsonIgnore
     public String getSourceNodeId() {
-        return sourceNodeId;
+        return source == null ? null : source.getCell();
     }
 
-    public void setSourceNodeId(String sourceNodeId) {
-        this.sourceNodeId = sourceNodeId;
-    }
-
+    @JsonIgnore
     public String getTargetNodeId() {
-        return targetNodeId;
+        return target == null ? null : target.getCell();
     }
 
-    public void setTargetNodeId(String targetNodeId) {
-        this.targetNodeId = targetNodeId;
+    public EdgeEndpoint getSource() {
+        return source;
     }
 
-    public String getSourceAgentName() {
-        return sourceAgentName;
+    public void setSource(EdgeEndpoint source) {
+        this.source = source;
     }
 
-    public void setSourceAgentName(String sourceAgentName) {
-        this.sourceAgentName = sourceAgentName;
+    public EdgeEndpoint getTarget() {
+        return target;
     }
 
-    public String getTargetAgentName() {
-        return targetAgentName;
-    }
-
-    public void setTargetAgentName(String targetAgentName) {
-        this.targetAgentName = targetAgentName;
+    public void setTarget(EdgeEndpoint target) {
+        this.target = target;
     }
 }

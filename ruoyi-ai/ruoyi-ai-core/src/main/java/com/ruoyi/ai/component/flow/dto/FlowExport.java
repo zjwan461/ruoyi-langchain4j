@@ -1,63 +1,40 @@
 package com.ruoyi.ai.component.flow.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.util.List;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * X6 graph.toJSON() 的导出结构。
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class FlowExport {
-    private String version;
-    private String exportTime;
-    private Integer nodeCount;
-    private Integer edgeCount;
-    private List<AgentNode> nodes;
-    private List<FlowEdge> edges;
+    private List<FlowCell> cells = Collections.emptyList();
 
-    // getter & setter
-    public String getVersion() {
-        return version;
+    public List<FlowCell> getCells() {
+        return cells;
     }
 
-    public void setVersion(String version) {
-        this.version = version;
+    public void setCells(List<FlowCell> cells) {
+        this.cells = cells == null ? Collections.emptyList() : cells;
     }
 
-    public String getExportTime() {
-        return exportTime;
-    }
-
-    public void setExportTime(String exportTime) {
-        this.exportTime = exportTime;
-    }
-
-    public Integer getNodeCount() {
-        return nodeCount;
-    }
-
-    public void setNodeCount(Integer nodeCount) {
-        this.nodeCount = nodeCount;
-    }
-
-    public Integer getEdgeCount() {
-        return edgeCount;
-    }
-
-    public void setEdgeCount(Integer edgeCount) {
-        this.edgeCount = edgeCount;
-    }
-
+    @JsonIgnore
     public List<AgentNode> getNodes() {
-        return nodes;
+        return cells.stream()
+                .filter(AgentNode.class::isInstance)
+                .map(AgentNode.class::cast)
+                .collect(Collectors.toList());
     }
 
-    public void setNodes(List<AgentNode> nodes) {
-        this.nodes = nodes;
-    }
-
+    @JsonIgnore
     public List<FlowEdge> getEdges() {
-        return edges;
-    }
-
-    public void setEdges(List<FlowEdge> edges) {
-        this.edges = edges;
+        return cells.stream()
+                .filter(FlowEdge.class::isInstance)
+                .map(FlowEdge.class::cast)
+                .collect(Collectors.toList());
     }
 }

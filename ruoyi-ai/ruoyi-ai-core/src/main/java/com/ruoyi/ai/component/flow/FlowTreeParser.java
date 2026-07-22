@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Component
 @Slf4j
@@ -28,14 +30,14 @@ public class FlowTreeParser {
      * 入口：解析并校验唯一根节点
      */
     public TreeNode parseToTree(String jsonStr) {
-        FlowExport flowExport = null;
+        final FlowExport flowExport;
         try {
             flowExport = objectMapper.readValue(jsonStr, FlowExport.class);
         } catch (JsonProcessingException e) {
-            log.error(e.getMessage(), e);
+            log.error("解析 Agent Flow JSON 失败", e);
             throw new ServiceException("解析Agent Flow json错误");
         }
-        // 执行校验：必须仅有一个根
+        // 执行结构及根节点校验
         validateRootOnlyOne(flowExport);
         // 构建树形结构
         return buildTree(flowExport);
@@ -50,15 +52,34 @@ public class FlowTreeParser {
     public void validateRootOnlyOne(FlowExport flowExport) {
         List<AgentNode> allNodes = flowExport.getNodes();
         List<FlowEdge> allEdges = flowExport.getEdges();
+        if (allNodes.isEmpty()) {
+            throw new IllegalStateException("校验失败：流程图中不存在智能体节点");
+        }
 
         Map<String, Integer> inDegreeMap = new HashMap<>();
+        Set<String> nodeIds = new HashSet<>();
         // 初始化所有节点入度0
         for (AgentNode node : allNodes) {
-            inDegreeMap.put(node.getNodeId(), 0);
+            String nodeId = node.getNodeId();
+            if (nodeId == null || nodeId.isBlank()) {
+                throw new IllegalStateException("校验失败：智能体节点缺少id");
+            }
+            if (!nodeIds.add(nodeId)) {
+                throw new IllegalStateException("校验失败：存在重复的节点ID：" + nodeId);
+            }
+            if (node.getAgentId() == null) {
+                throw new IllegalStateException("校验失败：节点" + nodeId + "的data.agentId不能为空");
+            }
+            inDegreeMap.put(nodeId, 0);
         }
         // 统计每条边目标节点入度
         for (FlowEdge edge : allEdges) {
+            String sourceId = edge.getSourceNodeId();
             String targetId = edge.getTargetNodeId();
+            if (!nodeIds.contains(sourceId) || !nodeIds.contains(targetId)) {
+                throw new IllegalStateException("校验失败：连线" + edge.getEdgeId()
+                        + "引用了不存在的节点，source=" + sourceId + "，target=" + targetId);
+            }
             inDegreeMap.put(targetId, inDegreeMap.get(targetId) + 1);
         }
         // 筛选根节点（入度=0）
