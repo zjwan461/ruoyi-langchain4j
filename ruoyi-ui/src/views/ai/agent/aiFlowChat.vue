@@ -105,45 +105,60 @@
           </div>
           <div
             v-for="(msg, idx) in messages"
-            :key="idx"
+            :key="msg._id || ('idx-' + idx)"
             class="message"
-            :class="{ 'user-message': msg.role === 'user', 'ai-message': msg.role === 'assistant' }"
+            :class="{
+              'user-message': msg.role === 'user',
+              'ai-message': msg.role === 'assistant'
+            }"
           >
-            <div v-if="msg.role === 'assistant'" class="message-avatar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                <polyline points="2 17 12 22 22 17"></polyline>
-                <polyline points="2 12 12 17 22 12"></polyline>
-              </svg>
+            <!-- AI Agent 头像：根据 agentName 自动生成渐变色 + 首字母 -->
+            <div
+              v-if="msg.role === 'assistant'"
+              class="message-avatar agent-avatar-bubble"
+              :style="getAgentAvatarStyle(msg)"
+              :title="msg.agentName || agentInfo.name || 'AI'"
+            >
+              <span class="avatar-letter">{{ getAgentInitial(msg) }}</span>
             </div>
             <div class="message-content">
+              <!-- Agent 名称标签：区分不同 agent 的气泡 -->
+              <div
+                v-if="msg.role === 'assistant'"
+                class="agent-name-tag"
+                :style="getAgentTagStyle(msg)"
+              >
+                {{ msg.agentName || agentInfo.name || 'AI' }}
+              </div>
+
               <!-- Think Block (foldable) -->
               <div v-if="msg.role === 'assistant' && hasThinkContent(msg.content)" class="think-section">
                 <!-- ========= 修改点：增加动态ref ========= -->
                 <div
-                  class="think-block"
-                  :class="{ 'folded': isThinkFolded(msg, idx) }"
-                  :ref="'thinkBlock-' + idx"
+                  class="think-block agent-think-block"
+                  :class="{ 'folded': isThinkFolded(msg, msg._id) }"
+                  :ref="'thinkBlock-' + (msg._id || ('idx-' + idx))"
+                  :style="{ borderLeftColor: getAgentColor(msg)[0] }"
                 >
                   {{ getThinkContent(msg.content) }}
                 </div>
-                <button v-if="!msg.loading" class="think-toggle-btn" @click="toggleThink(idx)">
+                <button v-if="!msg.loading" class="think-toggle-btn" @click="toggleThink(msg._id)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline :points="isThinkFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                    <polyline :points="isThinkFolded(msg, msg._id) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
                   </svg>
-                  {{ isThinkFolded(msg, idx) ? '展开思考过程' : '收起思考过程' }}
+                  {{ isThinkFolded(msg, msg._id) ? '展开思考过程' : '收起思考过程' }}
                 </button>
               </div>
 
               <!-- 知识库召回参考资料 -->
               <div v-if="msg.role === 'assistant' && msg.retrievedList && msg.retrievedList.length > 0" class="retrieved-section">
-                <div class="retrieved-header" @click="toggleRetrieved(idx)">
+                <div class="retrieved-header" @click="toggleRetrieved(msg._id)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline :points="isRetrievedFolded(msg, idx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                    <polyline :points="isRetrievedFolded(msg, msg._id) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
                   </svg>
                   <span class="retrieved-title-text">参考资料 ({{ msg.retrievedList.length }})</span>
                 </div>
-                <div class="retrieved-list" :class="{ 'folded': isRetrievedFolded(msg, idx) }">
+                <div class="retrieved-list" :class="{ 'folded': isRetrievedFolded(msg, msg._id) }">
                   <div v-for="(item, itemIdx) in msg.retrievedList" :key="itemIdx" class="retrieved-item">
                     <div class="retrieved-filename">{{ item.fileName }}</div>
                     <div class="retrieved-content">{{ item.text }}</div>
@@ -167,14 +182,14 @@
               <!-- 工具调用结果 -->
               <div v-if="msg.role === 'assistant' && msg.toolCalledList && msg.toolCalledList.length > 0" class="tool-called-section">
                 <div v-for="(tool, toolIdx) in msg.toolCalledList" :key="toolIdx" class="tool-called-item">
-                  <div class="tool-called-header" @click="toggleToolCalled(idx, toolIdx)">
+                  <div class="tool-called-header" @click="toggleToolCalled(msg._id, toolIdx)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline :points="isToolCalledFolded(msg, idx, toolIdx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
+                      <polyline :points="isToolCalledFolded(msg, msg._id, toolIdx) ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"></polyline>
                     </svg>
                     <span class="tool-name">工具调用：{{ tool.toolName }}</span>
                     <span class="tool-status">已完成</span>
                   </div>
-                  <div class="tool-called-result" :class="{ 'folded': isToolCalledFolded(msg, idx, toolIdx) }">
+                  <div class="tool-called-result agent-tool-result" :class="{ 'folded': isToolCalledFolded(msg, msg._id, toolIdx) }">
                     <pre>{{ tool.toolInvokeResult }}</pre>
                   </div>
                 </div>
@@ -291,6 +306,8 @@ export default {
       isLoading: false,
       streamController: null,
       foldedStates: {},
+      // agentId -> agentName 缓存，用于历史/跨 agent 复用名称
+      agentRegistry: {},
       // 聊天历史分页：初始仅加载时间最近的一页，向上滚动加载更早的页
       pageNum: 1,
       pageSize: 20,
@@ -358,7 +375,14 @@ export default {
       listChatMessage(this.sessionId, this.agentInfo.id, this.pageNum, this.pageSize).then(res => {
         const rows = (res && res.rows) || []
         // 后端按 create_time desc 返回，reverse 成 asc 以便按时间正序展示
-        this.messages = [...rows].reverse()
+        const normalized = [...rows].reverse().map((r, i) => this.normalizeHistoryMessage(r, 'p1-' + i))
+        this.messages = normalized
+        // 顺便把历史消息中的 agentName 注册到 agentRegistry，便于重新流式输出时复用
+        for (const m of normalized) {
+          if (m.agentId != null && m.agentName) {
+            this.$set(this.agentRegistry, m.agentId, m.agentName)
+          }
+        }
         this.historyTotal = (res && typeof res.total === 'number') ? res.total : rows.length
         this.hasMoreHistory = this.messages.length < this.historyTotal
         this.$nextTick(() => {
@@ -385,7 +409,13 @@ export default {
           this.hasMoreHistory = false
           return
         }
-        const ascRows = [...rows].reverse()
+        const ascRows = [...rows].reverse().map((r, i) => this.normalizeHistoryMessage(r, 'p' + nextPage + '-' + i))
+        // 把 agentName 注册到 agentRegistry
+        for (const m of ascRows) {
+          if (m.agentId != null && m.agentName) {
+            this.$set(this.agentRegistry, m.agentId, m.agentName)
+          }
+        }
         this.messages = [...ascRows, ...this.messages]
         this.pageNum = nextPage
         if (res && typeof res.total === 'number') {
@@ -486,20 +516,22 @@ export default {
     async callStreamApi(content) {
       this.streamController = new AbortController()
       const chatApi = process.env.VUE_APP_BASE_API + '/ai-flow-chat'
-      const msgId = 'ai-' + Date.now()
 
-      const aiMessage = {
+      // 先 push 一个未指定 agent 的占位气泡，作为“等待首个 agent 上场”的反馈
+      const placeholderMsg = {
         role: 'assistant',
+        agentId: null,
+        agentName: null,
         content: '',
         loading: true,
         createTime: new Date().toISOString(),
-        _id: msgId,
+        _id: 'ai-placeholder-' + Date.now(),
         thinkFolded: false,
         retrievedList: [],
         currentToolCall: null,
         toolCalledList: []
       }
-      this.messages.push(aiMessage)
+      this.messages.push(placeholderMsg)
       this.scrollToBottom()
 
       try {
@@ -527,47 +559,68 @@ export default {
           const dataArray = str.split('\n')
 
           dataArray.forEach(item => {
-            if (item.trim()) {
-              try {
-                const res = JSON.parse(item)
-                if (res.msg) {
-                  aiMessage.content += res.msg
-                } else if (res.retrieved) {
-                  aiMessage.retrievedList = res.retrieved
-                } else if (res.tool_call) {
-                  aiMessage.currentToolCall = res.tool_call
-                } else if (res.tool_called) {
-                  aiMessage.toolCalledList.push(res.tool_called)
-                  aiMessage.currentToolCall = null
-                }
-                // 外层聊天容器滚动
-                this.scrollToBottom()
-                // ==========新增：思考框内部自动滚动到底==========
-                const msgIndex = this.messages.findIndex(m => m._id === aiMessage._id)
-                if (msgIndex > -1) {
-                  this.scrollThinkBlockToBottom(msgIndex)
-                }
-              } catch (e) {}
+            if (!item.trim()) return
+            let res
+            try {
+              res = JSON.parse(item)
+            } catch (e) {
+              return
             }
+            // 使用 agentId 找到 / 创建对应的 AI 气泡，实现多 agent 气泡隔离
+            const aiMsg = this.findOrCreateAgentBubble(res.agentId, res.agentName)
+            if (!aiMsg) return
+
+            if (res.msg != null) {
+              aiMsg.content = (aiMsg.content || '') + res.msg
+            } else if (res.retrieved) {
+              aiMsg.retrievedList = res.retrieved
+            } else if (res.tool_call) {
+              aiMsg.currentToolCall = res.tool_call
+            } else if (res.tool_called) {
+              aiMsg.toolCalledList.push(res.tool_called)
+              aiMsg.currentToolCall = null
+            }
+            // 外层聊天容器滚动
+            this.scrollToBottom()
+            // ==========思考框内部自动滚动到底==========
+            this.scrollThinkBlockToBottom(aiMsg._id)
           })
         }
 
-        aiMessage.loading = false
-        aiMessage.content = aiMessage.content.replace('Deep thinking...', '')
+        // 流关闭：把所有仍处于 loading 的 AI 气泡标记为完成
+        // 同时识别占位气泡：agentId 仍为 null 表示后端没下发任何数据
+        for (let i = this.messages.length - 1; i >= 0; i--) {
+          const m = this.messages[i]
+          if (m.role === 'assistant' && m.loading) {
+            m.loading = false
+            // 占位气泡没有真实内容时，提示用户未收到响应
+            if (m.agentId == null && !m.content && (!m.toolCalledList || m.toolCalledList.length === 0)) {
+              m.content = '⚠️ 未收到任何 agent 的响应，请稍后重试'
+            }
+          }
+        }
         this.scrollToBottom()
       } catch (error) {
         if (error.name !== 'AbortError') {
-          aiMessage.content += '\n\n⚠️ 响应中断，请重试'
+          placeholderMsg.content += '\n\n⚠️ 响应中断，请重试'
         }
-        aiMessage.loading = false
+        placeholderMsg.loading = false
+        // 让占位气泡外的 AI 气泡也都结束 loading
+        for (let i = this.messages.length - 1; i >= 0; i--) {
+          const m = this.messages[i]
+          if (m.role === 'assistant' && m.loading) {
+            m.loading = false
+          }
+        }
       } finally {
         this.isLoading = false
       }
     },
     // ========== 新增方法：思考区域内部滚动到底 ==========
-    scrollThinkBlockToBottom(idx) {
+    scrollThinkBlockToBottom(key) {
       this.$nextTick(() => {
-        const refName = 'thinkBlock-' + idx
+        if (key == null) return
+        const refName = 'thinkBlock-' + key
         const el = this.$refs[refName]
         if (!el) return
         const dom = Array.isArray(el) ? el[0] : el
@@ -618,44 +671,158 @@ export default {
       const output = this.getOutputContent(content)
       return md.render(output)
     },
-    isThinkFolded(msg, idx) {
+    // ============ 折叠状态：使用 msg._id 作为 key，避免多 agent 时索引错乱 ============
+    _findMsgByKey(key) {
+      if (key == null) return null
+      return this.messages.find(m => m._id === key) || null
+    },
+    isThinkFolded(msg, key) {
       if (!msg) return false
+      const k = 'think-' + key
       // 用户手动切换过，优先尊重用户操作
-      if (this.foldedStates.hasOwnProperty(idx)) {
-        return this.foldedStates[idx]
+      if (this.foldedStates.hasOwnProperty(k)) {
+        return this.foldedStates[k]
       }
       // 自动逻辑：思考结束则自动折叠，思考过程中保持展开
       return this.isThinkFinished(msg.content)
     },
-    toggleThink(idx) {
-      const current = this.isThinkFolded(this.messages[idx], idx)
-      this.$set(this.foldedStates, idx, !current)
+    toggleThink(key) {
+      const msg = this._findMsgByKey(key)
+      if (!msg) return
+      const k = 'think-' + key
+      const current = this.isThinkFolded(msg, key)
+      this.$set(this.foldedStates, k, !current)
     },
-    isRetrievedFolded(msg, idx) {
+    isRetrievedFolded(msg, key) {
       if (!msg) return true
-      const key = 'retrieved-' + idx
-      if (this.foldedStates.hasOwnProperty(key)) {
-        return this.foldedStates[key]
+      const k = 'retrieved-' + key
+      if (this.foldedStates.hasOwnProperty(k)) {
+        return this.foldedStates[k]
       }
       return true
     },
-    toggleRetrieved(idx) {
-      const key = 'retrieved-' + idx
-      const current = this.isRetrievedFolded(this.messages[idx], idx)
-      this.$set(this.foldedStates, key, !current)
+    toggleRetrieved(key) {
+      const msg = this._findMsgByKey(key)
+      if (!msg) return
+      const k = 'retrieved-' + key
+      const current = this.isRetrievedFolded(msg, key)
+      this.$set(this.foldedStates, k, !current)
     },
-    isToolCalledFolded(msg, idx, toolIndex) {
+    isToolCalledFolded(msg, key, toolIndex) {
       if (!msg) return true
-      const key = 'tool-' + idx + '-' + toolIndex
-      if (this.foldedStates.hasOwnProperty(key)) {
-        return this.foldedStates[key]
+      const k = 'tool-' + key + '-' + toolIndex
+      if (this.foldedStates.hasOwnProperty(k)) {
+        return this.foldedStates[k]
       }
       return true
     },
-    toggleToolCalled(idx, toolIndex) {
-      const key = 'tool-' + idx + '-' + toolIndex
-      const current = this.isToolCalledFolded(this.messages[idx], idx, toolIndex)
-      this.$set(this.foldedStates, key, !current)
+    toggleToolCalled(key, toolIndex) {
+      const msg = this._findMsgByKey(key)
+      if (!msg) return
+      const k = 'tool-' + key + '-' + toolIndex
+      const current = this.isToolCalledFolded(msg, key, toolIndex)
+      this.$set(this.foldedStates, k, !current)
+    },
+    // ============ 多 Agent 头像与名称标签样式 ============
+    getAgentInitial(msg) {
+      const name = msg && (msg.agentName || (this.agentInfo && this.agentInfo.name))
+      if (!name) return 'A'
+      return String(name).trim().charAt(0).toUpperCase()
+    },
+    getAgentColor(msg) {
+      // 调色板：根据 agentName/agentId hash 出稳定的渐变组合
+      const palette = [
+        ['#667eea', '#764ba2'], // 紫蓝
+        ['#f093fb', '#f5576c'], // 粉红
+        ['#4facfe', '#00f2fe'], // 蓝色
+        ['#43e97b', '#38f9d7'], // 翠绿
+        ['#fa709a', '#fee140'], // 橙黄
+        ['#30cfd0', '#330867'], // 青紫
+        ['#ff9a9e', '#fad0c4'], // 暖粉
+        ['#a18cd1', '#fbc2eb'], // 紫粉
+        ['#84fab0', '#8fd3f4'], // 薄荷
+        ['#ffecd2', '#fcb69f']  // 暖橙
+      ]
+      const seed = (msg && (msg.agentName || (msg.agentId != null ? String(msg.agentId) : ''))) || 'AI'
+      let hash = 0
+      for (let i = 0; i < seed.length; i++) {
+        hash = ((seed.charCodeAt(i) * 31) + hash) | 0
+      }
+      const idx = Math.abs(hash) % palette.length
+      return palette[idx]
+    },
+    getAgentAvatarStyle(msg) {
+      const [c1, c2] = this.getAgentColor(msg)
+      return {
+        background: 'linear-gradient(135deg, ' + c1 + ' 0%, ' + c2 + ' 100%)'
+      }
+    },
+    getAgentTagStyle(msg) {
+      const [c1, c2] = this.getAgentColor(msg)
+      return {
+        background: 'linear-gradient(135deg, ' + c1 + ' 0%, ' + c2 + ' 100%)'
+      }
+    },
+    // ============ 按 agentId 查找/创建 AI 气泡 ============
+    findOrCreateAgentBubble(agentId, agentName) {
+      const last = this.messages.length > 0 ? this.messages[this.messages.length - 1] : null
+      // 优先复用：最后一条 AI 气泡且仍 loading + agentId 一致（或占位 null）
+      if (last && last.role === 'assistant' && last.loading && (last.agentId === agentId || last.agentId == null)) {
+        if (last.agentId == null) {
+          last.agentId = agentId
+        }
+        if (agentName && !last.agentName) {
+          last.agentName = agentName
+        }
+        if (agentId != null && agentName) {
+          this.$set(this.agentRegistry, agentId, agentName)
+        }
+        return last
+      }
+      // 同一 agent 反复出现场景：最后一条 AI 气泡 agentId 一致 + loading 仍 true，复用
+      if (last && last.role === 'assistant' && last.loading && last.agentId === agentId) {
+        if (agentName && !last.agentName) {
+          last.agentName = agentName
+        }
+        return last
+      }
+      // agent 切换：把上一条仍然 loading 的气泡标记为完成
+      if (last && last.role === 'assistant' && last.loading) {
+        last.loading = false
+      }
+      // 创建新气泡
+      const resolvedName = agentName || (agentId != null ? this.agentRegistry[agentId] : '') || ''
+      const newMsg = {
+        role: 'assistant',
+        agentId: agentId != null ? agentId : null,
+        agentName: resolvedName,
+        content: '',
+        loading: true,
+        createTime: new Date().toISOString(),
+        _id: 'ai-' + (agentId != null ? agentId : 'unknown') + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        thinkFolded: false,
+        retrievedList: [],
+        currentToolCall: null,
+        toolCalledList: []
+      }
+      this.messages.push(newMsg)
+      if (agentId != null && agentName) {
+        this.$set(this.agentRegistry, agentId, agentName)
+      }
+      return newMsg
+    },
+    // 校验并补齐历史消息字段（兼容旧数据无 agentId/agentName）
+    normalizeHistoryMessage(row, fallbackId) {
+      const base = row || {}
+      return Object.assign({}, base, {
+        _id: base._id || base.id || ('history-' + (fallbackId || '') + '-' + Math.random().toString(36).slice(2, 8)),
+        agentId: base.agentId != null ? base.agentId : null,
+        agentName: base.agentName || (this.agentInfo && this.agentInfo.name) || 'AI',
+        retrievedList: base.retrievedList || [],
+        toolCalledList: base.toolCalledList || [],
+        currentToolCall: base.currentToolCall || null,
+        loading: false
+      })
     },
     escapeHtml(text) {
       const div = document.createElement('div')
@@ -1551,5 +1718,49 @@ export default {
   .message-list {
     padding: 16px;
   }
+}
+/* 多 Agent 头像与名称标签样式 */
+.agent-avatar-bubble {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  align-self: flex-end;
+  font-weight: 600;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.agent-avatar-bubble .avatar-letter {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.agent-name-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 6px;
+  letter-spacing: 0.4px;
+  align-self: flex-start;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  max-width: fit-content;
+  word-break: break-all;
+}
+
+/* think 块边框色由 inline style 覆盖为 agent 颜色 */
+.agent-think-block {
+  border-left-width: 3px;
+  border-left-style: solid;
 }
 </style>
