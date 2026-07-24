@@ -37,8 +37,11 @@ public class JToolProvider implements ToolProvider {
 
     private final AIAgent aiAgent;
 
-    public JToolProvider(AIAgent aiAgent) {
+    private final boolean enableFlowTool;
+
+    public JToolProvider(AIAgent aiAgent, boolean enableFlowTool) {
         this.aiAgent = aiAgent;
+        this.enableFlowTool = enableFlowTool;
     }
 
     @Override
@@ -93,13 +96,14 @@ public class JToolProvider implements ToolProvider {
             else if (tool.getToolType().equals(builtinDict)) {
                 String clazz = tool.getClazz();
                 Object obj = null;
-                List<Method> methods = new ArrayList<>();
                 try {
                     Class<?> aClass = Class.forName(clazz);
                     obj = aClass.getDeclaredConstructor().newInstance();
                     for (Method method : aClass.getDeclaredMethods()) {
                         if (method.isAnnotationPresent(Tool.class)) {
-                            methods.add(method);
+                            DefaultToolExecutor defaultToolExecutor = new DefaultToolExecutor(obj, method);
+                            ToolSpecification toolSpecification = ToolSpecifications.toolSpecificationFrom(method);
+                            toolsProvider.put(toolSpecification, defaultToolExecutor);
                         }
                     }
                 } catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException |
@@ -107,13 +111,20 @@ public class JToolProvider implements ToolProvider {
                     log.error(e.getMessage(), e);
                     throw new ServiceException("初始化AgentTool方法失败");
                 }
-                for (Method method : methods) {
-                    DefaultToolExecutor defaultToolExecutor = new DefaultToolExecutor(obj, method);
+
+            } else {
+                throw new IllegalArgumentException("not support tool type: " + tool.getToolType());
+            }
+        }
+        // 处理agent flow tool
+        if (enableFlowTool) {
+            FlowTool flowTool = new FlowTool();
+            for (Method method : flowTool.getClass().getDeclaredMethods()) {
+                if (method.isAnnotationPresent(Tool.class)) {
+                    DefaultToolExecutor defaultToolExecutor = new DefaultToolExecutor(flowTool, method);
                     ToolSpecification toolSpecification = ToolSpecifications.toolSpecificationFrom(method);
                     toolsProvider.put(toolSpecification, defaultToolExecutor);
                 }
-            } else {
-                throw new IllegalArgumentException("not support tool type: " + tool.getToolType());
             }
         }
         // 处理skill
@@ -130,6 +141,7 @@ public class JToolProvider implements ToolProvider {
                 toolsProvider.put(aiServiceTool.toolSpecification(), aiServiceTool.toolExecutor());
             }
         }
+        // 处理MCP tool
         if (CollUtil.isNotEmpty(agentMcpTools)) {
             IAgentMcpService mcpService = SpringUtils.getBean(IAgentMcpService.class);
             LangChain4jService langChain4jService = SpringUtils.getBean(LangChain4jService.class);
@@ -174,5 +186,13 @@ public class JToolProvider implements ToolProvider {
             }
         }
         return new ToolProviderResult(toolsProvider);
+    }
+
+    public AIAgent getAiAgent() {
+        return aiAgent;
+    }
+
+    public boolean isEnableFlowTool() {
+        return enableFlowTool;
     }
 }

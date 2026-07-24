@@ -419,6 +419,8 @@ export default {
       getDimension(row.id).then(response => {
         this.$modal.closeLoading()
         this.$modal.alertSuccess("向量维度为：" + response.data)
+      }).catch(err=>{
+        this.$modal.closeLoading()
       })
     },
   }

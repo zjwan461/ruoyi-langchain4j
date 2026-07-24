@@ -8,15 +8,19 @@ import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
+import dev.langchain4j.agentic.AgenticServices;
+import dev.langchain4j.agentic.UntypedAgent;
+import dev.langchain4j.agentic.supervisor.SupervisorAgent;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
+import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser;
 import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.internal.JsonSchemaElementJsonUtils;
-import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpCallContext;
 import dev.langchain4j.mcp.client.McpHeadersSupplier;
@@ -39,7 +43,7 @@ import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.service.tool.AiServiceTool;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.skills.FileSystemSkill;
 import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skills;
@@ -52,6 +56,7 @@ import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.weaver.ast.Var;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -61,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static dev.langchain4j.rag.content.ContentMetadata.EMBEDDING_ID;
 
@@ -215,99 +221,6 @@ public class AiTest {
 //    System.in.read();
     }
 
-
-    @Test
-    public void testRag() {
-        Document document = FileSystemDocumentLoader.loadDocument(
-                "C:\\Users\\user\\Desktop\\FPS轉數快查詢歷史交易查詢API設計.md");
-//    System.out.println(document);
-        OllamaEmbeddingModel model = this.buildEmbeddingModel();
-        DocumentSplitter documentSplitter = DocumentSplitters.recursive(300, 10);
-        List<TextSegment> textSegments = documentSplitter.split(document);
-        EmbeddingStore<TextSegment> embeddingStore = new InMemoryEmbeddingStore<>();
-        embeddingStore = PgVectorEmbeddingStore.builder()
-                .host("10.100.217.4")
-                .port(5432)
-                .database("jllama")
-                .user("root")
-                .password("root")
-                .table("embedding")
-                .dimension(model.dimension())
-                .build();
-//    EmbeddingStoreIngestor.ingest(document, embeddingStore);
-
-//    Response<List<Embedding>> resp = model.embedAll(
-//        Collections.singletonList(document.toTextSegment()));
-
-//    List<Embedding> embeddings = resp.content();
-//    embeddingStore.addAll(embeddings);
-//    TextSegment textSegment = document.toTextSegment();
-//    Response<Embedding> resp = model.embed(textSegment);
-//    Embedding embedding = resp.content();
-        //embedding存储必须带上embedding和原始文档,否则在查询知识库的时候无法获取到embedded
-//    embeddingStore.add(embedding, textSegment);
-        //
-
-//    Response<List<Embedding>> resp = model.embedAll(textSegments);
-//    List<Embedding> embeddings = resp.content();
-//    embeddingStore.addAll(embeddings, textSegments);
-
-//    embeddingStore.serializeToFile("C:\\Users\\user\\Desktop\\FPS轉數快查詢歷史交易查詢API設計.bin");
-
-        System.out.println("success");
-        EmbeddingStoreContentRetriever retriever = EmbeddingStoreContentRetriever.builder()
-                .embeddingStore(embeddingStore)
-                .embeddingModel(model)
-                .filter(new IsEqualTo("kb_id", Long.valueOf(1l)))
-                .maxResults(3)
-                .minScore(0.6)
-                .build();
-
-        List<Content> contents = retriever.retrieve(Query.from("在scb這一層"));
-        System.out.println(contents.size());
-
-        Object embId = contents.get(0).metadata().get(EMBEDDING_ID);
-        System.err.println(embId);
-//    contents.forEach(System.out::println);
-
-//    OpenAiChatModel chatModel = buildBlockModel();
-//    ChatRequestParameters chatRequestParameters = buildParameters();
-//    ChatRequest request = ChatRequest.builder()
-//        .parameters(chatRequestParameters)
-//        .messages(UserMessage.from("你好"))
-//        .build();
-//    ChatResponse chatResponse = chatModel.doChat(request);
-//    System.err.println(chatResponse);
-
-    }
-
-
-    public OllamaEmbeddingModel buildEmbeddingModel() {
-        return OllamaEmbeddingModel.builder().baseUrl(OLLAMA_BASE_URL)
-                .modelName("nomic-embed-text:latest")
-                .build();
-    }
-
-
-    @Test
-    public void testAiModel() throws Exception {
-        Document document = FileSystemDocumentLoader.loadDocument(
-                "C:\\Users\\user\\Desktop\\FPS轉數快查詢歷史交易查詢API設計.md");
-
-//    document = UrlDocumentLoader.load(
-//        "http://localhost:8080/profile/upload/2025/08/25/FPS轉數快查詢歷史交易查詢API設計_20250825174322A001.md",
-//        new TextDocumentParser());
-        DocumentSplitter splitter = DocumentSplitters.recursive(500, 10);
-
-        List<TextSegment> textSegments = splitter.split(document);
-
-        System.out.println(textSegments);
-
-//    ObjectMapper objectMapper = new ObjectMapper();
-//    System.out.println(objectMapper.writeValueAsString(textSegments));
-
-    }
-
     @Test
     public void testLocalEmbedding() {
 //    AllMiniLmL6V2EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
@@ -453,4 +366,143 @@ public class AiTest {
 //        System.out.println(resp);
     }
 
+    @Test
+    public void testDoc() {
+        Document document = FileSystemDocumentLoader.loadDocument(Path.of("C:\\Users\\jerry\\Desktop\\Spring Boot技术介绍文档.pdf"), new ApacheTikaDocumentParser());
+        String text = document.text();
+        Metadata metadata = document.metadata();
+        System.out.println(text);
+        System.out.println(metadata);
+    }
+
+    @Test
+    public void testAgentic() throws IOException {
+        OpenAiChatModel llm = buildBlockModel();
+        OpenAiStreamingChatModel sllm = buildStreamingModel();
+        UntypedAgent creativeWriter = AgenticServices.agentBuilder()
+//                .chatModel(llm)
+                .streamingChatModel(sllm)
+                .description("Generate a story based on the given topic")
+                .userMessage("""
+                        Anwer me in English
+                        You are a creative writer.
+                        Generate a draft of a story no more than
+                        3 sentences long around the given topic.
+                        Return only the story and nothing else.
+                        The topic is {{topic}}.
+                        """)
+                .inputKey(String.class, "topic")
+                .returnType(TokenStream.class) // String is the default return type for untyped agents
+                .outputKey("story")
+                .build();
+
+        UntypedAgent translator = AgenticServices.agentBuilder()
+//                .chatModel(llm)
+                .streamingChatModel(sllm)
+                .description("translate the text based on user given language")
+                .userMessage("""
+                        You are a translator.
+                        You need translate the text to Simple Chinese.
+                        The text is {{story}}.
+                        """)
+                .inputKey(String.class, "story")
+                .returnType(TokenStream.class) // String is the default return type for untyped agents
+                .outputKey("story")
+                .build();
+
+        SequenceStreamingAgent answer = AgenticServices.sequenceBuilder(SequenceStreamingAgent.class)
+                .subAgents(creativeWriter, translator)
+                .outputKey("story")
+                .build();
+
+        TokenStream stream = answer.sequenceAgent("火影忍者", "中文");
+        System.out.println(stream);
+        stream.onPartialThinkingWithContext((x, y) -> {
+            System.out.print(x.text());
+        }).onPartialResponseWithContext((x, y) -> {
+            System.out.println();
+            System.out.print(x.text());
+        }).onCompleteResponse(chatResponse -> {
+            System.out.println();
+            System.err.println(chatResponse.aiMessage().text());
+        }).onError(new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        });
+        stream.start();
+        System.in.read();
+    }
+
+    @Test
+    public void testAgentic2() throws IOException {
+        OpenAiStreamingChatModel llm = buildStreamingModel();
+        Writer writer = AgenticServices.agentBuilder(Writer.class)
+                .streamingChatModel(llm)
+                .description("写作Agent")
+                .userMessage("根据主题创作一篇英文文章，3到5行即可{{topic}}")
+                .outputKey("story")
+                .build();
+
+        Translator translator = AgenticServices.agentBuilder(Translator.class)
+                .streamingChatModel(llm)
+                .description("翻译Agent")
+                .userMessage("将这段内容\"{{story}}\" 翻译成{{language}}")
+                .outputKey("story")
+                .build();
+
+        SequenceStreamingAgent answer = AgenticServices.sequenceBuilder(SequenceStreamingAgent.class)
+                .subAgents(writer, translator)
+                .outputKey("story")
+                .build();
+
+        TokenStream stream = answer.sequenceAgent("火影忍者", "中文");
+        System.out.println(stream);
+        stream.onPartialThinkingWithContext((x, y) -> {
+            System.out.print(x.text());
+        }).onPartialResponseWithContext((x, y) -> {
+            System.out.println();
+            System.out.print(x.text());
+        }).onCompleteResponse(chatResponse -> {
+            System.out.println();
+            System.err.println(chatResponse.aiMessage().text());
+        }).onError(new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        });
+        stream.start();
+        System.in.read();
+    }
+
+    @Test
+    public void testAgentic3() throws IOException {
+        OpenAiStreamingChatModel llm = buildStreamingModel();
+        Writer writer = AgenticServices.agentBuilder(Writer.class)
+                .streamingChatModel(llm)
+                .description("写作Agent")
+                .userMessage("根据主题创作一篇英文文章，3到5行即可{{topic}}")
+                .outputKey("story")
+                .build();
+
+        Translator translator = AgenticServices.agentBuilder(Translator.class)
+                .streamingChatModel(llm)
+                .description("翻译Agent")
+                .userMessage("将这段内容\"{{story}}\" 翻译成{{language}}")
+                .outputKey("story")
+                .build();
+
+        Supervisor supervisorAgent = AgenticServices.supervisorBuilder(Supervisor.class)
+                .subAgents(writer, translator)
+                .outputKey("story")
+                .chatModel(buildBlockModel())
+                .maxAgentsInvocations(3)
+                .description("主管agent，根据需要调用子agent完成各种功能")
+                .build();
+
+        TokenStream tokenStream = supervisorAgent.invoke("你好");
+
+    }
 }

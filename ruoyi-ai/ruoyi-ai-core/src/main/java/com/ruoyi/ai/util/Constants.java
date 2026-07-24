@@ -51,4 +51,21 @@ public interface Constants {
             %s
 
             When the user's request relates to one of these skills, activate it first using the `activate_skill` tool before proceeding.""";
+
+    String AGENT_SELECTOR_TOOL = "agent_selector";
+    String AGENT_RESULT_TOOL = "agent_result";
+
+    String DEFAULT_SUB_AGENT_ATTACH_PROMPT = """
+
+            你拥有如下子Agents, 他们的描述如下。
+            
+            %s
+            
+            如有需要，你可以根据子Agent的描述选择对应Agent的agentId, 调用**agent_selector**工具获取要调用的子Agent的完整信息,用来调用子Agent。
+            宪法（必须遵循）:
+                 1. 仅在需要调用子Agent时才调用agent_selector工具。
+                 2. 不必等待子Agent的返回结果，子Agent会在你执行完成后才执行。
+            
+            """;
+
 }

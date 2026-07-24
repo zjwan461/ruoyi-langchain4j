@@ -1,11 +1,11 @@
 package com.ruoyi.ai.controller.model;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 public class ChatReq {
 
-  @NotNull
+  private Long agentFlowId;
+
   private Long agentId;
 
   @NotBlank
@@ -49,9 +49,18 @@ public class ChatReq {
     this.clientId = clientId;
   }
 
+  public Long getAgentFlowId() {
+    return agentFlowId;
+  }
+
+  public void setAgentFlowId(Long agentFlowId) {
+    this.agentFlowId = agentFlowId;
+  }
+
   @Override
   public String toString() {
     return "ChatReq{" +
+        "agentFlowId=" + agentFlowId +
         "agentId=" + agentId +
         ", prompt='" + prompt + '\'' +
         ", clientId='" + clientId + '\'' +

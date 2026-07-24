@@ -38,6 +38,7 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 | Dify 生态 | [Dify](https://dify.ai/) 应用接入 + [dify-sandbox](https://github.com/langgenius/dify-sandbox) 代码执行沙箱 |
 | **MCP** | **[Model Context Protocol](https://modelcontextprotocol.io/) 工具协议（`sse` / `stdio` / `streamable-http`）** |
 | **Skills** | **基于 `agent_skill` 的技能目录管理，支持 `create` / `import` 两种类型，自动追加到 System Prompt** |
+| **多智能体编排** | **[AntV X6](https://x6.antv.antgroup.com/) 可视化画布 + Flow 节点驱动，多个智能体串联协作** |
 | 向量库 | [PgVector](https://github.com/pgvector/pgvector)（基于 PostgreSQL） |
 | 部署 | Docker、Docker Compose、Nginx |
 
@@ -55,6 +56,7 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 - 🐍 **原生智能体调用 Dify Sandbox 执行 Python Tool**：原生智能体支持挂载 `sandbox` 类型的 Python 工具，`SandboxToolExecutor` 会自动将 LLM 传入的参数按 `parameters` 元数据拼装成 Python 函数调用，远程下发 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 沙箱执行并回传 `print(result)` 结果。**v1.2 起新增 Monaco 代码编辑器**（`ruoyi-ui/src/components/Editor/codeEditor.vue`），在线编辑 Python 函数代码更友好。
 - 🔌 **MCP 工具市场（v1.2 新增）**：原生智能体支持挂载来自 [Model Context Protocol](https://modelcontextprotocol.io/) Server 的工具。在【AI 工具箱 → MCP】维护 `agent_mcp_service`（`url` + `transport` + `authToken`）与子级 `agent_mcp_tool`（`name` / `description` / `parameters` / `metadata`），支持 `sse` / `stdio` / `streamable-http` 三种传输方式；`JToolProvider` 通过 langchain4j-mcp 加载后注册到智能体，LLM 可直接调用远端 MCP 工具。智能体侧通过 `agent_mcp_tool_mapping` 多对多绑定 MCP 工具，已自带 OkHttp 请求日志拦截器（`McpRequestLoggingInterceptor`）便于排障。
 - 📜 **Skills 技能体系（v1.2 新增）**：在【AI 工具箱 → Skill】维护 `agent_skill` 技能（`skill_name` / `skill_description` / `skill_content` / `skill_type`），支持 `create`（系统创建）和 `import`（从仓库 `skills/` 目录导入）两种类型；智能体通过 `agent_skill_mapping` 多对多挂载技能，平台会把技能信息按 `Constants.SKILL_APPEND_SYSTEM_MESSAGE` 模板追加到 System Prompt，提示模型通过 `activate_skill` 工具在匹配场景下先激活技能再继续作答。
+- 🕸 **多智能体编排 / Agent Flow（v1.3 新增）**：在【AI 工具箱 → 多智能体】通过 **[AntV X6](https://x6.antv.antgroup.com/)** 可视化画布拖拽多个智能体节点，拼接为多智能体协作链/树状 Flow（`agent_flow`）；后端 `FlowTreeParser` 把 X6 `flowJson` 解析为节点树，按节点切换执行智能体并通过 `AgentFlowChatServiceImpl` 产出流式响应，节点间可独立设置 `promptTemplate` / `flowMemory` / `showReasoning`。每个 Flow 生成独立 `visit_url`，支持单客户端每日访问限流（`day_lmt_per_client`）。
 - 📊 **工具调用与召回可观测**：自动记录 `agent_tool_invoke`（工具调用结果）与 `agent_kb_invoke`（知识库召回分段），与消息 ID 关联，方便排障与审计；前端可通过 `TOOL_CALL` / `TOOL_CALLED` / `RETRIEVED` 三类 SSE 事件实时观察调用过程。
 
 ---
@@ -68,13 +70,25 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 > 5. **Python 工具（Sandbox 类型）**依赖外部 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 服务，部署完成后请在 `application.yml` 中配置 `ai.sandbox.*` 相关地址与 API Key；本仓库 `sandbox/conf/config.yaml` 已附 dify-sandbox 启动配置模板。
 > 6. **MCP 工具**需要在【AI 工具箱 → MCP】维护外部 MCP Server（`url` + `transport`），`sse` / `streamable-http` 需保证后端能访问到 MCP 服务的 HTTP 地址，`stdio` 需确保 MCP 进程在宿主环境可被拉起。
 > 7. **Skills 技能**支持两种录入方式：在【AI 工具箱 → Skill】直接 `create` 新增，或者在仓库 `skills/` 目录下维护 `SKILL.md` 后选择 `import` 同步入库；所有已挂载到智能体的技能都会通过 `SKILL_APPEND_SYSTEM_MESSAGE` 自动注入到系统提示词。
-> 8. **数据库变更**：v1.1 起新增 `agent_tool`、`agent_tool_mapping`、`agent_tool_invoke`、`agent_kb_invoke` 等表，并补充 `ai_agent_type`、`ai_tool_type` 字典数据，请在已有环境上按顺序执行 `sql/V2__create_tool_table.sql`；v1.2 起继续按顺序执行 `sql/V3__create_skill_table.sql`、`sql/V4__create_mcp_table.sql`，会自动建表并写入 Skill / MCP 菜单与字典数据。
+> 8. **数据库迁移（Flyway 自动执行）**：本项目已集成 **[Flyway](https://flywaydb.org/)**，`ruoyi-admin` 启动时会按版本号顺序自动执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql`），涵盖业务库初始化、AI 工具表（`agent_tool` / `agent_tool_mapping` / `agent_tool_invoke` / `agent_kb_invoke`）、Skill / MCP 表与字典、以及 Agent Flow（`agent_flow` / `chat_flow_message`）与 `ai_agent.description` 字段，无需手动执行 SQL。
+> 9. **多智能体编排（Agent Flow）**：v1.3 起新增 `agent_flow`、`chat_flow_message` 两张表，同时 `ai_agent` 表新增 `description` 列、AI 工具箱子菜单同步重命名为「工具管理 / 多智能体 / Skill管理 / MCP管理」，全部纳入 `V5__create_agent_flow_table.sql` 由 Flyway 自动迁移。
 
 ---
 
 ## 🆕 最新更新
 
 > ⭐ **随手 Star 是一种美德**，你们的 Star 就是我持续维护的动力！
+
+### v1.3（多智能体编排 / Agent Flow）
+
+1. 🆕 新增 **多智能体编排（Agent Flow）**：在【AI 工具箱 → 多智能体】通过 [AntV X6](https://x6.antv.antgroup.com/) 可视化画布拖拽多个智能体节点，拼接为多智能体协作链 / 树状 Flow（`agent_flow`）。后端 `FlowTreeParser` 将 X6 `flowJson` 解析为节点树，由 `AgentFlowChatServiceImpl` 按节点调度智能体并产出流式响应，支持节点独立设置 `promptTemplate` / `flowMemory` / `showReasoning`。
+2. 🆕 新增 **Flow 对话与独立访问 URL**：每个 Flow 自动生成 `visit_url` 访问链接，前端可通过 `ruoyi-ui/src/views/ai/agent/aiFlowChat.vue` 与整个 Flow 对话；支持 `day_lmt_per_client`（单客户端每日访问限流）。
+3. 🆕 新增 **Flow 聊天记录** `chat_flow_message` 表：记录每个 Flow 中每个智能体节点产生的消息，包含 `agent_flow_id` / `agent_id` / `agent_name` / `session_id` / `client_id`，方便排障与审计。
+4. 🆕 新增 **AntV X6 可视化画布**：集成 `@antv/x6` + `@antv/x6-plugin-dnd` / `snapline` / `history`，在线拖拽、保存、加载 `flowJson`；菜单路由 `ai/agent_flow_edit/index/:id`。
+5. 🆕 新增 **数据库迁移脚本** `sql/V5__create_agent_flow_table.sql`：包含 `agent_flow`、`chat_flow_message` 新表，`ai_agent.description` 列补充，以及 AI 工具箱子菜单统一重命名（Agent Tools → 工具管理、Agent Flow → 多智能体、Skill → Skill管理、MCP → MCP管理）。
+6. 🆕 新增 **后端模块**：`ruoyi-ai-core` 新增 `component/flow`（`FlowTreeParser`、`AgentSpecAdaptor` 与 DTO）、`service/IAgentFlowService`、`controller/AgentFlowController`、`domain/AgentFlow` / `ChatFlowMessage`；`ruoyi-ai-chat` 新增 `AgentFlowChatServiceImpl` 与 `controller/AIFlowChatController`。
+7. 🆕 新增 **`FlowTool`**：`ruoyi-ai-core/.../tool/FlowTool.java` 为 Flow 调度提供节点流转工具入口。
+8. 🔧 **菜单路径统一**：AI 工具箱下子菜单统一使用中文名（多智能体 / 工具管理 / Skill管理 / MCP管理），并同步 Gitee 链接路径。
 
 ### v1.2（MCP 工具市场 & Skills 技能体系）
 
@@ -229,34 +243,26 @@ def calc_circle_area(radius):
 
 ### 二、Docker 容器化部署（推荐）
 
-项目根目录内置了容器化构建脚本：
+`docker-compose.yml` 中已为 `ruoyi-admin` 与 `ruoyi-ui` 服务分别指定了 `Dockerfile-admin` 与 `Dockerfile-ui`，**只需一条命令即可同时拉起中间件（MySQL / Redis / PgVector 等）并自动构建前后端镜像**：
 
 ```bash
-# 1. 构建 ruoyi-admin 与 ruoyi-ui 镜像
-./build.sh
-
-# 2. 启动项目（含 MySQL / Redis / PgVector 等中间件）
-docker compose -f docker-compose.yml up -d
+docker compose -f docker-compose.yml up -d --build
 ```
 
-> Windows 用户可使用 PowerShell 执行 `build.sh`，或参考 `bin/` 目录下的脚本。
+> - 无需手动执行 `build.sh` 或 `bin/` 下的脚本；`--build` 会让 Compose 按 Dockerfile 自动构建前后端镜像。
+> - 后端容器启动后，**Flyway 会自动执行** `ruoyi-admin/src/main/resources/db/migration/` 下全部 `V1` ~ `V5` 脚本完成建表与字典初始化。
+> - Windows PowerShell / CMD 用户可直接使用 `docker compose -f docker-compose.yml up -d --build`。
 
 ### 三、本地开发模式
 
+项目已集成 **[Flyway](https://flywaydb.org/)**，启动后端时 `ruoyi-admin` 会自动扫描并按版本号顺序执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有迁移脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql`），**无需手动执行任何 SQL**。首次启动前只需在 MySQL 中手动创建一个空库（库名与 `application-druid.yml` / `application.yml` 中的 `url` 保持一致），Flyway 会自动建表与初始化业务数据。
+
 ```bash
-# 初始化数据库（按顺序执行）
-sql/ry_*.sql
-sql/quartz.sql
-# v1.1 起还需执行工具相关迁移
-sql/V2__create_tool_table.sql
-# v1.2 起继续执行 Skill / MCP 相关迁移
-sql/V3__create_skill_table.sql
-sql/V4__create_mcp_table.sql
+# （可选）首次启动前在 MySQL 中手动创建空库
+mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS `ry-vue` DEFAULT CHARACTER SET utf8mb4;"
 
-# 启动后端
+# 启动后端（Flyway 会自动执行 db/migration 下所有 V1~V5 脚本）
 mvn spring-boot:run -pl ruoyi-admin
-
-# 启动前端
 cd ruoyi-ui
 npm install
 npm run dev
@@ -292,11 +298,13 @@ AI 工具箱菜单下包含：
 - **模型管理**：LLM / Embedding 模型维护（Ollama / OpenAI 协议）。
 - **知识库管理**：文档分段、向量化、人工分段调整。
 - **智能体管理**：多类型智能体（`origin` / `dify`），支持系统提示词、记忆、知识库挂载、**MCP 工具挂载**、**Skill 技能挂载**、Agent Tools 挂载、客户端限流。
-- **Agent Tools**：管理 `builtin`（Java Tool）与 `sandbox`（Python Tool）两种工具类型，`sandbox` 工具页面集成 Monaco 代码编辑器，可直接挂载到任意智能体上。
-- **Skill**（v1.2 新增）：维护 `agent_skill` 技能，支持 `create` / `import` 两种类型，支持从仓库 `skills/` 目录的 `SKILL.md` 一键导入，技能列表会拼接到 System Prompt 并通过 `activate_skill` 工具激活。
-- **MCP**（v1.2 新增）：维护 `agent_mcp_service` 与子级 `agent_mcp_tool`，支持 `sse` / `stdio` / `streamable-http` 三种传输方式，自动同步远端 MCP 工具列表，可挂载到任意原生智能体。
+- **多智能体**（v1.3 新增）：基于 [AntV X6](https://x6.antv.antgroup.com/) 可视化画布拼接多个智能体节点为 Flow，生成独立 `visit_url` 并提供专属对话页面（`aiFlowChat.vue`），支持 Flow 内记忆共享 / 提示词模板 / 深度思考 / 单客户端日访问限流。
+- **工具管理**（原 Agent Tools）：管理 `builtin`（Java Tool）与 `sandbox`（Python Tool）两种工具类型，`sandbox` 工具页面集成 Monaco 代码编辑器，可直接挂载到任意智能体上。
+- **Skill管理**（v1.2 新增）：维护 `agent_skill` 技能，支持 `create` / `import` 两种类型，支持从仓库 `skills/` 目录的 `SKILL.md` 一键导入，技能列表会拼接到 System Prompt 并通过 `activate_skill` 工具激活。
+- **MCP管理**（v1.2 新增）：维护 `agent_mcp_service` 与子级 `agent_mcp_tool`，支持 `sse` / `stdio` / `streamable-http` 三种传输方式，自动同步远端 MCP 工具列表，可挂载到任意原生智能体。
 - **Dify API 管理**：统一维护外部 Dify 服务接入（URL 前缀 + API Key）。
 - **AI 聊天**：流式对话、深度思考 UI 渲染、历史会话管理。
+- **Flow 对话**：v1.3 起为每个 Agent Flow 生成的独立对话页面，记录 `chat_flow_message`，可用于交付独立的多智能体应用链接。
 
 ---
 
@@ -379,6 +387,9 @@ RuoYi-Langchain4j 的源码全部开源免费，如果你觉得这个项目帮�
 - MCP Java SDK：<https://github.com/modelcontextprotocol/java-sdk>
 - MCP Server 示例合集：<https://github.com/modelcontextprotocol/servers>
 - Anthropic Skills 介绍：<https://docs.anthropic.com/en/docs/agents-and-tools/agent-skills/overview>
+- AntV X6 图编辑引擎：<https://x6.antv.antgroup.com/>
+- AntV X6 Dnd 插件：<https://x6.antv.antgroup.com/api/plugins/dnd>
+- AntV X6 History 插件：<https://x6.antv.antgroup.com/api/plugins/history>
 
 ---
 
