@@ -120,32 +120,45 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         String finalPromptTemplate = this.attachSubAgentPrompt(promptTemplate) + "\n\n当前invokeId=" + invokeId;
         AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
         AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();
-        // 本轮结束向外传递的结果
+
+        // 初始化载体：只标记状态，不提前拼装transferRequest
         AtomicReference<AgentRoundOut> outRef = new AtomicReference<>(
                 AgentRoundOut.builder()
                         .needNext(false)
                         .transferRequest(request)
+                        .nextAgentSpec(null)
+                        .content("")
                         .build()
         );
 
         TokenStream tokenStream = currentAssistant.chatStream(finalPromptTemplate);
         AtomicInteger thinkCount = new AtomicInteger(0);
         AtomicBoolean thinkFinish = new AtomicBoolean(false);
-        return Mono.create(sink -> tokenStream.onPartialThinking(thinkingChunk -> {
+
+        return Mono.create(sink -> tokenStream
+                .onPartialThinking(thinkingChunk -> {
                     String text = thinkingChunk.text();
                     if (thinkCount.incrementAndGet() == 1) {
                         text = Constants.THINK_PREFIX_TAG + text;
                     }
                     this.emitFluxEvent(Constants.SSE_EVENT_MSG, text, aiAgent.getId(), aiAgent.getName(), fluxSink);
-                }).onPartialResponse(chunk -> {
+                })
+                .onPartialResponse(chunk -> {
                     if (thinkCount.intValue() > 0 && !thinkFinish.get()) {
                         chunk = Constants.THINK_SUFFIX_TAG + chunk;
                         thinkFinish.set(true);
                     }
                     this.emitFluxEvent(Constants.SSE_EVENT_MSG, chunk, aiAgent.getId(), aiAgent.getName(), fluxSink);
-                }).onCompleteResponse(resp -> {
+                })
+                .onCompleteResponse(resp -> {
                     AgentRoundOut out = outRef.get();
+                    // 赋值本轮完整大模型输出
                     out.setContent(resp.aiMessage().text());
+
+                    // ✅ 【重点】等到完整输出拿到后，再拼装传递给子Agent的请求
+                    if (out.isNeedNext() && out.getNextAgentSpec() != null) {
+                        out.setTransferRequest(buildNextRequest(request, out.getContent()));
+                    }
                     sink.success(out);
                 })
                 .onToolExecuted(toolExecuted -> {
@@ -161,12 +174,10 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         try {
                             AgentSpec agentSpec = objectMapper.readValue(result, new TypeReference<>() {
                             });
-                            // 仅标记跳转信息，不立刻执行子Agent
                             AgentRoundOut out = outRef.get();
+                            // 仅标记跳转开关与spec，禁止在此处调用buildNextRequest
                             out.setNeedNext(true);
                             out.setNextAgentSpec(agentSpec);
-                            // 你后续可以把transferRequest改为本轮输出resp文本传给子Agent
-                            out.setTransferRequest(buildNextRequest(request, out.getContent()));
                         } catch (Exception e) {
                             log.error("解析子AgentSpec异常", e);
                             emitFluxEvent(Constants.SSE_EVENT_MSG, "子智能体配置解析异常：" + e.getMessage(), aiAgent.getId(), aiAgent.getName(), fluxSink);
@@ -175,12 +186,14 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     List<Map<String, Object>> toolCalls = toolCallList.get() == null ? new ArrayList<>() : toolCallList.get();
                     toolCalls.add(value);
                     toolCallList.set(toolCalls);
-                }).beforeToolExecution(beforeToolExecution -> {
+                })
+                .beforeToolExecution(beforeToolExecution -> {
                     ToolExecutionRequest req = beforeToolExecution.request();
                     log.info("调用工具{}", req.name());
                     Map<String, Object> value = MapUtil.<String, Object>builder().put("toolName", req.name()).build();
                     this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, aiAgent.getId(), aiAgent.getName(), fluxSink);
-                }).onRetrieved(contents -> {
+                })
+                .onRetrieved(contents -> {
                     log.info("知识库查询完成，共{}条", contents.size());
                     retrieveList.set(contents.stream().map(content -> {
                         String text = content.textSegment().text();
@@ -204,7 +217,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     protected String buildNextRequest(String request, String content) {
-        return "Last round result: " + content + "\n" + "User say: " + request;
+        return "Parent Agent answer: " + content + "\n" + "User say: " + request;
     }
 
     /**
