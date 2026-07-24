@@ -72,11 +72,11 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
         } else {
             promptTemplate = promptTemplate + prompt;
         }
-        if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isNotBlank(aiAgent.getKbIds())) {
+        if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE)) {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
         String finalPromptTemplate = promptTemplate;
-        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId, false);
+        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId, false, false);
         return Flux.create(fluxSink -> {
             AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
             AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();

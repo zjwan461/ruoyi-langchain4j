@@ -75,16 +75,12 @@ public class AgentFlowController extends BaseController {
     @Log(title = "agent_flow", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@RequestBody AgentFlow agentFlow) {
-        constructInfo(agentFlow);
-        return success(agentFlowService.insertAgentFlow(agentFlow));
-    }
-
-    public void constructInfo(AgentFlow agentFlow) {
         if (agentFlow.getVisitUrl() == null || "".equals(agentFlow.getVisitUrl())) {
             String seed = IdUtils.fastSimpleUUID();
             String visitUrl = "/ai-flow-chat/" + seed;
             agentFlow.setVisitUrl(visitUrl);
         }
+        return success(agentFlowService.insertAgentFlow(agentFlow));
     }
 
     /**
@@ -94,7 +90,6 @@ public class AgentFlowController extends BaseController {
     @Log(title = "agent_flow", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@RequestBody AgentFlow agentFlow) {
-        constructInfo(agentFlow);
         return toAjax(agentFlowService.updateAgentFlow(agentFlow));
     }
 

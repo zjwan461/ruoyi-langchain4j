@@ -136,6 +136,12 @@ public class AIAgent extends BaseEntity {
 
     private List<AgentMcpTool> agentMcpTools;
 
+    private Boolean showReasoning;
+
+    private Boolean flowMemory;
+
+    private String agentNodeId;
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -368,6 +374,30 @@ public class AIAgent extends BaseEntity {
         this.description = description;
     }
 
+    public Boolean getShowReasoning() {
+        return showReasoning;
+    }
+
+    public void setShowReasoning(Boolean showReasoning) {
+        this.showReasoning = showReasoning;
+    }
+
+    public Boolean getFlowMemory() {
+        return flowMemory;
+    }
+
+    public void setFlowMemory(Boolean flowMemory) {
+        this.flowMemory = flowMemory;
+    }
+
+    public String getAgentNodeId() {
+        return agentNodeId;
+    }
+
+    public void setAgentNodeId(String agentNodeId) {
+        this.agentNodeId = agentNodeId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -404,6 +434,9 @@ public class AIAgent extends BaseEntity {
                 .append("mcpToolIds", getMcpToolIds())
                 .append("mcpToolNames", getMcpToolNames())
                 .append("agentMcpTools", getAgentMcpTools())
+                .append("flowMemory", getFlowMemory())
+                .append("showReasoning", getShowReasoning())
+                .append("agentNodeId", getAgentNodeId())
                 .toString();
     }
 

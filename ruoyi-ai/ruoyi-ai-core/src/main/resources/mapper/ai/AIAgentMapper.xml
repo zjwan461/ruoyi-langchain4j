@@ -38,7 +38,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <result property="code" column="code"/>
             <result property="clazz" column="clazz"/>
             <result property="parameters" column="parameters"/>
-            <result property="description" column="description"/>
+            <result property="description" column="tool_description"/>
             <result property="createTime" column="tool_create_time"/>
             <result property="updateTime" column="tool_update_time"/>
             <result property="createBy" column="tool_create_by"/>
@@ -220,7 +220,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                c.code,
                c.clazz,
                c.parameters,
-               c.description,
+               c.description tool_description,
                c.create_time tool_create_time,
                c.update_time tool_update_time,
                c.create_by   tool_create_by,

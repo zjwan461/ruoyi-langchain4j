@@ -58,7 +58,7 @@
           </div>
           <div class="agent-details">
             <h1>{{ agentInfo.name || 'AI 助手' }}
-              <el-tag v-if="agentInfo" type="info" size="medium" effect="plain" style="margin-left: 10px;">{{ agentInfo.agentType === 'dify' ? 'Dify 智能体' : (agentInfo.agentType || 'origin') }}</el-tag>
+              <el-tag v-if="agentInfo" type="info" size="medium" effect="plain" style="margin-left: 10px;">Agent Flow</el-tag>
             </h1>
             <p v-if="agentInfo.description">{{ agentInfo.description }}</p>
           </div>

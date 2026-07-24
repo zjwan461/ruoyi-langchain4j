@@ -57,7 +57,7 @@
           <label class="form-label">职责描述</label>
           <el-input
             type="textarea"
-            :rows="4"
+            :rows="5"
             placeholder="请输入该Agent的职责描述"
             v-model="currentNodeData.description"
             @input="syncNodeData"
@@ -68,6 +68,16 @@
           <label class="form-label">输出推理内容</label>
           <el-switch
             v-model="currentNodeData.showReasoning"
+            :disabled="isCurrentRoot"
+            @change="syncNodeData"
+          ></el-switch>
+          <div v-if="isCurrentRoot" class="root-tip">根节点强制开启</div>
+        </div>
+
+        <div class="form-item">
+          <label class="form-label">共享AgentFlow记忆</label>
+          <el-switch
+            v-model="currentNodeData.flowMemory"
             :disabled="isCurrentRoot"
             @change="syncNodeData"
           ></el-switch>
@@ -107,6 +117,7 @@ export default {
         name: '',
         description: '',
         showReasoning: false,
+        flowMemory: false,
       },
       // 自动保存相关
       autoSaveTimer: null,
@@ -115,36 +126,6 @@ export default {
       isSaving: false,
       // Agent 基础配置
       agentList: [
-        {
-          id: 'agent-1',
-          name: '感知 Agent',
-          description: '负责采集外部输入信息，进行数据预处理与格式标准化',
-          showReasoning: false
-        },
-        {
-          id: 'agent-2',
-          name: '决策 Agent',
-          description: '根据上下文信息进行逻辑判断，制定执行策略与决策',
-          showReasoning: false
-        },
-        {
-          id: 'agent-3',
-          name: '执行 Agent',
-          description: '接收决策指令，执行具体业务操作并输出结果',
-          showReasoning: false
-        },
-        {
-          id: 'agent-4',
-          name: '记忆 Agent',
-          description: '存储与管理流程上下文，提供历史信息检索能力',
-          showReasoning: false
-        },
-        {
-          id: 'agent-5',
-          name: '通信 Agent',
-          description: '负责多智能体间消息转发与协同，保障通信链路稳定',
-          showReasoning: false
-        },
       ],
     }
   },
@@ -328,6 +309,7 @@ export default {
               name: n.agentName || n.name || '',
               description: n.description || '',
               showReasoning: !!n.showReasoning,
+              flowMemory: !!n.flowMemory,
             },
           })
           nodeIdMap[n.nodeId] = node
@@ -484,9 +466,10 @@ export default {
           const incoming = this.graph.getIncomingEdges(node)
           if (!incoming || incoming.length === 0) {
             const data = node.getData()
-            node.setData({ ...data, showReasoning: true })
+            node.setData({ ...data, showReasoning: true ,flowMemory: true})
             if (this.currentNode === node) {
               this.currentNodeData.showReasoning = true
+              this.currentNodeData.flowMemory = true
             }
           }
         })
@@ -514,9 +497,10 @@ export default {
           const incoming = this.graph.getIncomingEdges(targetNode)
           if (!incoming || incoming.length === 0) {
             const data = targetNode.getData()
-            targetNode.setData({ ...data, showReasoning: true })
+            targetNode.setData({ ...data, showReasoning: true, flowMemory: true })
             if (this.currentNode === targetNode) {
               this.currentNodeData.showReasoning = true
+              this.currentNodeData.flowMemory = true
             }
           }
         })
@@ -552,6 +536,7 @@ export default {
           name: agent.name,
           description: agent.description,
           showReasoning: agent.showReasoning,
+          flowMemory: agent.flowMemory,
         },
       })
       this.dnd.start(node, e, { offsetX: -80, offsetY: -40 })
@@ -584,6 +569,7 @@ export default {
         name: '',
         description: '',
         showReasoning: false,
+        flowMemory: false,
       }
     },
 

@@ -40,6 +40,11 @@ public class AgentNode extends FlowCell {
         return data == null ? null : data.getShowReasoning();
     }
 
+    @JsonIgnore
+    public Boolean getFlowMemory() {
+        return data ==null ? null : data.getFlowMemory();
+    }
+
     public Position getPosition() {
         return position;
     }

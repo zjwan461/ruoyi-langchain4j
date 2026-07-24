@@ -252,7 +252,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         }
     }
 
-    protected AIAssistant buildAIAssistant(AIAgent currentAgent, String sessionId, boolean enableFlowTool) {
+    protected AIAssistant buildAIAssistant(AIAgent currentAgent, String sessionId, boolean enableFlowTool, boolean shareSessionMemory) {
         Long modelId = currentAgent.getModelId();
         Model model = modelService.selectModelById(modelId);
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -274,6 +274,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                     .build();
             builder.contentRetriever(contentRetriever);
         }
+        // 如果Agent开启共享flow memory功能
+        String memoryId = shareSessionMemory ? sessionId : sessionId + ":" + currentAgent.getAgentNodeId();
         return builder.streamingChatModel(llm)
                 .systemMessageProvider(x -> {
                     if (CollUtil.isNotEmpty(currentAgent.getAgentSkills())) {
@@ -283,7 +285,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                     }
                 })
                 .chatMemory(MessageWindowChatMemory.builder()
-                        .id(sessionId)
+                        .id(memoryId)
                         .chatMemoryStore(memoryStore)
                         .maxMessages(currentAgent.getMemoryCount())
                         .build())

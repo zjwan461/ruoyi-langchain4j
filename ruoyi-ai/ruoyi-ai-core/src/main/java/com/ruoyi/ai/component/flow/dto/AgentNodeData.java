@@ -11,6 +11,7 @@ public class AgentNodeData {
     private String name;
     private String description;
     private Boolean showReasoning;
+    private Boolean flowMemory;
 
     public Integer getAgentId() {
         return agentId;
@@ -42,5 +43,13 @@ public class AgentNodeData {
 
     public void setShowReasoning(Boolean showReasoning) {
         this.showReasoning = showReasoning;
+    }
+
+    public Boolean getFlowMemory() {
+        return flowMemory;
+    }
+
+    public void setFlowMemory(Boolean flowMemory) {
+        this.flowMemory = flowMemory;
     }
 }

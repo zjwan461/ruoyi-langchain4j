@@ -18,4 +18,8 @@ public class AgentSpec {
     private String description;
 
     private String nodeId;
+
+    private Boolean showReasoning;
+
+    private Boolean flowMemory;
 }
