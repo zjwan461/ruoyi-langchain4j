@@ -222,31 +222,41 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
         this.init(sessionId, agentFlow);
         return Flux.create(fluxSink -> {
-            // 第一轮rootAgent
+            log.info("AgentFlow chat start, sessionId={}", sessionId);
+            // 第一轮 rootAgent
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, fluxSink, rootAgent);
-            // expand递归：一轮执行完成，判断是否开启下一轮
+            AtomicInteger roundCount = new AtomicInteger(0);
+            // expand 递归执行多轮
             firstRound.expand(out -> {
+                        log.info("expand check: needNext={}, nextAgentSpec={}", out.isNeedNext(), out.getNextAgentSpec());
+                        if (roundCount.incrementAndGet() > 10) {
+                            log.warn("Max rounds reached, stop expand");
+                            return Mono.empty();
+                        }
                         if (out.isNeedNext() && out.getNextAgentSpec() != null) {
                             return nextRound(out.getNextAgentSpec(), sessionId, clientId, out.getTransferRequest(), fluxSink);
                         } else {
-                            // 无需继续，递归终止
+                            // 无需继续，返回 empty，终止 expand
                             return Mono.empty();
                         }
                     })
-                    .then()
+                    // 所有轮次全部执行完毕，关闭SSE
+                    .doFinally(signalType -> {
+                        log.info("对话链路全部结束，信号类型:{}，关闭SSE", signalType);
+                        fluxSink.complete();
+                    })
                     .subscribe(
-                            (res) -> {
-                                // 所有层级Agent全部执行完毕，统一关闭SSE
-                                fluxSink.complete();
-                            },
+                            null, // onNext 不需要，因为 emitFluxEvent 已经推送
                             err -> {
-                                log.error("AgentFlow执行异常", err);
-                                emitFluxEvent(Constants.SSE_EVENT_MSG, "对话异常：" + err.getMessage(), rootAgent.getId(), rootAgent.getName(), fluxSink);
+                                log.error("AgentFlow error", err);
+                                emitFluxEvent(Constants.SSE_EVENT_MSG, "对话异常：" + err.getMessage(),
+                                        rootAgent.getId(), rootAgent.getName(), fluxSink);
                                 fluxSink.error(err);
                             }
                     );
         });
     }
+
 
     @Override
     public String attachSubAgentPrompt(String prompt) {
