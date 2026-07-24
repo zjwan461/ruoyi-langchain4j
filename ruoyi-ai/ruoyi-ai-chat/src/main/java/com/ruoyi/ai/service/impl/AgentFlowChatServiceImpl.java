@@ -21,9 +21,12 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import lombok.Getter;
 import lombok.Setter;
@@ -102,6 +105,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         this.currentAgent.setAgentNodeId(treeNode.getNode().getNodeId());
         this.currentAgent.setShowReasoning(treeNode.getNode().getShowReasoning());
         this.currentAgent.setFlowMemory(treeNode.getNode().getFlowMemory());
+        this.currentAgent.setIsRootAgent(Boolean.TRUE);
         this.rootAgent = currentAgent;
         this.currentAssistant = this.buildAIAssistant(this.currentAgent, sessionId, true, true);
     }
@@ -185,6 +189,15 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                                         String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")));
                             }
                         }
+                    }
+                    //非root agent需要同步AI message到root memory
+                    if (!aiAgent.getIsRootAgent()) {
+                        String content = this.getAIResponse(resp);
+                        ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
+                                redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
+                        List<ChatMessage> rootMessages = memoryStore.getMessages(sessionId);
+                        rootMessages.add(AiMessage.aiMessage(content));
+                        memoryStore.updateMessages(sessionId, rootMessages);
                     }
                 })
                 .onToolExecuted(toolExecuted -> {

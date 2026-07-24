@@ -142,6 +142,8 @@ public class AIAgent extends BaseEntity {
 
     private String agentNodeId;
 
+    private Boolean isRootAgent = Boolean.FALSE;
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -398,6 +400,14 @@ public class AIAgent extends BaseEntity {
         this.agentNodeId = agentNodeId;
     }
 
+    public Boolean getIsRootAgent() {
+        return isRootAgent;
+    }
+
+    public void setIsRootAgent(Boolean rootAgent) {
+        isRootAgent = rootAgent;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -437,6 +447,7 @@ public class AIAgent extends BaseEntity {
                 .append("flowMemory", getFlowMemory())
                 .append("showReasoning", getShowReasoning())
                 .append("agentNodeId", getAgentNodeId())
+                .append("isRootAgent", getIsRootAgent())
                 .toString();
     }
 

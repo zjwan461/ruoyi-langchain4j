@@ -197,7 +197,7 @@
               style="color: red;">{question}</b>表示用户输入的内容；占位符<b style="color: red;">{data}</b>表示知识库搜索出来的内容</i>
           </el-form-item>
           <el-form-item label="记忆轮次" prop="memoryCount">
-            <el-input-number v-model="form.memoryCount" :max="10" :step="1" placeholder="请输入内容"/>
+            <el-input-number v-model="form.memoryCount" :max="50" :step="1" placeholder="请输入内容"/>
           </el-form-item>
         </template>
         <!-- dify 类型专属字段:dify flow 选择对应的 dify 应用 -->
@@ -370,7 +370,7 @@ export default {
         name: null,
         kbIds: null,
         systemMessage: "你是一个AI小助手",
-        memoryCount: null,
+        memoryCount: 10,
         modelId: null,
         createBy: null,
         createTime: null,
