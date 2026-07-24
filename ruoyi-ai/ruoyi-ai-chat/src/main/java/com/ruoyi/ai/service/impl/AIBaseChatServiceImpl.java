@@ -290,7 +290,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                 .chatMemory(MessageWindowChatMemory.builder()
                         .id(memoryId)
                         .chatMemoryStore(memoryStore)
-                        .maxMessages(currentAgent.getMemoryCount())
+                        // 记忆轮次需要x2
+                        .maxMessages(currentAgent.getMemoryCount() * 2)
                         .build())
                 .toolProvider(new JToolProvider(currentAgent, enableFlowTool))
                 .maxToolCallingRoundTrips(aiConfig.getAgent().getMaxSequentialToolsInvocations())

@@ -131,7 +131,10 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                             this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList.get(), fluxSink);
                         }
                     })
-                    .onError(fluxSink::error)
+                    .onError(error->{
+                        fluxSink.error(error);
+                        fluxSink.complete();
+                    })
                     .start();
         });
     }

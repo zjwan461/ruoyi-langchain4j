@@ -292,6 +292,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                                 emitFluxEvent(Constants.SSE_EVENT_MSG, "对话异常：" + err.getMessage(),
                                         rootAgent.getId(), rootAgent.getName(), fluxSink);
                                 fluxSink.error(err);
+                                fluxSink.complete();
                             }
                     );
         });

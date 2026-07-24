@@ -135,7 +135,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
             chatMemory = MessageWindowChatMemory.builder()
                     .chatMemoryStore(memoryStore)
-                    .maxMessages(aiAgent.getMemoryCount())
+                    .maxMessages(aiAgent.getMemoryCount() * 2)
                     .id(sessionId)
                     .build();
         }
@@ -214,6 +214,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 @Override
                 public void onError(Throwable error) {
                     fluxSink.error(error);
+                    fluxSink.complete();
                 }
             });
 
