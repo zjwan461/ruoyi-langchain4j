@@ -5,13 +5,17 @@
       <h3>🧩 Agent 列表</h3>
 
       <div class="action-group">
+        <div class="flow-btn btn-info" @click="saveFlowData(true)">
+          <i class="el-icon-document-add"></i>
+          <span>保存编排</span>
+        </div>
         <div class="flow-btn btn-danger" @click="deleteSelected">
           <i class="el-icon-delete"></i>
           <span>删除选中</span>
         </div>
         <div class="flow-btn btn-primary" @click="exportFlow">
           <i class="el-icon-download"></i>
-          <span>导出编排JSON</span>
+          <span>导出编排</span>
         </div>
       </div>
 
@@ -213,7 +217,7 @@ export default {
     },
 
     // 保存流程数据到后端
-    saveFlowData() {
+    saveFlowData(manual) {
       if (this.isSaving) {
         return
       }
@@ -232,6 +236,9 @@ export default {
         this.hasUnsavedChanges = false
         if (res.code === 200) {
           console.log('自动保存成功')
+          if (manual) {
+            this.$message.success("保存成功")
+          }
         } else {
           console.warn('自动保存返回异常:', res.msg)
         }
@@ -751,6 +758,20 @@ export default {
 .btn-primary:active {
   background: #337ecc;
   border-color: #337ecc;
+}
+
+.btn-info {
+  color: #fff;
+  background: #909399;
+  border: 1px solid #909399;
+}
+.btn-info:hover {
+  background: #a6a9ad;
+  border-color: #a6a9ad;
+}
+.btn-info:active {
+  background: #82848a;
+  border-color: #82848a;
 }
 
 .list-divider {
