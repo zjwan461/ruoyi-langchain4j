@@ -9,7 +9,6 @@ import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
-import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ChatMessageType;
@@ -97,16 +96,8 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         this.emitFluxEvent(Constants.SSE_EVENT_MSG, chunk, fluxSink);
                     }).onCompleteResponse(resp -> {
                         fluxSink.complete();
-                        StringBuilder content = new StringBuilder();
-                        String thinking = resp.aiMessage().thinking();
-                        if (StringUtils.isNotBlank(thinking)) {
-                            content.append(Constants.THINK_PREFIX_TAG)
-                                    .append(thinking)
-                                    .append(Constants.THINK_SUFFIX_TAG);
-                        }
-                        String aiText = resp.aiMessage().text();
-                        content.append(aiText);
-                        ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                        String content = this.getAIResponse(resp);
+                        ChatMessage assistantMessage = saveChatMessage(content, clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
@@ -135,16 +126,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, fluxSink);
                     }).onRetrieved(contents -> {
                         log.info("知识库查询完成，共{}条", contents.size());
-                        retrieveList.set(contents.stream().map(content -> {
-                            String text = content.textSegment().text();
-                            Long kbId = content.textSegment().metadata().getLong("kb_id");
-                            String fileName = content.textSegment().metadata().getString("file_name");
-                            return MapUtil.<String, Object>builder()
-                                    .put("kbId", kbId)
-                                    .put("fileName", fileName)
-                                    .put("text", text)
-                                    .build();
-                        }).toList());
+                        handleRetrieveRecord(retrieveList, contents);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList.get(), fluxSink);
                         }
@@ -153,5 +135,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                     .start();
         });
     }
+
+
 
 }

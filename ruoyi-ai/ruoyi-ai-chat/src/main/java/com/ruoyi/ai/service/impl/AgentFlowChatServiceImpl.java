@@ -21,6 +21,7 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -110,6 +111,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
      * 不再在内部递归/block启动下一轮
      */
     public Mono<AgentRoundOut> invoke(String sessionId, String clientId, String request, FluxSink<String> fluxSink, AIAgent aiAgent) {
+
         String invokeId = IdUtils.fastSimpleUUID();
         String promptTemplate = currentAgent.getPromptTemplate();
         if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
@@ -167,6 +169,23 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         out.setTransferRequest(buildNextRequest(request, out.getContent()));
                     }
                     sink.success(out);
+                    if (aiAgent.getShowReasoning()) {
+                        String content = this.getAIResponse(resp);
+                        ChatFlowMessage assistantMessage = this.saveChatFlowMessage(content, clientId, sessionId, aiAgent.getId(), aiAgent.getName(),
+                                this.agentFlow.getId(), ChatMessageType.AI);
+                        if (CollUtil.isNotEmpty(retrieveList.get())) {
+                            for (Map<String, Object> item : retrieveList.get()) {
+                                this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
+                                        String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));
+                            }
+                        }
+                        if (CollUtil.isNotEmpty(toolCallList.get())) {
+                            for (Map<String, Object> item : toolCallList.get()) {
+                                this.saveToolCallRecord(aiAgent, sessionId, clientId, assistantMessage.getId(),
+                                        String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")));
+                            }
+                        }
+                    }
                 })
                 .onToolExecuted(toolExecuted -> {
                     ToolExecutionRequest req = toolExecuted.request();
@@ -207,16 +226,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 .onRetrieved(contents -> {
                     log.info("知识库查询完成，共{}条", contents.size());
                     if (aiAgent.getShowReasoning()) {
-                        retrieveList.set(contents.stream().map(content -> {
-                            String text = content.textSegment().text();
-                            Long kbId = content.textSegment().metadata().getLong("kb_id");
-                            String fileName = content.textSegment().metadata().getString("file_name");
-                            return MapUtil.<String, Object>builder()
-                                    .put("kbId", kbId)
-                                    .put("fileName", fileName)
-                                    .put("text", text)
-                                    .build();
-                        }).toList());
+                        handleRetrieveRecord(retrieveList, contents);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList.get(), aiAgent.getId(), aiAgent.getName(), fluxSink);
                         }
@@ -252,6 +262,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         this.init(sessionId, agentFlow);
         return Flux.create(fluxSink -> {
             log.info("AgentFlow chat start, sessionId={}", sessionId);
+            saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER);
             // 第一轮 rootAgent
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, fluxSink, rootAgent);
             AtomicInteger roundCount = new AtomicInteger(0);
@@ -345,5 +356,31 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             fluxSink.next(objectMapper.writeValueAsString(msg));
         } catch (JsonProcessingException ignored) {
         }
+    }
+
+    protected ChatFlowMessage saveChatFlowMessage(String content, String clientId, String sessionId, Long agentId, String agentName,
+                                                  Long agentFlowId, ChatMessageType chatMessageType) {
+        ChatFlowMessage chatFlowMessage = new ChatFlowMessage();
+        chatFlowMessage.setAgentId(agentId);
+        chatFlowMessage.setContent(content);
+        if (chatMessageType == ChatMessageType.AI) {
+            chatFlowMessage.setRole("assistant");
+        } else if (chatMessageType == ChatMessageType.USER) {
+
+            chatFlowMessage.setRole("user");
+        } else if (chatMessageType == ChatMessageType.SYSTEM) {
+            chatFlowMessage.setRole("system");
+        } else if (chatMessageType == ChatMessageType.TOOL_EXECUTION_RESULT) {
+            chatFlowMessage.setRole("tool_execution_result");
+        } else {
+            chatFlowMessage.setRole(chatMessageType.name());
+        }
+        chatFlowMessage.setClientId(clientId);
+        chatFlowMessage.setSessionId(sessionId);
+        chatFlowMessage.setAgentFlowId(agentFlowId);
+        chatFlowMessage.setAgentName(agentName);
+        chatFlowMessage.setCreateBy("system");
+        chatFlowMessageService.insertChatMessage(chatFlowMessage);
+        return chatFlowMessage;
     }
 }

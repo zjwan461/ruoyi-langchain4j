@@ -18,7 +18,9 @@ import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.message.ChatMessageType;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
@@ -34,6 +36,7 @@ import reactor.core.publisher.FluxSink;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
@@ -331,5 +334,31 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     @Override
     public List<ChatFlowMessage> listAgentFlowChatMessageBySessionIdOrderDesc(String sessionId, Long agentId) {
         throw new ServiceException("not implemented");
+    }
+
+    protected String getAIResponse(ChatResponse response) {
+        StringBuilder content = new StringBuilder();
+        String thinking = response.aiMessage().thinking();
+        if (StringUtils.isNotBlank(thinking)) {
+            content.append(Constants.THINK_PREFIX_TAG)
+                    .append(thinking)
+                    .append(Constants.THINK_SUFFIX_TAG);
+        }
+        String aiText = response.aiMessage().text();
+        content.append(aiText);
+        return content.toString();
+    }
+
+    protected void handleRetrieveRecord(AtomicReference<List<Map<String, Object>>> retrieveList, List<Content> contents) {
+        retrieveList.set(contents.stream().map(content -> {
+            String text = content.textSegment().text();
+            Long kbId = content.textSegment().metadata().getLong("kb_id");
+            String fileName = content.textSegment().metadata().getString("file_name");
+            return MapUtil.<String, Object>builder()
+                    .put("kbId", kbId)
+                    .put("fileName", fileName)
+                    .put("text", text)
+                    .build();
+        }).toList());
     }
 }
