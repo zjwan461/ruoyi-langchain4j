@@ -78,3 +78,7 @@ create table chat_flow_message
 ) engine = innodb
   auto_increment = 1 comment ='AgentFlow聊天信息表';
 
+update sys_menu set menu_name = '工具管理' where menu_name = 'Agent Tools';
+update sys_menu set menu_name = '多智能体' where menu_name = 'Agent Flow';
+update sys_menu set menu_name = 'Skill管理' where menu_name = 'Skill';
+update sys_menu set menu_name = 'MCP管理' where menu_name = 'MCP';
