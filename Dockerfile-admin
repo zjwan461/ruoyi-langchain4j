@@ -14,6 +14,7 @@ COPY ruoyi-quartz/pom.xml ./ruoyi-quartz/
 COPY ruoyi-system/pom.xml ./ruoyi-system/
 COPY ruoyi-generator/pom.xml ./ruoyi-generator/
 COPY ruoyi-ai/pom.xml ./ruoyi-ai/
+COPY ruoyi-ai/ruoyi-ai-chat/pom.xml ./ruoyi-ai/ruoyi-ai-chat/
 COPY ruoyi-ai/ruoyi-ai-core/pom.xml ./ruoyi-ai/ruoyi-ai-core/
 COPY ruoyi-ai/ruoyi-ai-dify/pom.xml ./ruoyi-ai/ruoyi-ai-dify/
 
