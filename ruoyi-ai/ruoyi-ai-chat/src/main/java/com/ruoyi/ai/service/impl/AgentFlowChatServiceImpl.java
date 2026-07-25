@@ -15,6 +15,7 @@ import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
 import com.ruoyi.ai.domain.ChatFlowMessage;
+import com.ruoyi.ai.dto.FlowRoundContext;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
@@ -28,8 +29,6 @@ import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -40,26 +39,29 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 @Slf4j
-@Getter
-@Setter
 @Component("agentFlowChatService")
 @Scope("prototype")
 public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements AgentFlowService {
 
-    private AIAssistant currentAssistant;
-    private AIAgent currentAgent;
-    private String currentNodeId;
+    // ===================== init 之后只读，线程安全，保留成员 =====================
     private TreeNode treeNode;
     private AgentFlow agentFlow;
     private AIAgent rootAgent;
+    // 节点ID -> TreeNode 缓存，避免重复递归遍历树
+    private Map<String, TreeNode> nodeIdMap;
+
+    // ===================== 【已移除】动态变量全部迁移至 FlowRoundContext =====================
+    // private AIAssistant currentAssistant;
+    // private AIAgent currentAgent;
+    // private String currentNodeId;
 
     @Resource
     private FlowTreeParser parser;
@@ -94,30 +96,48 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 pgVectorEmbeddingStore);
     }
 
-
     @Override
     public void init(String sessionId, AgentFlow agentFlow) {
         this.treeNode = parser.parseToTree(agentFlow.getFlowJson());
         this.agentFlow = agentFlow;
-        this.currentNodeId = treeNode.getNode().getNodeId();
+
+        // 构建节点缓存Map
+        this.nodeIdMap = new HashMap<>();
+        buildNodeCache(this.treeNode, nodeIdMap);
+
         Integer rootAgentId = treeNode.getNode().getAgentId();
-        this.currentAgent = this.aiAgentService.selectAiAgentWithToolAndSkillById(Long.valueOf(rootAgentId));
-        this.currentAgent.setAgentNodeId(treeNode.getNode().getNodeId());
-        this.currentAgent.setShowReasoning(treeNode.getNode().getShowReasoning());
-        this.currentAgent.setFlowMemory(treeNode.getNode().getFlowMemory());
-        this.currentAgent.setIsRootAgent(Boolean.TRUE);
-        this.rootAgent = currentAgent;
-        this.currentAssistant = this.buildAIAssistant(this.currentAgent, sessionId, true, true);
+        this.rootAgent = this.aiAgentService.selectAiAgentWithToolAndSkillById(Long.valueOf(rootAgentId));
+        this.rootAgent.setAgentNodeId(treeNode.getNode().getNodeId());
+        this.rootAgent.setShowReasoning(treeNode.getNode().getShowReasoning());
+        this.rootAgent.setFlowMemory(treeNode.getNode().getFlowMemory());
+        this.rootAgent.setIsRootAgent(Boolean.TRUE);
     }
 
     /**
-     * 执行一轮Agent，本轮完全结束后返回流转指令
-     * 不再在内部递归/block启动下一轮
+     * 递归构建节点ID缓存
      */
-    public Mono<AgentRoundOut> invoke(String sessionId, String clientId, String request, FluxSink<String> fluxSink, AIAgent aiAgent) {
+    private void buildNodeCache(TreeNode node, Map<String, TreeNode> map) {
+        map.put(node.getNode().getNodeId(), node);
+        if (CollUtil.isNotEmpty(node.getChildren())) {
+            for (TreeNode child : node.getChildren()) {
+                buildNodeCache(child, map);
+            }
+        }
+    }
+
+    /**
+     * 单轮Agent执行
+     */
+    @Override
+    public Mono<AgentRoundOut> invoke(String sessionId, String clientId, String request, FlowRoundContext ctx) {
+        AIAgent aiAgent = ctx.getCurrentAgent();
+        AIAssistant assistant = ctx.getCurrentAssistant();
+        String currentNodeId = ctx.getCurrentNodeId();
+        BiConsumer<String, String> safeEmitter = ctx.getSafeEmitter();
+        AtomicBoolean sinkClosed = ctx.getSinkClosed();
 
         String invokeId = IdUtils.fastSimpleUUID();
-        String promptTemplate = currentAgent.getPromptTemplate();
+        String promptTemplate = aiAgent.getPromptTemplate();
         if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
             promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, request);
         } else {
@@ -126,11 +146,11 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE)) {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
-        String finalPromptTemplate = this.attachSubAgentPrompt(promptTemplate) + "\n\n当前invokeId=" + invokeId;
+        String finalPromptTemplate = this.attachSubAgentPrompt(promptTemplate, currentNodeId) + "\n\n当前invokeId=" + invokeId;
+
         AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();
         AtomicReference<List<Map<String, Object>>> toolCallList = new AtomicReference<>();
 
-        // 初始化载体：只标记状态，不提前拼装transferRequest
         AtomicReference<AgentRoundOut> outRef = new AtomicReference<>(
                 AgentRoundOut.builder()
                         .needNext(false)
@@ -140,7 +160,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         .build()
         );
 
-        TokenStream tokenStream = currentAssistant.chatStream(finalPromptTemplate);
+        TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
         AtomicInteger thinkCount = new AtomicInteger(0);
         AtomicBoolean thinkFinish = new AtomicBoolean(false);
 
@@ -151,7 +171,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         if (thinkCount.incrementAndGet() == 1) {
                             text = Constants.THINK_PREFIX_TAG + text;
                         }
-                        this.emitFluxEvent(Constants.SSE_EVENT_MSG, text, aiAgent.getId(), aiAgent.getName(), fluxSink);
+                        emitFluxEvent(Constants.SSE_EVENT_MSG, text, aiAgent.getId(), aiAgent.getName(), safeEmitter);
                     }
                 })
                 .onPartialResponse(chunk -> {
@@ -160,19 +180,17 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                             chunk = Constants.THINK_SUFFIX_TAG + chunk;
                             thinkFinish.set(true);
                         }
-                        this.emitFluxEvent(Constants.SSE_EVENT_MSG, chunk, aiAgent.getId(), aiAgent.getName(), fluxSink);
+                        emitFluxEvent(Constants.SSE_EVENT_MSG, chunk, aiAgent.getId(), aiAgent.getName(), safeEmitter);
                     }
                 })
                 .onCompleteResponse(resp -> {
                     AgentRoundOut out = outRef.get();
-                    // 赋值本轮完整大模型输出
                     out.setContent(resp.aiMessage().text());
-
-                    // ✅ 【重点】等到完整输出拿到后，再拼装传递给子Agent的请求
                     if (out.isNeedNext() && out.getNextAgentSpec() != null) {
                         out.setTransferRequest(buildNextRequest(request, out.getContent()));
                     }
                     sink.success(out);
+
                     if (aiAgent.getShowReasoning()) {
                         String content = this.getAIResponse(resp);
                         ChatFlowMessage assistantMessage = this.saveChatFlowMessage(content, clientId, sessionId, aiAgent.getId(), aiAgent.getName(),
@@ -208,7 +226,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         Map<String, Object> value = MapUtil.<String, Object>builder()
                                 .put("toolName", req.name())
                                 .put("toolInvokeResult", result).build();
-                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, value, aiAgent.getId(), aiAgent.getName(), fluxSink);
+                        emitFluxEvent(Constants.SSE_EVENT_TOOL_CALLED, value, aiAgent.getId(), aiAgent.getName(), safeEmitter);
                         List<Map<String, Object>> toolCalls = toolCallList.get() == null ? new ArrayList<>() : toolCallList.get();
                         toolCalls.add(value);
                         toolCallList.set(toolCalls);
@@ -219,12 +237,11 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                             AgentSpec agentSpec = objectMapper.readValue(result, new TypeReference<>() {
                             });
                             AgentRoundOut out = outRef.get();
-                            // 仅标记跳转开关与spec，禁止在此处调用buildNextRequest
                             out.setNeedNext(true);
                             out.setNextAgentSpec(agentSpec);
                         } catch (Exception e) {
                             log.error("解析子AgentSpec异常", e);
-                            emitFluxEvent(Constants.SSE_EVENT_MSG, "子智能体配置解析异常：" + e.getMessage(), aiAgent.getId(), aiAgent.getName(), fluxSink);
+                            emitFluxEvent(Constants.SSE_EVENT_MSG, "子智能体配置解析异常：" + e.getMessage(), aiAgent.getId(), aiAgent.getName(), safeEmitter);
                         }
                     }
                 })
@@ -233,7 +250,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     log.info("调用工具{}", req.name());
                     if (aiAgent.getShowReasoning()) {
                         Map<String, Object> value = MapUtil.<String, Object>builder().put("toolName", req.name()).build();
-                        this.emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, aiAgent.getId(), aiAgent.getName(), fluxSink);
+                        emitFluxEvent(Constants.SSE_EVENT_TOOL_CALL, value, aiAgent.getId(), aiAgent.getName(), safeEmitter);
                     }
                 })
                 .onRetrieved(contents -> {
@@ -241,13 +258,14 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     if (aiAgent.getShowReasoning()) {
                         handleRetrieveRecord(retrieveList, contents);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
-                            this.emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList.get(), aiAgent.getId(), aiAgent.getName(), fluxSink);
+                            emitFluxEvent(Constants.SSE_EVENT_RETRIEVED, retrieveList.get(), aiAgent.getId(), aiAgent.getName(), safeEmitter);
                         }
                     }
                 })
                 .onError(error -> {
-                    fluxSink.error(error);
-                    sink.error(error);
+                    if (!sinkClosed.get()) {
+                        sink.error(error);
+                    }
                 })
                 .start());
     }
@@ -256,65 +274,134 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         return "Parent Agent answer: " + content + "\n" + "User say: " + request;
     }
 
-    /**
-     * 根据AgentSpec切换上下文，准备下一轮执行
-     */
     @Override
-    public Mono<AgentRoundOut> nextRound(AgentSpec agentSpec, String sessionId, String clientId, String transferRequest, FluxSink<String> fluxSink) {
-        this.currentNodeId = agentSpec.getNodeId();
-        this.currentAgent = aiAgentService.selectAiAgentWithToolAndSkillById(agentSpec.getAgentId());
-        currentAgent.setShowReasoning(agentSpec.getShowReasoning());
-        currentAgent.setFlowMemory(agentSpec.getFlowMemory());
-        currentAgent.setAgentNodeId(agentSpec.getNodeId());
-        this.currentAssistant = this.buildAIAssistant(this.currentAgent, sessionId, true, currentAgent.getFlowMemory());
-        return invoke(sessionId, clientId, transferRequest, fluxSink, currentAgent);
+    public Mono<AgentRoundOut> nextRound(AgentSpec agentSpec, String sessionId, String clientId,
+                                         String transferRequest, FlowRoundContext oldCtx) {
+        AIAgent subAgent = aiAgentService.selectAiAgentWithToolAndSkillById(agentSpec.getAgentId());
+        subAgent.setShowReasoning(agentSpec.getShowReasoning());
+        subAgent.setFlowMemory(agentSpec.getFlowMemory());
+        subAgent.setAgentNodeId(agentSpec.getNodeId());
+
+        AIAssistant subAssistant = buildAIAssistant(subAgent, sessionId, true, subAgent.getFlowMemory());
+
+        FlowRoundContext newCtx = new FlowRoundContext();
+        newCtx.setCurrentNodeId(agentSpec.getNodeId());
+        newCtx.setCurrentAgent(subAgent);
+        newCtx.setCurrentAssistant(subAssistant);
+        newCtx.setRawSink(oldCtx.getRawSink());
+        newCtx.setSafeEmitter(oldCtx.getSafeEmitter());
+        newCtx.setSinkClosed(oldCtx.getSinkClosed());
+
+        return invoke(sessionId, clientId, transferRequest, newCtx);
     }
 
     @Override
     public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
         this.init(sessionId, agentFlow);
-        return Flux.create(fluxSink -> {
+        return Flux.create(fluxOriginSink -> {
+            final FluxSink<String> rawSink = fluxOriginSink;
+            AtomicBoolean sinkClosed = new AtomicBoolean(false);
+            AtomicBoolean emitting = new AtomicBoolean(false);
+            Queue<String> msgQueue = new ConcurrentLinkedQueue<>();
+
+            Runnable drainTask = new Runnable() {
+                @Override
+                public void run() {
+                    if (!emitting.compareAndSet(false, true)) {
+                        return;
+                    }
+                    try {
+                        String data;
+                        // 调换判断顺序，优先检查关闭状态
+                        while (!sinkClosed.get() && (data = msgQueue.poll()) != null) {
+                            rawSink.next(data);
+                        }
+                    } finally {
+                        emitting.set(false);
+                        if (!msgQueue.isEmpty() && !sinkClosed.get()) {
+                            this.run();
+                        }
+                    }
+                }
+            };
+
+            BiConsumer<String, String> safeEmitter = (jsonStr, evt) -> {
+                if (sinkClosed.get()) {
+                    return;
+                }
+                msgQueue.offer(jsonStr);
+                drainTask.run();
+            };
+
+
             log.info("AgentFlow chat start, sessionId={}", sessionId);
             saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER);
-            // 第一轮 rootAgent
-            Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, fluxSink, rootAgent);
+
             AtomicInteger roundCount = new AtomicInteger(0);
-            // expand 递归执行多轮
+
+            // 构造第一轮根上下文
+            String rootNodeId = treeNode.getNode().getNodeId();
+            AIAssistant rootAssistant = buildAIAssistant(rootAgent, sessionId, true, true);
+            FlowRoundContext rootCtx = new FlowRoundContext();
+            rootCtx.setCurrentNodeId(rootNodeId);
+            rootCtx.setCurrentAgent(rootAgent);
+            rootCtx.setCurrentAssistant(rootAssistant);
+            rootCtx.setRawSink(rawSink);
+            rootCtx.setSafeEmitter(safeEmitter);
+            rootCtx.setSinkClosed(sinkClosed);
+
+            Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, rootCtx);
+
             firstRound.expand(out -> {
                         log.info("expand check: needNext={}, nextAgentSpec={}", out.isNeedNext(), out.getNextAgentSpec());
+                        if (sinkClosed.get()) {
+                            return Mono.empty();
+                        }
                         if (roundCount.incrementAndGet() > 10) {
                             log.warn("Max rounds reached, stop expand");
                             return Mono.empty();
                         }
                         if (out.isNeedNext() && out.getNextAgentSpec() != null) {
-                            return nextRound(out.getNextAgentSpec(), sessionId, clientId, out.getTransferRequest(), fluxSink);
+                            return nextRound(out.getNextAgentSpec(), sessionId, clientId, out.getTransferRequest(), rootCtx);
                         } else {
-                            // 无需继续，返回 empty，终止 expand
                             return Mono.empty();
                         }
                     })
-                    // 所有轮次全部执行完毕，关闭SSE
                     .doFinally(signalType -> {
                         log.info("对话链路全部结束，信号类型:{}，关闭SSE", signalType);
-                        fluxSink.complete();
+                        if (sinkClosed.compareAndSet(false, true)) {
+                            rawSink.complete();
+                        }
                     })
                     .subscribe(
-                            null, // onNext 不需要，因为 emitFluxEvent 已经推送
+                            null,
                             err -> {
                                 log.error("AgentFlow error", err);
-                                emitFluxEvent(Constants.SSE_EVENT_MSG, "对话异常：" + err.getMessage(),
-                                        rootAgent.getId(), rootAgent.getName(), fluxSink);
-                                fluxSink.error(err);
-                                fluxSink.complete();
+                                if (sinkClosed.compareAndSet(false, true)) {
+                                    Map<String, Object> errMsg = MapUtil.<String, Object>builder()
+                                            .put(Constants.SSE_EVENT_MSG, "对话异常：" + err.getMessage())
+                                            .put("agentId", rootAgent.getId())
+                                            .put("agentName", rootAgent.getName())
+                                            .build();
+                                    try {
+                                        safeEmitter.accept(objectMapper.writeValueAsString(errMsg), Constants.SSE_EVENT_MSG);
+                                    } catch (JsonProcessingException e) {
+                                        log.error("异常消息序列化失败", e);
+                                    }
+                                    rawSink.error(err);
+                                    rawSink.complete();
+                                }
                             }
                     );
         });
     }
 
-
     @Override
-    public String attachSubAgentPrompt(String prompt) {
-        TreeNode tree = parser.findTreeNodeById(this.treeNode, this.currentNodeId);
+    public String attachSubAgentPrompt(String prompt, String currentNodeId) {
+        TreeNode tree = nodeIdMap.get(currentNodeId);
+        if (tree == null) {
+            return prompt;
+        }
         List<TreeNode> children = tree.getChildren();
         if (CollUtil.isNotEmpty(children)) {
             StringBuilder promptBuilder = new StringBuilder();
@@ -342,7 +429,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         List<Map<String, String>> res = chatFlowMessageService.selectSessionList(clientId, agentId, limit);
         res.forEach(x -> {
             String title = x.get("title");
-            if (title.length() > 5) {
+            if (title != null && title.length() > 5) {
                 title = title.substring(0, 5) + "...";
             }
             x.put("title", title);
@@ -360,15 +447,17 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         chatFlowMessageService.deleteBySessionId(sessionId);
     }
 
-    protected void emitFluxEvent(String event, Object value, Long agentId, String agentName, FluxSink<String> fluxSink) {
+    protected void emitFluxEvent(String event, Object value, Long agentId, String agentName,
+                                 BiConsumer<String, String> safeEmitter) {
         Map<String, Object> msg = MapUtil.<String, Object>builder()
                 .put(event, value)
                 .put("agentId", agentId)
                 .put("agentName", agentName)
                 .build();
         try {
-            fluxSink.next(objectMapper.writeValueAsString(msg));
-        } catch (JsonProcessingException ignored) {
+            safeEmitter.accept(objectMapper.writeValueAsString(msg), event);
+        } catch (JsonProcessingException e) {
+            log.error("SSE事件序列化失败,event={}", event, e);
         }
     }
 
@@ -380,7 +469,6 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         if (chatMessageType == ChatMessageType.AI) {
             chatFlowMessage.setRole("assistant");
         } else if (chatMessageType == ChatMessageType.USER) {
-
             chatFlowMessage.setRole("user");
         } else if (chatMessageType == ChatMessageType.SYSTEM) {
             chatFlowMessage.setRole("system");
