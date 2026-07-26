@@ -18,6 +18,7 @@ import com.ruoyi.ai.domain.ChatFlowMessage;
 import com.ruoyi.ai.dto.FlowRoundContext;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Constants;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
@@ -59,11 +60,6 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     private AIAgent rootAgent;
     // 节点ID -> TreeNode 缓存，避免重复递归遍历树
     private Map<String, TreeNode> nodeIdMap;
-
-    // ===================== 【已移除】动态变量全部迁移至 FlowRoundContext =====================
-    // private AIAssistant currentAssistant;
-    // private AIAgent currentAgent;
-    // private String currentNodeId;
 
     @Resource
     private FlowTreeParser parser;
@@ -128,7 +124,11 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     /**
-     * 单轮Agent执行
+     * 单轮 Agent 执行。
+     * <p>
+     * 工具回调 {@link Constants#AGENT_SELECTOR_TOOL agent_selector} 时：直接按
+     * {@code List<AgentSpec>} 解析（多 Agent 路径），把结果有序写入
+     * {@link AgentRoundOut#setNextAgentSpecs(List)}。
      */
     @Override
     public Mono<AgentRoundOut> invoke(String sessionId, String clientId, String request, FlowRoundContext ctx) {
@@ -157,7 +157,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 AgentRoundOut.builder()
                         .needNext(false)
                         .transferRequest(request)
-                        .nextAgentSpec(null)
+                        .nextAgentSpecs(new ArrayList<>())
                         .content("")
                         .build()
         );
@@ -188,7 +188,9 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 .onCompleteResponse(resp -> {
                     AgentRoundOut out = outRef.get();
                     out.setContent(resp.aiMessage().text());
-                    if (out.isNeedNext() && out.getNextAgentSpec() != null) {
+                    // 当本轮选择了一批后续 Agent 时，把本轮产出+用户原始请求打包进 transferRequest，
+                    // 由 nextRoundBatch 继续向后累积，保持原始用户请求始终可见。
+                    if (out.hasNextBatch()) {
                         out.setTransferRequest(buildNextRequest(request, out.getContent()));
                     }
                     sink.success(out);
@@ -235,15 +237,18 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     }
 
                     if (Constants.AGENT_SELECTOR_TOOL.equals(req.name()) && StringUtils.isNotBlank(result)) {
+                        AgentRoundOut out = outRef.get();
+                        // agent_selector 现在固定返回 JSON 数组（List<AgentSpec>）。
                         try {
-                            AgentSpec agentSpec = objectMapper.readValue(result, new TypeReference<>() {
-                            });
-                            AgentRoundOut out = outRef.get();
-                            out.setNeedNext(true);
-                            out.setNextAgentSpec(agentSpec);
-                        } catch (Exception e) {
-                            log.error("解析子AgentSpec异常", e);
-                            emitFluxEvent(Constants.SSE_EVENT_MSG, "子智能体配置解析异常：" + e.getMessage(), aiAgent.getId(), aiAgent.getName(), safeEmitter);
+                            List<AgentSpec> specs = objectMapper.readValue(
+                                    result, new TypeReference<>() {
+                                    });
+                            handleBatchAgentSpecsResult(out, specs);
+                        } catch (Exception ex) {
+                            log.error("解析 agent_selector 结果异常", ex);
+                            emitFluxEvent(Constants.SSE_EVENT_MSG,
+                                    "子智能体配置解析异常：" + ex.getMessage(),
+                                    aiAgent.getId(), aiAgent.getName(), safeEmitter);
                         }
                     }
                 })
@@ -272,36 +277,134 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 .start());
     }
 
+    /**
+     * 处理 agent_selector 工具返回的 JSON 数组结果。
+     * <p>
+     * 校验语义：
+     * <ul>
+     *     <li>{@code specs} 为 null 或空：抛 {@link ServiceException}，与"校验空列表"需求一致。</li>
+     *     <li>任一元素为 null 或缺少 agentId：抛异常，fail-fast。</li>
+     *     <li>长度超过 {@link Constants#MAX_FLOW_BATCH_SIZE}：抛异常，fail-fast。</li>
+     *     <li>校验通过后保留入参顺序写入 {@link AgentRoundOut#setNextAgentSpecs(List)}，
+     *         调度层将按此顺序串行执行。</li>
+     * </ul>
+     */
+    private void handleBatchAgentSpecsResult(AgentRoundOut out, List<AgentSpec> specs) {
+        if (specs == null || specs.isEmpty()) {
+            throw new ServiceException("agent_selector 返回为空，请重新选择子Agent");
+        }
+        if (specs.size() > Constants.MAX_FLOW_BATCH_SIZE) {
+            throw new ServiceException(
+                    "agent_selector 返回数量 " + specs.size() + " 超过最大批次 " + Constants.MAX_FLOW_BATCH_SIZE);
+        }
+        for (int i = 0; i < specs.size(); i++) {
+            AgentSpec spec = specs.get(i);
+            if (spec == null || spec.getAgentId() == null) {
+                throw new ServiceException("agent_selector 结果中第 " + i + " 个 AgentSpec 缺少 agentId");
+            }
+        }
+        // 顺序就是执行顺序，不做洗牌/合并
+        out.setNextAgentSpecs(new ArrayList<>(specs));
+        out.setNeedNext(true);
+    }
+
     protected String buildNextRequest(String request, String content) {
         return "Parent Agent answer: " + content + "\n" + "User say: " + request;
     }
 
+    /**
+     * 多 Agent 串行调度入口。
+     * <p>
+     * 关键实现细节：使用 Reactor {@code concatMap}，严格要求“上一个 Agent 的 {@code invoke}
+     * 完整 onComplete 之后，下一个 Agent 的 {@code invoke} 才被订阅”。
+     * 不使用 {@code flatMap} / {@code flatMapSequential}，因为它们都允许预取/并发订阅，
+     * 会导致多个 Agent 的 {@code TokenStream} 同时启动，造成“他们一起执行”的表象。
+     *
+     * <p>
+     * 上下文累积：使用一个 {@link AtomicReference}{@code <StringBuilder>} 在串行调度中
+     * 把每个 Agent 的输出追加到累积 prompt 中，作为下一轮的 {@code transferRequest}，
+     * 起始 {@code transferRequest} 中已包含原始用户请求，保证最后执行 Agent 也能看到全部
+     * 前序 Agent 的输出 + 用户原始输入。
+     */
     @Override
-    public Mono<AgentRoundOut> nextRound(AgentSpec agentSpec, String sessionId, String clientId,
-                                         String transferRequest, FlowRoundContext oldCtx) {
-        AIAgent subAgent = aiAgentService.selectAiAgentWithToolAndSkillById(agentSpec.getAgentId());
-        subAgent.setShowReasoning(agentSpec.getShowReasoning());
-        subAgent.setFlowMemory(agentSpec.getFlowMemory());
-        subAgent.setAgentNodeId(agentSpec.getNodeId());
+    public Mono<AgentRoundOut> nextRoundBatch(List<AgentSpec> specs, String sessionId, String clientId,
+                                              String transferRequest, FlowRoundContext ctx) {
+        // 1. 入参校验 — 与 prompt 提示的上限保持一致，fail-fast
+        if (specs == null || specs.isEmpty()) {
+            throw new ServiceException("agent_selector 批次为空，禁止执行");
+        }
+        if (specs.size() > Constants.MAX_FLOW_BATCH_SIZE) {
+            throw new ServiceException(
+                    "agent_selector 批次 " + specs.size() + " 超过最大上限 " + Constants.MAX_FLOW_BATCH_SIZE);
+        }
+        for (int i = 0; i < specs.size(); i++) {
+            AgentSpec spec = specs.get(i);
+            if (spec == null || spec.getAgentId() == null) {
+                throw new ServiceException("agent_selector 批次第 " + i + " 个 agentId 为空");
+            }
+        }
+        log.info("nextRoundBatch start, size={}, sessionId={}, thread={}",
+                specs.size(), sessionId, Thread.currentThread().getName());
 
+        final StringBuilder running = new StringBuilder(transferRequest == null ? "" : transferRequest);
+        AtomicReference<AgentRoundOut> lastOutRef = new AtomicReference<>();
+
+        // 2. 串行编排 — 使用 concatMap 强制后一个 Agent 在前一个 Agent onComplete 之后才订阅
+        return Flux.fromIterable(specs)
+                .concatMap(spec -> {
+                    String requestForThisAgent = running.toString();
+                    log.info("nextRoundBatch -> start agentName={}, agentId={}, thread={}",
+                            spec.getAgentName(), spec.getAgentId(), Thread.currentThread().getName());
+                    return runOneInBatch(spec, sessionId, clientId, requestForThisAgent, ctx)
+                            .doOnNext(out -> {
+                                lastOutRef.set(out);
+                                // 严格按顺序累积：上一个 Agent 完成后才追加到 running，下一轮才能看到
+                                running.append("\n\n")
+                                        .append("Agent[").append(spec.getAgentName()).append("] answer: ")
+                                        .append(out.getContent() == null ? "" : out.getContent());
+                                log.info("nextRoundBatch <- finish agentName={}, agentId={}, thread={}",
+                                        spec.getAgentName(), spec.getAgentId(), Thread.currentThread().getName());
+                            });
+                })
+                .then(Mono.fromCallable(() -> {
+                    AgentRoundOut out = lastOutRef.get();
+                    if (out == null) {
+                        return AgentRoundOut.builder().content("").needNext(false).build();
+                    }
+                    return out;
+                }));
+    }
+
+    /**
+     * 批次中的单个 Agent 执行：构建自己的 FlowRoundContext、调用 invoke。
+     * <p>
+     * 该方法必须只返回 {@code Mono<AgentRoundOut>}，由 {@link #nextRoundBatch} 通过
+     * {@code concatMap} 保证后一个 Agent 的本调用必须等待前一个 Agent 完整 onComplete 后才被订阅。
+     */
+    private Mono<AgentRoundOut> runOneInBatch(AgentSpec spec, String sessionId, String clientId,
+                                              String requestForThisAgent, FlowRoundContext parentCtx) {
+        // 构造当前 Agent 的上下文：复用 SSE sink
+        FlowRoundContext oneCtx = new FlowRoundContext();
+        oneCtx.setCurrentNodeId(spec.getNodeId());
+        AIAgent subAgent = aiAgentService.selectAiAgentWithToolAndSkillById(spec.getAgentId());
+        subAgent.setShowReasoning(spec.getShowReasoning());
+        subAgent.setFlowMemory(spec.getFlowMemory());
+        subAgent.setAgentNodeId(spec.getNodeId());
+        oneCtx.setCurrentAgent(subAgent);
         AIAssistant subAssistant = buildAIAssistant(subAgent, sessionId, true, subAgent.getFlowMemory());
+        oneCtx.setCurrentAssistant(subAssistant);
+        oneCtx.setRawSink(parentCtx.getRawSink());
+        oneCtx.setSafeEmitter(parentCtx.getSafeEmitter());
+        oneCtx.setSinkClosed(parentCtx.getSinkClosed());
 
-        FlowRoundContext newCtx = new FlowRoundContext();
-        newCtx.setCurrentNodeId(agentSpec.getNodeId());
-        newCtx.setCurrentAgent(subAgent);
-        newCtx.setCurrentAssistant(subAssistant);
-        newCtx.setRawSink(oldCtx.getRawSink());
-        newCtx.setSafeEmitter(oldCtx.getSafeEmitter());
-        newCtx.setSinkClosed(oldCtx.getSinkClosed());
-
-        return invoke(sessionId, clientId, transferRequest, newCtx);
+        return invoke(sessionId, clientId, requestForThisAgent, oneCtx);
     }
 
     @Override
     public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
-            // ========== 【改动】全部并发对象由父类统一创建，不再手写 ==========
+            // ========== 全部并发对象由父类统一创建 ==========
             SseEmitterContext emitterCtx = createSseEmitterContext(fluxOriginSink);
             final FluxSink<String> rawSink = emitterCtx.rawSink;
             AtomicBoolean sinkClosed = emitterCtx.sinkClosed;
@@ -326,19 +429,25 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, rootCtx);
 
             firstRound.expand(out -> {
-                        log.info("expand check: needNext={}, nextAgentSpec={}", out.isNeedNext(), out.getNextAgentSpec());
+                        log.info("expand check: needNext={}, nextBatchSize={}, totalRound={}",
+                                out.isNeedNext(),
+                                out.getNextAgentSpecs() == null ? 0 : out.getNextAgentSpecs().size(),
+                                roundCount.get());
                         if (sinkClosed.get()) {
                             return Mono.empty();
                         }
-                        if (roundCount.incrementAndGet() > 10) {
+                        // 总轮次上限（含 root 与所有子 Agent 轮）
+                        if (roundCount.incrementAndGet() > Constants.MAX_FLOW_ROUNDS) {
                             log.warn("Max rounds reached, stop expand");
                             return Mono.empty();
                         }
-                        if (out.isNeedNext() && out.getNextAgentSpec() != null) {
-                            return nextRound(out.getNextAgentSpec(), sessionId, clientId, out.getTransferRequest(), rootCtx);
-                        } else {
-                            return Mono.empty();
+
+                        // 仅走多 Agent 批次路径，无单 Agent 兼容分支
+                        if (out.hasNextBatch()) {
+                            List<AgentSpec> batch = out.getNextAgentSpecs();
+                            return nextRoundBatch(batch, sessionId, clientId, out.getTransferRequest(), rootCtx);
                         }
+                        return Mono.empty();
                     })
                     .doFinally(signalType -> {
                         log.info("对话链路全部结束，信号类型:{}，关闭SSE", signalType);
@@ -387,7 +496,9 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         .append(" showReasoning: ").append(node.getShowReasoning()).append("\n\n")
                         .append(" flowMemory: ").append(node.getFlowMemory()).append("\n\n");
             }
-            prompt += String.format(Constants.DEFAULT_SUB_AGENT_ATTACH_PROMPT, promptBuilder);
+            // 多 Agent 提示词：把 agentIds 数组顺序=执行顺序写入，让模型明确知道必须传数组
+            prompt += String.format(Constants.DEFAULT_SUB_AGENT_BATCH_ATTACH_PROMPT,
+                    promptBuilder, Constants.MAX_FLOW_BATCH_SIZE);
         }
         return prompt;
     }
