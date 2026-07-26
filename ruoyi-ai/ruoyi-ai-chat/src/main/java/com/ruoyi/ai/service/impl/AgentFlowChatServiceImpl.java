@@ -39,8 +39,10 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.Resource;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -299,40 +301,11 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
-            final FluxSink<String> rawSink = fluxOriginSink;
-            AtomicBoolean sinkClosed = new AtomicBoolean(false);
-            AtomicBoolean emitting = new AtomicBoolean(false);
-            Queue<String> msgQueue = new ConcurrentLinkedQueue<>();
-
-            Runnable drainTask = new Runnable() {
-                @Override
-                public void run() {
-                    if (!emitting.compareAndSet(false, true)) {
-                        return;
-                    }
-                    try {
-                        String data;
-                        // 调换判断顺序，优先检查关闭状态
-                        while (!sinkClosed.get() && (data = msgQueue.poll()) != null) {
-                            rawSink.next(data);
-                        }
-                    } finally {
-                        emitting.set(false);
-                        if (!msgQueue.isEmpty() && !sinkClosed.get()) {
-                            this.run();
-                        }
-                    }
-                }
-            };
-
-            BiConsumer<String, String> safeEmitter = (jsonStr, evt) -> {
-                if (sinkClosed.get()) {
-                    return;
-                }
-                msgQueue.offer(jsonStr);
-                drainTask.run();
-            };
-
+            // ========== 【改动】全部并发对象由父类统一创建，不再手写 ==========
+            SseEmitterContext emitterCtx = createSseEmitterContext(fluxOriginSink);
+            final FluxSink<String> rawSink = emitterCtx.rawSink;
+            AtomicBoolean sinkClosed = emitterCtx.sinkClosed;
+            BiConsumer<String, String> safeEmitter = emitterCtx.safeEmitter;
 
             log.info("AgentFlow chat start, sessionId={}", sessionId);
             saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER);
@@ -369,7 +342,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     })
                     .doFinally(signalType -> {
                         log.info("对话链路全部结束，信号类型:{}，关闭SSE", signalType);
-                        if (sinkClosed.compareAndSet(false, true)) {
+                        if (emitterCtx.markClosed()) {
                             rawSink.complete();
                         }
                     })
@@ -377,7 +350,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                             null,
                             err -> {
                                 log.error("AgentFlow error", err);
-                                if (sinkClosed.compareAndSet(false, true)) {
+                                if (emitterCtx.markClosed()) {
                                     Map<String, Object> errMsg = MapUtil.<String, Object>builder()
                                             .put(Constants.SSE_EVENT_MSG, "对话异常：" + err.getMessage())
                                             .put("agentId", rootAgent.getId())
@@ -445,20 +418,6 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     @Override
     public void deleteSession(String sessionId) {
         chatFlowMessageService.deleteBySessionId(sessionId);
-    }
-
-    protected void emitFluxEvent(String event, Object value, Long agentId, String agentName,
-                                 BiConsumer<String, String> safeEmitter) {
-        Map<String, Object> msg = MapUtil.<String, Object>builder()
-                .put(event, value)
-                .put("agentId", agentId)
-                .put("agentName", agentName)
-                .build();
-        try {
-            safeEmitter.accept(objectMapper.writeValueAsString(msg), event);
-        } catch (JsonProcessingException e) {
-            log.error("SSE事件序列化失败,event={}", event, e);
-        }
     }
 
     protected ChatFlowMessage saveChatFlowMessage(String content, String clientId, String sessionId, Long agentId, String agentName,

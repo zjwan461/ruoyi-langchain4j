@@ -35,8 +35,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
@@ -362,4 +365,90 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                     .build();
         }).toList());
     }
+
+
+// ===================== 【新增：SSE串行发送工具封装，提供给子类调用】 =====================
+
+    /**
+     * SSE发送上下文载体，一次对话生命周期内复用
+     */
+    public static class SseEmitterContext {
+        public final FluxSink<String> rawSink;
+        public final AtomicBoolean sinkClosed;
+        public final AtomicBoolean emitting;
+        public final Queue<String> msgQueue;
+        public final Runnable drainTask;
+        public final BiConsumer<String, String> safeEmitter;
+
+        public SseEmitterContext(FluxSink<String> rawSink) {
+            this.rawSink = rawSink;
+            this.sinkClosed = new AtomicBoolean(false);
+            this.emitting = new AtomicBoolean(false);
+            this.msgQueue = new ConcurrentLinkedQueue<>();
+
+            // 队列排空任务（修复lambda自引用告警，使用匿名内部类）
+            this.drainTask = new Runnable() {
+                @Override
+                public void run() {
+                    if (!emitting.compareAndSet(false, true)) {
+                        return;
+                    }
+                    try {
+                        String data;
+                        while (!sinkClosed.get() && (data = msgQueue.poll()) != null) {
+                            rawSink.next(data);
+                        }
+                    } finally {
+                        emitting.set(false);
+                        if (!msgQueue.isEmpty() && !sinkClosed.get()) {
+                            this.run();
+                        }
+                    }
+                }
+            };
+
+            this.safeEmitter = (jsonStr, evt) -> {
+                if (sinkClosed.get()) {
+                    return;
+                }
+                msgQueue.offer(jsonStr);
+                drainTask.run();
+            };
+        }
+
+        /**
+         * 标记链路关闭，防止重复complete/error
+         */
+        public boolean markClosed() {
+            return sinkClosed.compareAndSet(false, true);
+        }
+    }
+
+    /**
+     * 工厂方法：创建SSE串行发送上下文，子类chat()直接调用
+     *
+     * @param rawSink Flux.create传入的原始FluxSink
+     * @return SseEmitterContext 包含rawSink、safeEmitter、sinkClosed等全部并发对象
+     */
+    protected SseEmitterContext createSseEmitterContext(FluxSink<String> rawSink) {
+        return new SseEmitterContext(rawSink);
+    }
+
+    /**
+     * 通用发送事件封装（兼容子类原有调用方式）
+     */
+    protected void emitFluxEvent(String event, Object value, Long agentId, String agentName,
+                                 BiConsumer<String, String> safeEmitter) {
+        Map<String, Object> msg = MapUtil.<String, Object>builder()
+                .put(event, value)
+                .put("agentId", agentId)
+                .put("agentName", agentName)
+                .build();
+        try {
+            safeEmitter.accept(objectMapper.writeValueAsString(msg), event);
+        } catch (JsonProcessingException e) {
+            log.error("SSE事件序列化失败,event={}", event, e);
+        }
+    }
+
 }
