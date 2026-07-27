@@ -1,10 +1,9 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
-# 加速 apt：替换为阿里云国内源
+# 替换apt源
 RUN sed -i "s@deb.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list.d/debian.sources \
     && sed -i "s@security.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list.d/debian.sources
 
-# 安装系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
     libreoffice-core \
@@ -12,22 +11,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 编码
 ENV LANG=C.UTF-8
 ENV PYTHONIOENCODING=utf-8
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# 安装 Python 依赖 → 使用 清华源
 COPY doc-parser/requirements.txt .
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
-# 复制代码
 COPY doc-parser/ .
 
+# 构建阶段传入代理，下载模型
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ENV http_proxy=$HTTP_PROXY
+ENV https_proxy=$HTTPS_PROXY
 RUN python utils/pdf_model_download.py
 
-EXPOSE 8143
+# ========== 最终运行镜像，完全继承文件，但不带代理环境变量 ==========
+FROM python:3.11-slim
+# 复制系统依赖、python环境、代码、下载好的模型
+COPY --from=builder / /
 
+ENV LANG=C.UTF-8
+ENV PYTHONIOENCODING=utf-8
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+EXPOSE 8143
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8143"]

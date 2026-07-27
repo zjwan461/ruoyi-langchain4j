@@ -125,6 +125,9 @@ services:
       context: .
       # 使用你之前写好的Dockerfile
       dockerfile: Dockerfile-doc-parser
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
     image: doc-parser:latest
     container_name: doc-parser
     restart: unless-stopped
