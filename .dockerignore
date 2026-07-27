@@ -1,0 +1,5 @@
+.venv
+target/
+*.class
+dist/
+node_modules/

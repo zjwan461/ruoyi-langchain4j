@@ -82,7 +82,8 @@ public interface Constants {
             当本次对话需要按顺序串行调用一个或多个子Agent时，请调用 **agent_selector** 工具，
             并在 `agentIds` 字段中按期望的执行顺序传入 agentId 数组（顺序就是执行顺序）。
             系统会严格按照你返回的数组顺序串行调度：前一个 Agent 执行完后，下一个 Agent 才会启动，
-            并能看到前面 Agent 的输出和原始用户请求。
+            并能看到前面 Agent 的输出和原始用户请求。agent_selector调用完成后即可退出，不得重复
+            多次调用。完成后通知用户即将由子Agent为您处理后续任务即可。
 
             宪法（必须遵循）:
                  1. 仅在确需调用子Agent时才调用 agent_selector 工具；不需要调用子Agent时不要调用。

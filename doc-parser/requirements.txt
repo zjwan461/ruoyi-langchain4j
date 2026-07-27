@@ -1,0 +1,16 @@
+fastapi==0.115.11
+uvicorn[standard]==0.32.1
+PyMuPDF==1.24.12
+pillow==10.4.0
+openai==1.34.0
+requests==2.32.5
+httpx==0.27.0
+docling==2.85.0
+langchain-community==0.3.27
+unstructured==0.18.21
+msoffcrypto-tool==5.4.2
+xlrd==2.0.1
+chardet==5.2.0
+
+# --extra-index-url https://download.pytorch.org/whl/cpu
+# torch==2.7.1+cpu

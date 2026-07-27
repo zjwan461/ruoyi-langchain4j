@@ -152,6 +152,23 @@ services:
       - ruoyi-admin
     networks:
       - app-net
+  doc-parser:
+    build:
+      context: .
+      # 使用你之前写好的Dockerfile
+      dockerfile: Dockerfile-doc-parser
+    image: doc-parser:latest
+    container_name: doc-parser
+    restart: unless-stopped
+    ports:
+      - "8143:8143"
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    networks:
+      - app-net
 
 volumes:
   mysql-data:
