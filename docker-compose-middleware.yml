@@ -120,6 +120,23 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8194/health" ]
     networks:
       - middleware-net
+  doc-parser:
+    build:
+      context: .
+      # 使用你之前写好的Dockerfile
+      dockerfile: Dockerfile-doc-parser
+    image: doc-parser:latest
+    container_name: doc-parser
+    restart: unless-stopped
+    ports:
+      - "38143:8143"
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    networks:
+      - middleware-net
 
 volumes:
   mysql-data:

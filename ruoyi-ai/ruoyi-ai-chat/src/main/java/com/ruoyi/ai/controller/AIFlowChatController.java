@@ -4,8 +4,10 @@ import com.ruoyi.ai.controller.model.ChatReq;
 import com.ruoyi.ai.domain.AgentFlow;
 import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.ai.service.IAgentFlowService;
+import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.framework.config.ServerConfig;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +23,8 @@ public class AIFlowChatController extends ChatController {
     @Resource
     private IAgentFlowService agentFlowService;
 
-    public AIFlowChatController(@Qualifier("agentFlowChatService") IAIChatService aiChatService) {
-        super(aiChatService);
+    public AIFlowChatController(@Qualifier("agentFlowChatService") IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient) {
+        super(aiChatService, serverConfig, documentParseClient);
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})

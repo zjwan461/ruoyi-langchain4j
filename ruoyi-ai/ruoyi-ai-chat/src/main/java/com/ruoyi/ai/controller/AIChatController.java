@@ -9,8 +9,10 @@ import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.service.impl.AIAssistantExecutor;
+import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.framework.config.ServerConfig;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -39,8 +41,8 @@ public class AIChatController extends ChatController {
     @Resource
     private AIAssistantExecutor aiAssistantExecutor;
 
-    public AIChatController(IAIChatService aiChatService) {
-        super(aiChatService);
+    public AIChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient) {
+        super(aiChatService, serverConfig, documentParseClient);
     }
 
     protected AgentType getAgentType(AIAgent aiAgent) {
