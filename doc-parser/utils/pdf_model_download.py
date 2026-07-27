@@ -1,3 +1,5 @@
+from huggingface_hub import snapshot_download
+
 def download_pdf_models():
     # Download RappidOCR models from HuggingFace
     print("Downloading RapidOCR models")
