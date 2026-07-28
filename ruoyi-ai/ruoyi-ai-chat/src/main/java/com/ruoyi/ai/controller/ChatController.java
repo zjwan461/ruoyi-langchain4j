@@ -3,7 +3,9 @@ package com.ruoyi.ai.controller;
 import com.ruoyi.ai.controller.model.ChatReq;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.service.IAIChatService;
+import com.ruoyi.ai.service.IAttachmentService;
 import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.config.RuoYiConfig;
 import com.ruoyi.common.core.controller.BaseController;
@@ -27,10 +29,14 @@ public class ChatController extends BaseController {
 
     protected final DocumentParseClient documentParseClient;
 
-    public ChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient) {
+    protected final IAttachmentService attachmentService;
+
+    public ChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient,
+                          IAttachmentService attachmentService) {
         this.aiChatService = aiChatService;
         this.serverConfig = serverConfig;
         this.documentParseClient = documentParseClient;
+        this.attachmentService = attachmentService;
     }
 
     protected void preCheck(AIAgent aiAgent, ChatReq chatReq) {
@@ -72,14 +78,26 @@ public class ChatController extends BaseController {
             String fileName = FileUploadUtils.upload(filePath, file);
             fileName = fileName.replace("/profile", RuoYiConfig.getProfile());
             String url = serverConfig.getUrl() + fileName;
-            DocumentParseClient.DocParseItem result = documentParseClient.parseFile(Path.of(fileName));
+            String simpleName = FileUtils.getName(fileName);
+            String fileExt = FileUtils.getFileExt(simpleName);
+            Attachment attachment = new Attachment();
+            attachment.setFileName(simpleName);
+            attachment.setFileExt(fileExt);
 
+            if (FileUtils.isImageBySuffix(simpleName)) {
+                attachment.setFileContent(FileUtils.readImageToDataBase64(fileName));
+            } else {
+                DocumentParseClient.DocParseItem result = documentParseClient.parseFile(Path.of(fileName));
+                attachment.setFileContent(result.getPage_content());
+            }
+
+            attachmentService.insertAttachment(attachment);
             AjaxResult ajax = AjaxResult.success();
             ajax.put("url", url);
             ajax.put("fileName", fileName);
-            ajax.put("newFileName", FileUtils.getName(fileName));
+            ajax.put("newFileName", simpleName);
             ajax.put("originalFilename", file.getOriginalFilename());
-            ajax.put("mdContent", result.getPage_content());
+            ajax.put("attachment", attachment);
             return ajax;
         } catch (Exception e) {
             return AjaxResult.error(e.getMessage());

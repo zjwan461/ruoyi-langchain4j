@@ -4,6 +4,7 @@ import com.ruoyi.ai.controller.model.ChatReq;
 import com.ruoyi.ai.domain.AgentFlow;
 import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.ai.service.IAgentFlowService;
+import com.ruoyi.ai.service.IAttachmentService;
 import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
@@ -23,15 +24,16 @@ public class AIFlowChatController extends ChatController {
     @Resource
     private IAgentFlowService agentFlowService;
 
-    public AIFlowChatController(@Qualifier("agentFlowChatService") IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient) {
-        super(aiChatService, serverConfig, documentParseClient);
+    public AIFlowChatController(@Qualifier("agentFlowChatService") IAIChatService aiChatService, ServerConfig serverConfig,
+                                DocumentParseClient documentParseClient, IAttachmentService attachmentService) {
+        super(aiChatService, serverConfig, documentParseClient, attachmentService);
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
     public Flux<String> aiChat(@RequestBody @Valid ChatReq chatReq) {
         AgentFlow agentFlow = agentFlowService.selectAgentFlowById(chatReq.getAgentFlowId());
         this.preCheckAgentFlow(agentFlow, chatReq);
-        return aiChatService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId());
+        return aiChatService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId(), chatReq.getAttachmentIds());
     }
 
     @GetMapping("/agent-info/{visitId}")

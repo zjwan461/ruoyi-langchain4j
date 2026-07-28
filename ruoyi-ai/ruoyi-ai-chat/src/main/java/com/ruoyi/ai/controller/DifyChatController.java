@@ -19,6 +19,7 @@ import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.dto.DifyChatHistoryPage;
 import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.ai.service.IAIChatService;
+import com.ruoyi.ai.service.IAttachmentService;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.constant.HttpStatus;
@@ -59,8 +60,9 @@ public class DifyChatController extends ChatController {
     @Resource
     private ObjectMapper objectMapper;
 
-    public DifyChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient) {
-        super(aiChatService, serverConfig, documentParseClient);
+    public DifyChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient,
+                              IAttachmentService attachmentService) {
+        super(aiChatService, serverConfig, documentParseClient, attachmentService);
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})

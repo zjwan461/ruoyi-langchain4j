@@ -401,7 +401,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId,List<Long> attachmentIds) {
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
             // ========== 全部并发对象由父类统一创建 ==========

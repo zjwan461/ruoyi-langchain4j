@@ -63,7 +63,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
     }
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
         String promptTemplate = aiAgent.getPromptTemplate();
         if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {

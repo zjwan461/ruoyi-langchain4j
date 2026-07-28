@@ -83,7 +83,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
 
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);

@@ -41,8 +41,8 @@ public class AIChatController extends ChatController {
     @Resource
     private AIAssistantExecutor aiAssistantExecutor;
 
-    public AIChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient) {
-        super(aiChatService, serverConfig, documentParseClient);
+    public AIChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient, IAttachmentService attachmentService) {
+        super(aiChatService, serverConfig, documentParseClient, attachmentService);
     }
 
     protected AgentType getAgentType(AIAgent aiAgent) {
@@ -59,10 +59,10 @@ public class AIChatController extends ChatController {
         AgentType agentType = this.getAgentType(aiAgent);
         if (agentType == AgentType.simple) {
             return aiChatService.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                    chatReq.getSessionId());
+                    chatReq.getSessionId(), chatReq.getAttachmentIds());
         } else {
             return aiAssistantExecutor.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                    chatReq.getSessionId());
+                    chatReq.getSessionId(), chatReq.getAttachmentIds());
         }
     }
 

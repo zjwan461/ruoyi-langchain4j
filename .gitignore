@@ -49,3 +49,5 @@ models/
 
 .venv
 logs
+__pycache__
+package-lock.json
