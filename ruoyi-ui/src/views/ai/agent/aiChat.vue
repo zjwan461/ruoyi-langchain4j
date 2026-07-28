@@ -518,38 +518,48 @@ export default {
         const reader = response.body.getReader()
         const decoder = new TextDecoder('utf-8')
 
+        // ⚠️ buffer 必须定义在 while 循环外面！！
+        let buffer = ''
+
         while (true) {
-          const {done, value} = await reader.read()
+          const { done, value } = await reader.read()
           if (done) break
 
           const chunk = decoder.decode(value)
-          const str = chunk.replace(/data:/g, '').trim()
-          const dataArray = str.split('\n')
+          buffer += chunk // 新数据追加进缓冲区
 
-          dataArray.forEach(item => {
-            if (item.trim()) {
-              try {
-                const res = JSON.parse(item)
-                if (res.msg) {
-                  aiMessage.content += res.msg
-                } else if (res.retrieved) {
-                  aiMessage.retrievedList = res.retrieved
-                } else if (res.tool_call) {
-                  aiMessage.currentToolCall = res.tool_call
-                } else if (res.tool_called) {
-                  aiMessage.toolCalledList.push(res.tool_called)
-                  aiMessage.currentToolCall = null
-                }
-                // 外层聊天容器滚动
-                this.scrollToBottom()
-                // ==========新增：思考框内部自动滚动到底==========
-                const msgIndex = this.messages.findIndex(m => m._id === aiMessage._id)
-                if (msgIndex > -1) {
-                  this.scrollThinkBlockToBottom(msgIndex)
-                }
-              } catch (e) {}
+          // 持续切割完整行，直到缓冲区找不到换行
+          let idx
+          while ((idx = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, idx).trim()
+            buffer = buffer.slice(idx + 1) // 剩余内容留在buffer等待下一次chunk
+
+            if (!line || !line.startsWith('data:')) continue
+            // 移除 data: 前缀
+            const jsonRaw = line.replace(/^data:\s*/, '').trim()
+            if (!jsonRaw) continue
+
+            try {
+              const res = JSON.parse(jsonRaw)
+              if (res.msg) {
+                aiMessage.content += res.msg
+              } else if (res.retrieved) {
+                aiMessage.retrievedList = res.retrieved
+              } else if (res.tool_call) {
+                aiMessage.currentToolCall = res.tool_call
+              } else if (res.tool_called) {
+                aiMessage.toolCalledList.push(res.tool_called)
+                aiMessage.currentToolCall = null
+              }
+              this.scrollToBottom()
+              const msgIndex = this.messages.findIndex(m => m._id === aiMessage._id)
+              if (msgIndex > -1) {
+                this.scrollThinkBlockToBottom(msgIndex)
+              }
+            } catch (e) {
+              console.error('单行JSON解析失败', jsonRaw, e)
             }
-          })
+          }
         }
 
         aiMessage.loading = false

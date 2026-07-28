@@ -550,25 +550,37 @@ export default {
         const reader = response.body.getReader()
         const decoder = new TextDecoder('utf-8')
 
+        // ⚠️ buffer 必须放在 while 循环外面！！
+        let buffer = ''
+
         while (true) {
-          const {done, value} = await reader.read()
+          const { done, value } = await reader.read()
           if (done) break
 
           const chunk = decoder.decode(value)
-          const str = chunk.replace(/data:/g, '').trim()
-          const dataArray = str.split('\n')
+          buffer += chunk
 
-          dataArray.forEach(item => {
-            if (!item.trim()) return
+          // 循环切割完整行
+          let newlineIndex
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex).trim()
+            buffer = buffer.slice(newlineIndex + 1)
+
+            if (!line || !line.startsWith('data:')) continue
+            const jsonRaw = line.replace(/^data:\s*/, '').trim()
+            if (!jsonRaw) continue
+
             let res
             try {
-              res = JSON.parse(item)
+              res = JSON.parse(jsonRaw)
             } catch (e) {
-              return
+              console.error('解析失败单行：', jsonRaw, e)
+              continue
             }
+
             // 使用 agentId 找到 / 创建对应的 AI 气泡，实现多 agent 气泡隔离
             const aiMsg = this.findOrCreateAgentBubble(res.agentId, res.agentName)
-            if (!aiMsg) return
+            if (!aiMsg) continue
 
             if (res.msg != null) {
               aiMsg.content = (aiMsg.content || '') + res.msg
@@ -584,7 +596,7 @@ export default {
             this.scrollToBottom()
             // ==========思考框内部自动滚动到底==========
             this.scrollThinkBlockToBottom(aiMsg._id)
-          })
+          }
         }
 
         // 流关闭：把所有仍处于 loading 的 AI 气泡标记为完成
