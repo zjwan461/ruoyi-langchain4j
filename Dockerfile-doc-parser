@@ -21,6 +21,10 @@ WORKDIR /app
 COPY doc-parser/requirements.txt .
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
+# 处理opencv libGL报错核心命令
+RUN pip install --no-cache-dir rapidocr-onnxruntime
+RUN pip uninstall -y opencv-python && pip install --no-cache-dir opencv-python-headless
+
 COPY doc-parser/ .
 
 # 构建阶段传入代理，下载模型
