@@ -73,7 +73,7 @@ public class ChatController extends BaseController {
             String filePath = RuoYiConfig.getUploadPath();
             // 上传并返回新文件名称
             String fileName = FileUploadUtils.upload(filePath, file);
-            fileName = fileName.replace("/profile", RuoYiConfig.getProfile());
+            String newfileName = fileName.replace("/profile", RuoYiConfig.getProfile());
             String url = serverConfig.getUrl() + fileName;
             String simpleName = FileUtils.getName(fileName);
             String fileExt = FileUtils.getFileExt(simpleName);
@@ -82,9 +82,9 @@ public class ChatController extends BaseController {
             attachment.setFileExt(fileExt);
 
             if (FileUtils.isImageBySuffix(simpleName)) {
-                attachment.setFileContent(FileUtils.readImageToDataBase64(fileName));
+                attachment.setFileContent(FileUtils.readImageToDataBase64(newfileName));
             } else {
-                DocumentParseClient.DocParseItem result = documentParseClient.parseFile(Path.of(fileName));
+                DocumentParseClient.DocParseItem result = documentParseClient.parseFile(Path.of(newfileName));
                 attachment.setFileContent(result.getPage_content());
             }
 

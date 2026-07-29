@@ -47,13 +47,19 @@ export function deleteSession(sessionId) {
 
 export function attachFile(file) {
   const formData = new FormData();
-  // key名称 file 和后端 MultipartFile file 保持一致
   formData.append("file", file);
 
   return request({
     url: '/ai-chat/attach-file',
     method: 'post',
-    // 重点：删除手动设置的 Content-Type！axios自动处理 multipart/form-data
-    data: formData
+    data: formData,
+    // 关键1：禁用全局的 transformRequest，不做 JSON 序列化
+    transformRequest: [function(data) {
+      return data; // 直接返回 FormData，不转换
+    }],
+    // 关键2：显式删除 Content-Type，让浏览器自动生成带 boundary 的 multipart/form-data
+    headers: {
+      'Content-Type': null
+    }
   })
 }

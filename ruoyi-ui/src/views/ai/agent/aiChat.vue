@@ -119,7 +119,6 @@
             <div class="message-content">
               <!-- Think Block (foldable) -->
               <div v-if="msg.role === 'assistant' && hasThinkContent(msg.content)" class="think-section">
-                <!-- ========= 修改点：增加动态ref ========= -->
                 <div
                   class="think-block"
                   :class="{ 'folded': isThinkFolded(msg, idx) }"
@@ -180,6 +179,24 @@
                 </div>
               </div>
 
+              <!-- 用户消息附件展示 -->
+              <div v-if="msg.role === 'user' && msg.attachments && msg.attachments.length > 0" class="message-attachments">
+                <div
+                  v-for="(att, attIdx) in msg.attachments"
+                  :key="attIdx"
+                  class="message-attachment-item"
+                >
+                  <img v-if="att.isImage" :src="att.url" :alt="att.fileName" class="attachment-img" />
+                  <div v-else class="attachment-doc-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span>{{ att.fileName }}</span>
+                  </div>
+                </div>
+              </div>
+
               <!-- Message Bubble / 加载占位 -->
               <template v-if="msg.loading && !msg.content">
                 <div class="typing-indicator">
@@ -214,20 +231,62 @@
 
       <!-- 输入区域 -->
       <footer class="chat-footer">
-        <div class="input-container">
-          <textarea
-            v-model="userInput"
-            ref="inputArea"
-            placeholder="输入消息..."
-            @keydown="handleKeyDown"
-            rows="1"
-          ></textarea>
-          <button class="send-btn" @click="sendMessage" :disabled="!userInput.trim() || isLoading">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+        <div class="input-wrapper">
+          <!-- 附件预览区 -->
+          <div v-if="attachmentList.length > 0" class="attachment-preview">
+            <div
+              v-for="(item, index) in attachmentList"
+              :key="index"
+              class="attachment-preview-item"
+            >
+              <div v-if="item.isImage" class="attachment-image-preview">
+                <img :src="item.url" :alt="item.fileName" />
+              </div>
+              <div v-else class="attachment-doc-preview">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span class="attachment-name">{{ item.fileName }}</span>
+              </div>
+              <button class="remove-attachment-btn" @click="removeAttachment(index)" title="移除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-container">
+            <!-- 文件上传按钮 -->
+            <button class="upload-btn" @click="triggerFileUpload" :disabled="uploading" title="上传附件">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
+            </button>
+            <input
+              type="file"
+              ref="fileInput"
+              style="display: none"
+              multiple
+              @change="handleFileChange"
+            />
+
+            <textarea
+              v-model="userInput"
+              ref="inputArea"
+              placeholder="输入消息..."
+              @keydown="handleKeyDown"
+              rows="1"
+            ></textarea>
+            <button class="send-btn" @click="sendMessage" :disabled="(!userInput.trim() && attachmentList.length === 0) || isLoading || uploading">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
         </div>
         <p class="input-hint">按 Enter 发送，Shift + Enter 换行</p>
       </footer>
@@ -239,7 +298,7 @@
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import {getAgent, createSession, listChatSession, listChatMessage, deleteSession} from '@/api/ai/aiChat'
+import {getAgent, createSession, listChatSession, listChatMessage, deleteSession, attachFile} from '@/api/ai/aiChat'
 import {nanoid} from 'nanoid'
 
 const THINK_START = '<' + 'think' + '>'
@@ -261,8 +320,12 @@ const md = new MarkdownIt({
 
     if (validLang && hljs.getLanguage(validLang)) {
       try {
-        return '<pre class="code-block"><code class="hljs language-' + validLang + '">' + hljs.highlight(str, {language: validLang, ignoreIllegals: true}).value + '</code></pre>'
-      } catch (__) {}
+        return '<pre class="code-block"><code class="hljs language-' + validLang + '">' + hljs.highlight(str, {
+          language: validLang,
+          ignoreIllegals: true
+        }).value + '</code></pre>'
+      } catch (__) {
+      }
     }
 
     try {
@@ -302,7 +365,10 @@ export default {
         '解释一下什么是机器学习',
         '给我讲个笑话',
         '如何提高工作效率'
-      ]
+      ],
+      // ========== 新增：附件相关数据 ==========
+      attachmentList: [], // 已上传成功的附件列表
+      uploading: false    // 文件上传中状态
     }
   },
   mounted() {
@@ -350,14 +416,12 @@ export default {
     },
     getChatHistoryMessage() {
       if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
-      // 重新加载会话时重置分页状态
       this.pageNum = 1
       this.hasMoreHistory = true
       this.historyTotal = 0
       this.historyLoading = false
       listChatMessage(this.sessionId, this.agentInfo.id, this.pageNum, this.pageSize).then(res => {
         const rows = (res && res.rows) || []
-        // 后端按 create_time desc 返回，reverse 成 asc 以便按时间正序展示
         this.messages = [...rows].reverse()
         this.historyTotal = (res && typeof res.total === 'number') ? res.total : rows.length
         this.hasMoreHistory = this.messages.length < this.historyTotal
@@ -366,10 +430,6 @@ export default {
         })
       })
     },
-    /**
-     * 加载更早一页的历史消息（向前翻页）。后端会按 desc 返回，reverse 后 unshift 到头部，
-     * 并恢复滚动位置，避免页面跳动。
-     */
     loadMoreHistory() {
       if (this.historyLoading || !this.hasMoreHistory) return
       if (!this.sessionId || !this.agentInfo || !this.agentInfo.id) return
@@ -381,7 +441,6 @@ export default {
       listChatMessage(this.sessionId, this.agentInfo.id, nextPage, this.pageSize).then(res => {
         const rows = (res && res.rows) || []
         if (rows.length === 0) {
-          // 服务端已经没有更多数据
           this.hasMoreHistory = false
           return
         }
@@ -399,7 +458,6 @@ export default {
           }
         })
       }).catch(() => {
-        // 失败时不推进 pageNum，便于下次重试
       }).finally(() => {
         this.historyLoading = false
       })
@@ -407,7 +465,6 @@ export default {
     handleScroll(e) {
       const el = e && e.target
       if (!el) return
-      // 滚动到顶部附近（阈值 50px）时加载更早的一页
       if (el.scrollTop <= 50 && this.hasMoreHistory && !this.historyLoading && this.messages.length > 0) {
         this.loadMoreHistory()
       }
@@ -415,6 +472,7 @@ export default {
     switchSession(sessionId) {
       this.sessionId = sessionId
       localStorage.setItem('chat-sessionId', sessionId)
+      this.attachmentList = [] // 切换会话清空附件
       this.getChatHistoryMessage()
     },
     newSession() {
@@ -422,6 +480,7 @@ export default {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
         this.messages = []
+        this.attachmentList = [] // 新建会话清空附件
         this.pageNum = 1
         this.historyTotal = 0
         this.hasMoreHistory = true
@@ -441,10 +500,12 @@ export default {
         } else {
           this.sessionId = null
         }
+        this.attachmentList = []
         this.getSessionList()
         this.getChatHistoryMessage()
         this.$modal.msgSuccess('删除成功')
-      }).catch(() => {})
+      }).catch(() => {
+      })
     },
     clearChatHistory() {
       this.$modal.confirm('确认清空当前对话？').then(() => {
@@ -453,8 +514,10 @@ export default {
           this.streamController = null
         }
         this.messages = []
+        this.attachmentList = []
         this.$modal.msgSuccess('已清空')
-      }).catch(() => {})
+      }).catch(() => {
+      })
     },
     usePrompt(prompt) {
       this.userInput = prompt
@@ -466,24 +529,82 @@ export default {
         this.sendMessage()
       }
     },
+
+    // ========== 新增：文件上传相关方法 ==========
+    triggerFileUpload() {
+      this.$refs.fileInput.click()
+    },
+    handleFileChange(e) {
+      const files = e.target.files
+      if (!files || files.length === 0) return
+
+      this.uploading = true
+      const uploadPromises = Array.from(files).map(file => this.uploadSingleFile(file))
+
+      Promise.all(uploadPromises).finally(() => {
+        this.uploading = false
+        // 重置input，允许重复选择同一文件
+        this.$refs.fileInput.value = ''
+      })
+    },
+    async uploadSingleFile(file) {
+      try {
+        const res = await attachFile(file)
+        if (res.code === 200 && res.attachment) {
+          const isImage = this.isImageFile(res.attachment.fileExt)
+          this.attachmentList.push({
+            id: res.attachment.id,
+            fileName: res.attachment.fileName,
+            fileExt: res.attachment.fileExt,
+            url: res.url,
+            isImage: isImage
+          })
+        } else {
+          this.$message.error(res.msg || '文件上传失败')
+        }
+      } catch (err) {
+        console.error('文件上传异常', err)
+        this.$message.error('文件上传失败，请重试')
+      }
+    },
+    isImageFile(ext) {
+      if (!ext) return false
+      const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
+      return imageExts.includes(ext.toLowerCase())
+    },
+    removeAttachment(index) {
+      this.attachmentList.splice(index, 1)
+    },
+
+    // ========== 修改：发送消息携带附件 ==========
     sendMessage() {
       const content = this.userInput.trim()
-      if (!content || this.isLoading) return
+      // 有文字或有附件均可发送
+      if ((!content && this.attachmentList.length === 0) || this.isLoading || this.uploading) return
+
+      // 提取附件ID列表
+      const attachmentIds = this.attachmentList.map(item => item.id)
+      // 深拷贝附件信息用于消息展示
+      const attachments = JSON.parse(JSON.stringify(this.attachmentList))
 
       this.messages.push({
         role: 'user',
         content: content,
+        attachments: attachments,
         createTime: new Date().toISOString(),
         _id: 'user-' + Date.now()
       })
 
       this.userInput = ''
+      this.attachmentList = []
       this.isLoading = true
       this.scrollToBottom()
 
-      this.callStreamApi(content)
+      this.callStreamApi(content, attachmentIds)
     },
-    async callStreamApi(content) {
+
+    // ========== 修改：流式接口携带 attachmentIds ==========
+    async callStreamApi(content, attachmentIds = []) {
       this.streamController = new AbortController()
       const chatApi = process.env.VUE_APP_BASE_API + '/ai-chat'
       const msgId = 'ai-' + Date.now()
@@ -510,7 +631,8 @@ export default {
             prompt: content,
             agentId: this.agentInfo.id,
             clientId: this.clientId,
-            sessionId: this.sessionId
+            sessionId: this.sessionId,
+            attachmentIds: attachmentIds
           }),
           signal: this.streamController.signal
         })
@@ -518,24 +640,21 @@ export default {
         const reader = response.body.getReader()
         const decoder = new TextDecoder('utf-8')
 
-        // ⚠️ buffer 必须定义在 while 循环外面！！
         let buffer = ''
 
         while (true) {
-          const { done, value } = await reader.read()
+          const {done, value} = await reader.read()
           if (done) break
 
           const chunk = decoder.decode(value)
-          buffer += chunk // 新数据追加进缓冲区
+          buffer += chunk
 
-          // 持续切割完整行，直到缓冲区找不到换行
           let idx
           while ((idx = buffer.indexOf('\n')) !== -1) {
             const line = buffer.slice(0, idx).trim()
-            buffer = buffer.slice(idx + 1) // 剩余内容留在buffer等待下一次chunk
+            buffer = buffer.slice(idx + 1)
 
             if (!line || !line.startsWith('data:')) continue
-            // 移除 data: 前缀
             const jsonRaw = line.replace(/^data:\s*/, '').trim()
             if (!jsonRaw) continue
 
@@ -574,7 +693,7 @@ export default {
         this.isLoading = false
       }
     },
-    // ========== 新增方法：思考区域内部滚动到底 ==========
+
     scrollThinkBlockToBottom(idx) {
       this.$nextTick(() => {
         const refName = 'thinkBlock-' + idx
@@ -601,10 +720,8 @@ export default {
       if (startIdx === -1) return ''
       const endIdx = content.indexOf(THINK_END)
       if (endIdx !== -1) {
-        // 思考已结束，返回标签内完整内容
         return content.substring(startIdx + THINK_START.length, endIdx)
       } else {
-        // 思考进行中，返回从开始标签后到当前末尾的所有已接收内容
         return content.substring(startIdx + THINK_START.length)
       }
     },
@@ -612,15 +729,12 @@ export default {
       if (!content) return ''
       const endIdx = content.indexOf(THINK_END)
       if (endIdx !== -1) {
-        // 思考已结束，返回结束标签后的正文内容
         return content.substring(endIdx + THINK_END.length)
       }
-      // 有开始标签但无结束标签：思考进行中，正文暂为空
       const startIdx = content.indexOf(THINK_START)
       if (startIdx !== -1) {
         return ''
       }
-      // 无思考标签，直接返回全部内容
       return content
     },
     renderMarkdown(content) {
@@ -630,11 +744,9 @@ export default {
     },
     isThinkFolded(msg, idx) {
       if (!msg) return false
-      // 用户手动切换过，优先尊重用户操作
       if (this.foldedStates.hasOwnProperty(idx)) {
         return this.foldedStates[idx]
       }
-      // 自动逻辑：思考结束则自动折叠，思考过程中保持展开
       return this.isThinkFinished(msg.content)
     },
     toggleThink(idx) {
@@ -1063,8 +1175,14 @@ export default {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-avatar {
@@ -1397,13 +1515,175 @@ export default {
   animation: typing 1.4s infinite ease-in-out;
 }
 
-.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0s; }
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0s;
+}
 
 @keyframes typing {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ========== 新增：附件相关样式 ========== */
+.input-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.attachment-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: #1e1e1e;
+  border-radius: 8px;
+  border: 1px solid #2a2a2a;
+}
+
+.attachment-preview-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #262626;
+  border: 1px solid #3f3f3f;
+}
+
+.attachment-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-doc-preview {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #a3a3a3;
+  padding: 4px;
+}
+
+.attachment-doc-preview .attachment-name {
+  font-size: 10px;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.remove-attachment-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.attachment-preview-item:hover .remove-attachment-btn {
+  opacity: 1;
+}
+
+.upload-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #a3a3a3;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: #333333;
+  color: #e5e5e5;
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 消息内附件 */
+.message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+  max-width: 100%;
+}
+
+.user-message .message-attachments {
+  justify-content: flex-end;
+}
+
+.message-attachment-item {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.attachment-img {
+  max-width: 200px;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.attachment-doc-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  min-width: 150px;
+}
+
+.user-message .attachment-doc-item {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.ai-message .attachment-doc-item {
+  background: #1e1e1e;
+  color: #e5e5e5;
+  border: 1px solid #3f3f3f;
 }
 
 /* Footer */
