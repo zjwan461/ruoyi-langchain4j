@@ -59,4 +59,6 @@ public interface AttachmentMapper
      * @return 结果
      */
     public int deleteAttachmentByIds(Long[] ids);
+
+    List<Attachment> selectAttachmentByIds(Long[] ids);
 }

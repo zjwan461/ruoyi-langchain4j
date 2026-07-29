@@ -20,6 +20,8 @@ public interface IAttachmentService
      */
     public Attachment selectAttachmentById(Long id);
 
+    public List<Attachment> selectAttachmentByIds(Long[] ids);
+
     /**
      * 查询聊天附件列表
      * 

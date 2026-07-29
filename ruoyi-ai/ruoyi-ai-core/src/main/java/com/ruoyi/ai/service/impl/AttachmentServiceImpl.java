@@ -33,6 +33,11 @@ public class AttachmentServiceImpl implements IAttachmentService
         return attachmentMapper.selectAttachmentById(id);
     }
 
+    @Override
+    public List<Attachment> selectAttachmentByIds(Long[] ids) {
+        return attachmentMapper.selectAttachmentByIds(ids);
+    }
+
     /**
      * 查询聊天附件列表
      * 

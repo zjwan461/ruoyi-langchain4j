@@ -69,6 +69,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
     protected final PgVectorEmbeddingStore pgVectorEmbeddingStore;
 
+    protected final IAttachmentService attachmentService;
+
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     public AIBaseChatServiceImpl(IChatMessageService chatMessageService,
@@ -83,7 +85,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                                  IModelService modelService,
                                  ModelBuilder modelBuilder,
                                  IAIAgentService aiAgentService,
-                                 PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                                 PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                                 IAttachmentService attachmentService) {
         this.chatMessageService = chatMessageService;
         this.inMemoryChatMemoryStore = inMemoryChatMemoryStore;
         this.redisMemoryChatMemoryStore = redisMemoryChatMemoryStore;
@@ -97,6 +100,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         this.modelBuilder = modelBuilder;
         this.aiAgentService = aiAgentService;
         this.pgVectorEmbeddingStore = pgVectorEmbeddingStore;
+        this.attachmentService = attachmentService;
     }
 
     @Override
@@ -111,7 +115,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
     @Override
     public ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                                       ChatMessageType chatMessageType) {
+                                       ChatMessageType chatMessageType, List<Long> attachmentIds) {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setAgentId(agentId);
         chatMessage.setContent(content);
@@ -130,6 +134,13 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         chatMessage.setSessionId(sessionId);
         chatMessage.setCreateBy("system");
         chatMessageService.insertChatMessage(chatMessage);
+        if (CollUtil.isNotEmpty(attachmentIds)) {
+            List<Attachment> attachments = attachmentService.selectAttachmentByIds(attachmentIds.toArray(Long[]::new));
+            attachments.forEach(attachment -> {
+                attachment.setMessageId(chatMessage.getId());
+                attachmentService.updateAttachment(attachment);
+            });
+        }
         return chatMessage;
     }
 

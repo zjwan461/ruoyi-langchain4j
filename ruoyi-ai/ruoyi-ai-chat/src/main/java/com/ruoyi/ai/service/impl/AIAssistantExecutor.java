@@ -46,7 +46,8 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                IModelService modelService,
                                ModelBuilder modelBuilder,
                                IAIAgentService aiAgentService,
-                               PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                               PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                               IAttachmentService attachmentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -59,12 +60,13 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                 modelService,
                 modelBuilder,
                 aiAgentService,
-                pgVectorEmbeddingStore);
+                pgVectorEmbeddingStore,
+                attachmentService);
     }
 
     @Override
     public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
-        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
+        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
         String promptTemplate = aiAgent.getPromptTemplate();
         if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
             promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
@@ -105,7 +107,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                     })
                     .onCompleteResponse(resp -> {
                         String content = getAIResponse(resp);
-                        ChatMessage assistantMessage = saveChatMessage(content, clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                        ChatMessage assistantMessage = saveChatMessage(content, clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),

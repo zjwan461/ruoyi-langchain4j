@@ -14,6 +14,7 @@ import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.domain.ChatFlowMessage;
 import com.ruoyi.ai.dto.FlowRoundContext;
 import com.ruoyi.ai.service.*;
@@ -78,7 +79,8 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                                     IModelService modelService,
                                     ModelBuilder modelBuilder,
                                     IAIAgentService aiAgentService,
-                                    PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                                    PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                                    IAttachmentService attachmentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -91,7 +93,8 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 modelService,
                 modelBuilder,
                 aiAgentService,
-                pgVectorEmbeddingStore);
+                pgVectorEmbeddingStore,
+                attachmentService);
     }
 
     @Override
@@ -198,7 +201,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     if (aiAgent.getShowReasoning()) {
                         String content = this.getAIResponse(resp);
                         ChatFlowMessage assistantMessage = this.saveChatFlowMessage(content, clientId, sessionId, aiAgent.getId(), aiAgent.getName(),
-                                this.agentFlow.getId(), ChatMessageType.AI);
+                                this.agentFlow.getId(), ChatMessageType.AI, null);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
@@ -401,7 +404,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId,List<Long> attachmentIds) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
             // ========== 全部并发对象由父类统一创建 ==========
@@ -411,7 +414,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             BiConsumer<String, String> safeEmitter = emitterCtx.safeEmitter;
 
             log.info("AgentFlow chat start, sessionId={}", sessionId);
-            saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER);
+            saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER, attachmentIds);
 
             AtomicInteger roundCount = new AtomicInteger(0);
 
@@ -532,7 +535,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     protected ChatFlowMessage saveChatFlowMessage(String content, String clientId, String sessionId, Long agentId, String agentName,
-                                                  Long agentFlowId, ChatMessageType chatMessageType) {
+                                                  Long agentFlowId, ChatMessageType chatMessageType, List<Long> attachmentIds) {
         ChatFlowMessage chatFlowMessage = new ChatFlowMessage();
         chatFlowMessage.setAgentId(agentId);
         chatFlowMessage.setContent(content);
@@ -553,6 +556,13 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         chatFlowMessage.setAgentName(agentName);
         chatFlowMessage.setCreateBy("system");
         chatFlowMessageService.insertChatMessage(chatFlowMessage);
+        if (CollUtil.isNotEmpty(attachmentIds)) {
+            List<Attachment> attachments = attachmentService.selectAttachmentByIds(attachmentIds.toArray(Long[]::new));
+            attachments.forEach(attachment -> {
+                attachment.setMessageFlowId(chatFlowMessage.getId());
+                attachmentService.updateAttachment(attachment);
+            });
+        }
         return chatFlowMessage;
     }
 }

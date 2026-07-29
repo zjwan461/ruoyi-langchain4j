@@ -65,7 +65,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                              IModelService modelService,
                              ModelBuilder modelBuilder,
                              IAIAgentService aiAgentService,
-                             PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                             PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                             IAttachmentService attachmentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -78,7 +79,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 modelService,
                 modelBuilder,
                 aiAgentService,
-                pgVectorEmbeddingStore);
+                pgVectorEmbeddingStore,
+                attachmentService);
     }
 
 
@@ -127,7 +129,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
 
-        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
+        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
@@ -204,7 +206,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     }
                     String aiText = completeResponse.aiMessage().text();
                     content.append(aiText);
-                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null);
                     for (Map<String, Object> item : retrievedContents) {
                         root.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
                                 String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));
