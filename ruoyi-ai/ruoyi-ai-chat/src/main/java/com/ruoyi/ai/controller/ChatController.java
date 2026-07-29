@@ -16,7 +16,6 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUploadUtils;
 import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.framework.config.ServerConfig;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
@@ -68,9 +67,7 @@ public class ChatController extends BaseController {
         }
     }
 
-
-    @PostMapping("/ai-chat/attach-file")
-    public AjaxResult uploadFile(MultipartFile file) throws Exception {
+    public AjaxResult uploadFile(MultipartFile file) {
         try {
             // 上传文件路径
             String filePath = RuoYiConfig.getUploadPath();
@@ -100,6 +97,7 @@ public class ChatController extends BaseController {
             ajax.put("attachment", attachment);
             return ajax;
         } catch (Exception e) {
+            logger.error("attach chat file fail...", e);
             return AjaxResult.error(e.getMessage());
         }
     }

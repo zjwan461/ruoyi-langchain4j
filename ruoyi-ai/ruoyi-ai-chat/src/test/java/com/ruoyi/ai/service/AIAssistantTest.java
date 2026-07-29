@@ -1,8 +1,11 @@
 package com.ruoyi.ai.service;
 
+import cn.hutool.json.JSONUtil;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.tool.TimeTool;
+import com.ruoyi.common.core.domain.AjaxResult;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -81,6 +84,22 @@ public class AIAssistantTest {
                 .systemMessageProvider(x -> "在必要的时候调用工具")
                 .contentRetriever(contentRetriever)
                 .toolProvider(new JToolProvider(aiAgent, false));
+    }
+
+    @Test
+    public void test() {
+        Attachment attachment = new Attachment();
+        attachment.setFileContent("文件内容");
+        attachment.setFileExt("pdf");
+        attachment.setId(1L);
+        attachment.setFileName("test.pdf");
+        AjaxResult ajax = AjaxResult.success();
+        ajax.put("url", "url");
+        ajax.put("fileName", "D://test.pdf");
+        ajax.put("newFileName", "test.pdf");
+        ajax.put("originalFilename", "file.getOriginalFilename()");
+        ajax.put("attachment", attachment);
+        System.out.println(JSONUtil.toJsonPrettyStr(ajax));
     }
 
 }

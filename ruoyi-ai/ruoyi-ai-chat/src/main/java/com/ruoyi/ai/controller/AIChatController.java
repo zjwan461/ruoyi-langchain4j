@@ -15,6 +15,7 @@ import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.framework.config.ServerConfig;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
@@ -96,5 +97,10 @@ public class AIChatController extends ChatController {
     public AjaxResult deleteSession(@PathVariable("sessionId") String sessionId) {
         aiChatService.deleteSession(sessionId);
         return success();
+    }
+
+    @PostMapping("/attach-file")
+    public AjaxResult attachChatFile(MultipartFile file) {
+        return this.uploadFile(file);
     }
 }

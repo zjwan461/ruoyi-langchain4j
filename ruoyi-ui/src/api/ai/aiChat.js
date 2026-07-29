@@ -44,3 +44,16 @@ export function deleteSession(sessionId) {
     method: 'delete',
   })
 }
+
+export function attachFile(file) {
+  const formData = new FormData();
+  // key名称 file 和后端 MultipartFile file 保持一致
+  formData.append("file", file);
+
+  return request({
+    url: '/ai-chat/attach-file',
+    method: 'post',
+    // 重点：删除手动设置的 Content-Type！axios自动处理 multipart/form-data
+    data: formData
+  })
+}
