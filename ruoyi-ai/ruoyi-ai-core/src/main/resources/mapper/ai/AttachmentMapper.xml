@@ -88,4 +88,13 @@
             #{id}
         </foreach>
     </select>
+
+    <delete id="deleteAttachmentNoMessageRef" parameterType="int">
+        <![CDATA[
+        DELETE FROM attachment
+        WHERE message_id IS NULL
+        AND message_flow_id IS NULL
+        AND create_time < NOW() - INTERVAL #{keepDay} DAY
+        ]]>
+    </delete>
 </mapper>

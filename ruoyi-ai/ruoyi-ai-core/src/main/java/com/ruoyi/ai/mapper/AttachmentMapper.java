@@ -61,4 +61,6 @@ public interface AttachmentMapper
     public int deleteAttachmentByIds(Long[] ids);
 
     List<Attachment> selectAttachmentByIds(Long[] ids);
+
+    public int deleteAttachmentNoMessageRef(int keepDay);
 }
