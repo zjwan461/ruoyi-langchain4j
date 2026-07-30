@@ -18,15 +18,15 @@ import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.domain.ChatFlowMessage;
 import com.ruoyi.ai.dto.FlowRoundContext;
 import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.*;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
@@ -165,7 +165,21 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         .build()
         );
 
-        TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
+        List<Content> messages = new ArrayList<>();
+        messages.add(TextContent.from(finalPromptTemplate));
+        if (CollUtil.isNotEmpty(ctx.getAttachments())) {
+            for (Attachment attachment : ctx.getAttachments()) {
+                if (FileUtils.isImageBySuffix(attachment.getFileName())) {
+                    Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil.parse(attachment.getFileContent());
+                    messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
+                } else {
+                    TextContent attachContent = TextContent.from(String.format(Constants.DEFAULT_ATTACHMENT_FILE_PROMPT, attachment.getFileName(), attachment.getFileContent()));
+                    messages.add(attachContent);
+                }
+            }
+        }
+
+        TokenStream tokenStream = assistant.chatStream(messages);
         AtomicInteger thinkCount = new AtomicInteger(0);
         AtomicBoolean thinkFinish = new AtomicBoolean(false);
 
@@ -399,6 +413,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         oneCtx.setRawSink(parentCtx.getRawSink());
         oneCtx.setSafeEmitter(parentCtx.getSafeEmitter());
         oneCtx.setSinkClosed(parentCtx.getSinkClosed());
+        oneCtx.setAttachments(parentCtx.getAttachments());
 
         return invoke(sessionId, clientId, requestForThisAgent, oneCtx);
     }
@@ -414,7 +429,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             BiConsumer<String, String> safeEmitter = emitterCtx.safeEmitter;
 
             log.info("AgentFlow chat start, sessionId={}", sessionId);
-            saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER, attachmentIds);
+            ChatFlowMessage chatFlowMessage = saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER, attachmentIds);
 
             AtomicInteger roundCount = new AtomicInteger(0);
 
@@ -428,6 +443,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             rootCtx.setRawSink(rawSink);
             rootCtx.setSafeEmitter(safeEmitter);
             rootCtx.setSinkClosed(sinkClosed);
+            rootCtx.setAttachments(chatFlowMessage.getAttachments());
 
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, rootCtx);
 
@@ -562,6 +578,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 attachment.setMessageFlowId(chatFlowMessage.getId());
                 attachmentService.updateAttachment(attachment);
             });
+            chatFlowMessage.setAttachments(attachments);
         }
         return chatFlowMessage;
     }

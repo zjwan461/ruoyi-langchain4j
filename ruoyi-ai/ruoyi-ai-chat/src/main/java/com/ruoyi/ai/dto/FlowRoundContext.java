@@ -2,10 +2,12 @@ package com.ruoyi.ai.dto;
 
 
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.service.AIAssistant;
 import lombok.Data;
 import reactor.core.publisher.FluxSink;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
@@ -22,4 +24,7 @@ public class FlowRoundContext {
     private FluxSink<String> rawSink;
     private BiConsumer<String, String> safeEmitter;
     private AtomicBoolean sinkClosed;
+
+    //用户在聊天中上传的附件
+    private List<Attachment> attachments;
 }

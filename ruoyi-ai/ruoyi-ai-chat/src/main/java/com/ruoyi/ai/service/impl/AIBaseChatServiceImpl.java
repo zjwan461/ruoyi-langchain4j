@@ -140,6 +140,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                 attachment.setMessageId(chatMessage.getId());
                 attachmentService.updateAttachment(attachment);
             });
+            chatMessage.setAttachments(attachments);
         }
         return chatMessage;
     }

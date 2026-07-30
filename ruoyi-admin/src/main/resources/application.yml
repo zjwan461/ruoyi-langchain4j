@@ -176,5 +176,5 @@ ai:
   doc-parser:
     api-key: ocr-eacc3af9-b7a9-41c4-990f-ab988bd99a1e
     connect-timeout: 120000
-    read-timeout: 300
+    read-timeout: 3000000
     server-url: http://doc-parser:8143/process

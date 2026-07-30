@@ -6,12 +6,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
+import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
@@ -66,7 +72,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
 
     @Override
     public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
-        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
+        ChatMessage userMessage = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
         String promptTemplate = aiAgent.getPromptTemplate();
         if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
             promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
@@ -85,7 +91,20 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
             AtomicInteger thinkCount = new AtomicInteger(0);
             AtomicBoolean thinkFinish = new AtomicBoolean(false);
 
-            TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
+            List<Content> messages = new ArrayList<>();
+            messages.add(TextContent.from(finalPromptTemplate));
+            if (CollUtil.isNotEmpty(userMessage.getAttachments())) {
+                for (Attachment attachment : userMessage.getAttachments()) {
+                    if (FileUtils.isImageBySuffix(attachment.getFileName())) {
+                        Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil.parse(attachment.getFileContent());
+                        messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
+                    } else {
+                        TextContent attachContent = TextContent.from(String.format(Constants.DEFAULT_ATTACHMENT_FILE_PROMPT, attachment.getFileName(), attachment.getFileContent()));
+                        messages.add(attachContent);
+                    }
+                }
+            }
+            TokenStream tokenStream = assistant.chatStream(messages);
 
             // 【重点】前端主动断开连接时立刻标记关闭
             fluxSink.onDispose(sseEmitterContext::markClosed);

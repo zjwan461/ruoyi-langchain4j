@@ -52,7 +52,7 @@ public class ChatMessage extends BaseEntity {
 
     private List<AgentToolInvoke> toolCalledList;
 
-    private List<Attachment> attachmentList;
+    private List<Attachment> attachments;
 
     public void setId(Long id) {
         this.id = id;
@@ -118,12 +118,12 @@ public class ChatMessage extends BaseEntity {
         this.toolCalledList = toolCalledList;
     }
 
-    public List<Attachment> getAttachmentList() {
-        return attachmentList;
+    public List<Attachment> getAttachments() {
+        return attachments;
     }
 
-    public void setAttachmentList(List<Attachment> attachmentList) {
-        this.attachmentList = attachmentList;
+    public void setAttachments(List<Attachment> attachments) {
+        this.attachments = attachments;
     }
 
     @Override
@@ -138,7 +138,7 @@ public class ChatMessage extends BaseEntity {
                 .append("agentId", getAgentId())
                 .append("retrievedList", getRetrievedList())
                 .append("toolCalledList", getToolCalledList())
-                .append("attachmentList", getAttachmentList())
+                .append("attachments", getAttachments())
                 .toString();
     }
 }

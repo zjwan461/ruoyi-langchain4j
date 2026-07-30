@@ -372,7 +372,9 @@ export default {
       this.hasMoreHistory = true
       this.historyTotal = 0
       this.historyLoading = false
+      this.$modal.loading("loading...")
       listChatMessage(this.sessionId, this.agentInfo.id, this.pageNum, this.pageSize).then(res => {
+        this.$modal.closeLoading()
         const rows = (res && res.rows) || []
         // 后端按 create_time desc 返回，reverse 成 asc 以便按时间正序展示
         const normalized = [...rows].reverse().map((r, i) => this.normalizeHistoryMessage(r, 'p1-' + i))
@@ -388,6 +390,8 @@ export default {
         this.$nextTick(() => {
           this.scrollToBottom()
         })
+      }).catch(err=>{
+        this.$modal.closeLoading()
       })
     },
     /**

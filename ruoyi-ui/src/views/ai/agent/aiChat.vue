@@ -186,7 +186,7 @@
                   :key="attIdx"
                   class="message-attachment-item"
                 >
-                  <img v-if="att.isImage" :src="att.url" :alt="att.fileName" class="attachment-img" />
+                  <img v-if="isImageFile(att.fileExt)" :src="att.fileContent?att.fileContent:att.url" :alt="att.fileName" class="attachment-img" />
                   <div v-else class="attachment-doc-item">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -420,7 +420,9 @@ export default {
       this.hasMoreHistory = true
       this.historyTotal = 0
       this.historyLoading = false
+      this.$modal.loading("loading...")
       listChatMessage(this.sessionId, this.agentInfo.id, this.pageNum, this.pageSize).then(res => {
+        this.$modal.closeLoading()
         const rows = (res && res.rows) || []
         this.messages = [...rows].reverse()
         this.historyTotal = (res && typeof res.total === 'number') ? res.total : rows.length
@@ -428,6 +430,8 @@ export default {
         this.$nextTick(() => {
           this.scrollToBottom()
         })
+      }).catch(err=>{
+        this.$modal.closeLoading()
       })
     },
     loadMoreHistory() {
@@ -569,7 +573,7 @@ export default {
     },
     isImageFile(ext) {
       if (!ext) return false
-      const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
+      const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "tiff", "tif", "svg", "heic", "heif", "ico"]
       return imageExts.includes(ext.toLowerCase())
     },
     removeAttachment(index) {

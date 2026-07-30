@@ -4,20 +4,21 @@ import cn.hutool.core.util.RandomUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
+import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.agentic.AgenticServices;
 import dev.langchain4j.agentic.UntypedAgent;
-import dev.langchain4j.agentic.supervisor.SupervisorAgent;
 import dev.langchain4j.data.document.Document;
-import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.document.loader.FileSystemDocumentLoader;
 import dev.langchain4j.data.document.parser.apache.tika.ApacheTikaDocumentParser;
-import dev.langchain4j.data.document.splitter.DocumentSplitters;
 import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.internal.JsonSchemaElementJsonUtils;
@@ -39,9 +40,6 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiChatRequestParameters;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.output.Response;
-import dev.langchain4j.rag.content.Content;
-import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
-import dev.langchain4j.rag.query.Query;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.skills.FileSystemSkill;
@@ -49,26 +47,25 @@ import dev.langchain4j.skills.FileSystemSkillLoader;
 import dev.langchain4j.skills.Skills;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Var;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
-import static dev.langchain4j.rag.content.ContentMetadata.EMBEDDING_ID;
 
 @Slf4j
 public class AiTest {
@@ -504,5 +501,23 @@ public class AiTest {
 
         TokenStream tokenStream = supervisorAgent.invoke("你好");
 
+    }
+
+    @Test
+    public void testModal() throws IOException {
+        OpenAiChatModel model = buildBlockModel();
+//    Assistant assistant = AiServices.create(Assistant.class, model);
+        MyAssistant assistant = AiServices.builder(MyAssistant.class)
+                .chatModel(model)
+                .chatMemory(buildChatMemory())
+                .build();
+
+        String imageData = Files.readString(Path.of("C:\\Users\\1\\Desktop\\2.txt"));
+        Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil.parse(imageData);
+        List<Content> messages = new ArrayList<>();
+        messages.add(TextContent.from("你好, 看看图上有什么"));
+        messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
+        String resp = assistant.chat(messages);
+        System.out.println(resp);
     }
 }

@@ -315,7 +315,9 @@ export default {
       this.loadedCount = 0
       this.hasMoreHistory = true
       this.historyLoading = false
+      this.$modal.loading("loading...")
       listChatMessage(this.sessionId, this.agentInfo.id).then(res => {
+        this.$modal.closeLoading()
         const rows = (res && res.rows) || []
         // 后端一次性返回全量历史（硬编码 999），并按 createTime 升序排序：
         // rows[0] = 最老对话，rows[end] = 最新对话。
@@ -329,6 +331,8 @@ export default {
         this.$nextTick(() => {
           this.scrollToBottom()
         })
+      }).catch(err=>{
+        this.$modal.closeLoading()
       })
     },
     /**

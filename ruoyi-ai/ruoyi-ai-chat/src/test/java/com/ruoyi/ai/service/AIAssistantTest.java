@@ -6,6 +6,7 @@ import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.tool.TimeTool;
 import com.ruoyi.common.core.domain.AjaxResult;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -18,6 +19,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,7 +53,9 @@ public class AIAssistantTest {
                 })
                 .tools(new TimeTool())
                 .build();
-        TokenStream tokenStream = assistant.chatStream("今天的日期");
+        List<dev.langchain4j.data.message.Content> messages = new ArrayList<>();
+        messages.add(TextContent.from("今天的日期"));
+        TokenStream tokenStream = assistant.chatStream(messages);
         tokenStream
                 .onPartialResponse((String partialResponse) -> System.out.println(partialResponse))
                 .onPartialThinking((PartialThinking partialThinking) -> System.out.println(partialThinking))
