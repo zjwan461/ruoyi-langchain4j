@@ -30,6 +30,9 @@ public class Attachment extends BaseEntity
     @Excel(name = "文件内容")
     private String fileContent;
 
+    @Excel(name = "文件链接")
+    private String fileUrl;
+
     /** message_id */
     @Excel(name = "message_id")
     private Long messageId;
@@ -78,7 +81,15 @@ public class Attachment extends BaseEntity
         return fileContent;
     }
 
-    public void setMessageId(Long messageId) 
+    public String getFileUrl() {
+        return fileUrl;
+    }
+
+    public void setFileUrl(String fileUrl) {
+        this.fileUrl = fileUrl;
+    }
+
+    public void setMessageId(Long messageId)
     {
         this.messageId = messageId;
     }
@@ -105,6 +116,7 @@ public class Attachment extends BaseEntity
             .append("fileName", getFileName())
             .append("fileExt", getFileExt())
             .append("fileContent", getFileContent())
+            .append("fileUrl", getFileUrl())
             .append("messageId", getMessageId())
             .append("messageFlowId", getMessageFlowId())
             .append("createTime", getCreateTime())

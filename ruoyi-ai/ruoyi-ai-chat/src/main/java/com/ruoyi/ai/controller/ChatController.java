@@ -80,7 +80,7 @@ public class ChatController extends BaseController {
             Attachment attachment = new Attachment();
             attachment.setFileName(simpleName);
             attachment.setFileExt(fileExt);
-
+            attachment.setFileUrl(url);
             if (FileUtils.isImageBySuffix(simpleName)) {
                 attachment.setFileContent(FileUtils.readImageToDataBase64(newfileName));
             } else {

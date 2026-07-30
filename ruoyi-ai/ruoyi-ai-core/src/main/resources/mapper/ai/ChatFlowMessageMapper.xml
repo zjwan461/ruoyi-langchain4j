@@ -175,6 +175,7 @@
                file_name fileName,
                file_ext fileExt,
                file_content fileContent,
+               file_url fileUrl,
                message_id messageId,
                message_flow_id messageFlowId,
                create_time createTime

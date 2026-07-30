@@ -185,6 +185,7 @@
                   v-for="(att, attIdx) in msg.attachments"
                   :key="attIdx"
                   class="message-attachment-item"
+                  @click="handleAttachmentClick(att)"
                 >
                   <img v-if="isImageFile(att.fileExt)" :src="att.fileContent?att.fileContent:att.url" :alt="att.fileName" class="attachment-img" />
                   <div v-else class="attachment-doc-item">
@@ -236,11 +237,11 @@
           <div v-if="attachmentList.length > 0" class="attachment-preview">
             <div
               v-for="(item, index) in attachmentList"
-              :key="index"
+              :key="item.tempId"
               class="attachment-preview-item"
             >
               <div v-if="item.isImage" class="attachment-image-preview">
-                <img :src="item.url" :alt="item.fileName" />
+                <img :src="item.previewUrl" :alt="item.fileName" />
               </div>
               <div v-else class="attachment-doc-preview">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -249,6 +250,16 @@
                 </svg>
                 <span class="attachment-name">{{ item.fileName }}</span>
               </div>
+
+              <!-- 上传中遮罩 -->
+              <div v-if="item.loading" class="attachment-loading-mask">
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+
               <button class="remove-attachment-btn" @click="removeAttachment(index)" title="移除">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -291,6 +302,23 @@
         <p class="input-hint">按 Enter 发送，Shift + Enter 换行</p>
       </footer>
     </main>
+
+    <!-- 图片预览弹窗 -->
+    <ImagePreview
+      :visible="imagePreview.visible"
+      :image-url="imagePreview.url"
+      :file-name="imagePreview.name"
+      @close="imagePreview.visible = false"
+    />
+
+    <!-- 文档预览弹窗 -->
+    <DocPreview
+      :visible="docPreview.visible"
+      :file-name="docPreview.name"
+      :content="docPreview.content"
+      :file-url="docPreview.url"
+      @close="docPreview.visible = false"
+    />
   </div>
 </template>
 
@@ -300,6 +328,8 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import {getAgent, createSession, listChatSession, listChatMessage, deleteSession, attachFile} from '@/api/ai/aiChat'
 import {nanoid} from 'nanoid'
+import ImagePreview from '@/components/Chat/ImagePreview.vue'
+import DocPreview from '@/components/Chat/DocPreview.vue'
 
 const THINK_START = '<' + 'think' + '>'
 const THINK_END = '<' + '/think' + '>'
@@ -341,6 +371,7 @@ const md = new MarkdownIt({
 
 export default {
   name: 'AiChat',
+  components: { ImagePreview, DocPreview },
   data() {
     return {
       sidebarCollapsed: false,
@@ -354,7 +385,6 @@ export default {
       isLoading: false,
       streamController: null,
       foldedStates: {},
-      // 聊天历史分页：初始仅加载时间最近的一页，向上滚动加载更早的页
       pageNum: 1,
       pageSize: 20,
       historyTotal: 0,
@@ -366,9 +396,21 @@ export default {
         '给我讲个笑话',
         '如何提高工作效率'
       ],
-      // ========== 新增：附件相关数据 ==========
-      attachmentList: [], // 已上传成功的附件列表
-      uploading: false    // 文件上传中状态
+      // 附件相关
+      attachmentList: [],
+      uploading: false,
+      // 预览弹窗状态
+      imagePreview: {
+        visible: false,
+        url: '',
+        name: ''
+      },
+      docPreview: {
+        visible: false,
+        name: '',
+        content: '',
+        url: ''
+      }
     }
   },
   mounted() {
@@ -476,7 +518,7 @@ export default {
     switchSession(sessionId) {
       this.sessionId = sessionId
       localStorage.setItem('chat-sessionId', sessionId)
-      this.attachmentList = [] // 切换会话清空附件
+      this.clearAttachmentList()
       this.getChatHistoryMessage()
     },
     newSession() {
@@ -484,7 +526,7 @@ export default {
         this.sessionId = res.data
         localStorage.setItem('chat-sessionId', this.sessionId)
         this.messages = []
-        this.attachmentList = [] // 新建会话清空附件
+        this.clearAttachmentList()
         this.pageNum = 1
         this.historyTotal = 0
         this.hasMoreHistory = true
@@ -504,7 +546,7 @@ export default {
         } else {
           this.sessionId = null
         }
-        this.attachmentList = []
+        this.clearAttachmentList()
         this.getSessionList()
         this.getChatHistoryMessage()
         this.$modal.msgSuccess('删除成功')
@@ -518,7 +560,7 @@ export default {
           this.streamController = null
         }
         this.messages = []
-        this.attachmentList = []
+        this.clearAttachmentList()
         this.$modal.msgSuccess('已清空')
       }).catch(() => {
       })
@@ -534,7 +576,7 @@ export default {
       }
     },
 
-    // ========== 新增：文件上传相关方法 ==========
+    // ========== 文件上传相关 ==========
     triggerFileUpload() {
       this.$refs.fileInput.click()
     },
@@ -543,31 +585,68 @@ export default {
       if (!files || files.length === 0) return
 
       this.uploading = true
-      const uploadPromises = Array.from(files).map(file => this.uploadSingleFile(file))
+      const uploadPromises = Array.from(files).map(file => {
+        // 1. 立即加入列表，显示本地预览 + loading
+        const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)
+        const fileName = file.name
+        const fileExt = fileName.substring(fileName.lastIndexOf('.') + 1)
+        const isImage = this.isImageFile(fileExt)
+        const previewUrl = isImage ? URL.createObjectURL(file) : ''
+
+        const tempItem = {
+          tempId,
+          id: null,
+          fileName,
+          fileExt,
+          url: '',
+          fileContent: '',
+          isImage,
+          previewUrl,
+          loading: true
+        }
+        this.attachmentList.push(tempItem)
+
+        // 2. 异步上传，完成后回填
+        return this.uploadSingleFile(tempId, file)
+      })
 
       Promise.all(uploadPromises).finally(() => {
         this.uploading = false
-        // 重置input，允许重复选择同一文件
         this.$refs.fileInput.value = ''
       })
     },
-    async uploadSingleFile(file) {
+    async uploadSingleFile(tempId, file) {
       try {
         const res = await attachFile(file)
+        const index = this.attachmentList.findIndex(item => item.tempId === tempId)
+        if (index === -1) return
+
         if (res.code === 200 && res.attachment) {
-          const isImage = this.isImageFile(res.attachment.fileExt)
-          this.attachmentList.push({
+          // 上传成功，回填数据，关闭loading
+          this.$set(this.attachmentList, index, {
+            ...this.attachmentList[index],
             id: res.attachment.id,
             fileName: res.attachment.fileName,
             fileExt: res.attachment.fileExt,
             url: res.url,
-            isImage: isImage
+            fileContent: res.attachment.fileContent || '',
+            loading: false
           })
+          // 释放本地预览URL
+          if (this.attachmentList[index].previewUrl) {
+            URL.revokeObjectURL(this.attachmentList[index].previewUrl)
+          }
         } else {
+          // 上传失败，移除该项
+          this.attachmentList.splice(index, 1)
           this.$message.error(res.msg || '文件上传失败')
         }
       } catch (err) {
         console.error('文件上传异常', err)
+        const index = this.attachmentList.findIndex(item => item.tempId === tempId)
+        if (index > -1) {
+          this.attachmentList.splice(index, 1)
+        }
         this.$message.error('文件上传失败，请重试')
       }
     },
@@ -577,19 +656,56 @@ export default {
       return imageExts.includes(ext.toLowerCase())
     },
     removeAttachment(index) {
+      const item = this.attachmentList[index]
+      if (item && item.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl)
+      }
       this.attachmentList.splice(index, 1)
     },
+    clearAttachmentList() {
+      // 清空列表前释放所有本地预览
+      this.attachmentList.forEach(item => {
+        if (item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl)
+        }
+      })
+      this.attachmentList = []
+    },
 
-    // ========== 修改：发送消息携带附件 ==========
+    // ========== 附件预览 ==========
+    handleAttachmentClick(att) {
+      if (this.isImageFile(att.fileExt)) {
+        this.imagePreview = {
+          visible: true,
+          url: att.fileContent || att.url,
+          name: att.fileName
+        }
+      } else {
+        this.docPreview = {
+          visible: true,
+          name: att.fileName,
+          content: att.fileContent || '',
+          url: att.fileUrl || att.url || ''
+        }
+      }
+    },
+
+    // ========== 发送消息 ==========
     sendMessage() {
       const content = this.userInput.trim()
-      // 有文字或有附件均可发送
       if ((!content && this.attachmentList.length === 0) || this.isLoading || this.uploading) return
 
-      // 提取附件ID列表
-      const attachmentIds = this.attachmentList.map(item => item.id)
-      // 深拷贝附件信息用于消息展示
-      const attachments = JSON.parse(JSON.stringify(this.attachmentList))
+      // 过滤掉还在上传中的附件（理论上uploading为true时按钮禁用，不会走到这里）
+      const readyAttachments = this.attachmentList.filter(item => !item.loading && item.id)
+      const attachmentIds = readyAttachments.map(item => item.id)
+      const attachments = readyAttachments.map(item => ({
+        id: item.id,
+        fileName: item.fileName,
+        fileExt: item.fileExt,
+        url: item.url,
+        fileContent: item.fileContent,
+        isImage: item.isImage
+      }))
 
       this.messages.push({
         role: 'user',
@@ -600,14 +716,14 @@ export default {
       })
 
       this.userInput = ''
-      this.attachmentList = []
+      this.clearAttachmentList()
       this.isLoading = true
       this.scrollToBottom()
 
       this.callStreamApi(content, attachmentIds)
     },
 
-    // ========== 修改：流式接口携带 attachmentIds ==========
+    // ========== 流式接口 ==========
     async callStreamApi(content, attachmentIds = []) {
       this.streamController = new AbortController()
       const chatApi = process.env.VUE_APP_BASE_API + '/ai-chat'
@@ -827,6 +943,7 @@ export default {
     if (this.streamController) {
       this.streamController.abort()
     }
+    this.clearAttachmentList()
   }
 }
 </script>
@@ -1651,6 +1768,7 @@ export default {
   gap: 8px;
   margin-bottom: 8px;
   max-width: 100%;
+  cursor: pointer;
 }
 
 .user-message .message-attachments {
