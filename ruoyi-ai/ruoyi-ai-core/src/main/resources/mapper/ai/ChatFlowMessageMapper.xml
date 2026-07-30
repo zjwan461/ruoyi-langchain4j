@@ -32,6 +32,13 @@
                 select="selectToolInvokeByMsgId"
                 column="{msgId=id, msgRole=role}"
         />
+        <collection
+                property="attachments"
+                javaType="java.util.List"
+                ofType="com.ruoyi.ai.domain.Attachment"
+                select="selectAttachmentByMsgId"
+                column="{msgId=id, msgRole=role}"
+        />
     </resultMap>
 
     <sql id="selectChatMessageVo">
@@ -160,6 +167,21 @@
         from agent_tool_invoke
         where message_id = #{msgId}
           AND #{msgRole} = 'assistant'
+    </select>
+
+    <!-- 子查询：仅role=user才查询上传的文件 -->
+    <select id="selectAttachmentByMsgId" resultType="com.ruoyi.ai.domain.Attachment">
+        select id,
+               file_name fileName,
+               file_ext fileExt,
+               file_content fileContent,
+               file_url fileUrl,
+               message_id messageId,
+               message_flow_id messageFlowId,
+               create_time createTime
+        from attachment
+        where message_flow_id = #{msgId}
+          AND #{msgRole} = 'user'
     </select>
 <select id="selectAgentChatMessageBySessionIdWithInvokeData" resultMap="ChatFlowMessageResultWithInvokeData">
     <include refid="selectChatMessageVo"/>

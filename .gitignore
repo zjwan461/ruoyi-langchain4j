@@ -46,3 +46,8 @@ nbdist/
 !*/build/*.html
 !*/build/*.xml
 models/
+
+.venv
+logs
+__pycache__
+package-lock.json

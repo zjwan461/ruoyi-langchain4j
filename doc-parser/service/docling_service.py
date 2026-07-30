@@ -35,6 +35,7 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "").strip()
 OCR_MODEL = os.getenv("OCR_MODEL", "qwen-vl-max")
 OCR_MAX_CONCURRENT = int(os.getenv("OCR_MAX_CONCURRENT", "5"))
 IMG_DESC_CONCURRENT = int(os.getenv("IMG_DESC_CONCURRENT", "5"))
+DESCRIBE_DOC_IMG = os.getenv("DESCRIBE_DOC_IMG", "false") == "true"
 OCR_PROMPT = os.getenv(
     "OCR_PROMPT",
     "仅提取图片中的原始文字，保留表格、代码块等markdown格式语法。不要额外添加任何解释、标题、注释、格式说明、无关内容，只返回markdown文本",
@@ -56,7 +57,7 @@ pic_desc_api_options = PictureDescriptionApiOptions(
 # 全局单例初始化，避免重复加载模型
 _converter = None
 vlm_pipeline_options = VlmPipelineOptions()
-vlm_pipeline_options.do_picture_description = True
+vlm_pipeline_options.do_picture_description = DESCRIBE_DOC_IMG
 vlm_pipeline_options.enable_remote_services = True
 vlm_pipeline_options.picture_description_options = pic_desc_api_options
 vlm_pipeline_options.vlm_options = ApiVlmOptions(
@@ -75,8 +76,8 @@ vlm_pipeline_options.vlm_options = ApiVlmOptions(
 # pdf_pipeline_options.enable_remote_services = True
 # pdf_pipeline_options.picture_description_options = pic_desc_api_options
 
-print("Downloading RapidOCR models")
-download_path = snapshot_download(repo_id="SWHL/RapidOCR")
+print("Loading RapidOCR models")
+download_path = snapshot_download(repo_id="SWHL/RapidOCR", local_files_only=True)
 
 # Setup RapidOcrOptions for english detection
 det_model_path = os.path.join(
@@ -101,6 +102,9 @@ pdf_pipeline_options = PdfPipelineOptions(
 pdf_pipeline_options.do_ocr = True
 pdf_pipeline_options.do_table_structure = True
 pdf_pipeline_options.table_structure_options.do_cell_matching = True
+pdf_pipeline_options.enable_remote_services = True
+pdf_pipeline_options.do_picture_description = DESCRIBE_DOC_IMG
+pdf_pipeline_options.picture_description_options = pic_desc_api_options
 
 
 def get_doc_converter():

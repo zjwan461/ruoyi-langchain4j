@@ -1,8 +1,12 @@
 package com.ruoyi.ai.service;
 
+import cn.hutool.json.JSONUtil;
 import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.tool.JToolProvider;
 import com.ruoyi.ai.tool.TimeTool;
+import com.ruoyi.common.core.domain.AjaxResult;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.PartialThinking;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -15,6 +19,7 @@ import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -48,7 +53,9 @@ public class AIAssistantTest {
                 })
                 .tools(new TimeTool())
                 .build();
-        TokenStream tokenStream = assistant.chatStream("今天的日期");
+        List<dev.langchain4j.data.message.Content> messages = new ArrayList<>();
+        messages.add(TextContent.from("今天的日期"));
+        TokenStream tokenStream = assistant.chatStream(messages);
         tokenStream
                 .onPartialResponse((String partialResponse) -> System.out.println(partialResponse))
                 .onPartialThinking((PartialThinking partialThinking) -> System.out.println(partialThinking))
@@ -81,6 +88,22 @@ public class AIAssistantTest {
                 .systemMessageProvider(x -> "在必要的时候调用工具")
                 .contentRetriever(contentRetriever)
                 .toolProvider(new JToolProvider(aiAgent, false));
+    }
+
+    @Test
+    public void test() {
+        Attachment attachment = new Attachment();
+        attachment.setFileContent("文件内容");
+        attachment.setFileExt("pdf");
+        attachment.setId(1L);
+        attachment.setFileName("test.pdf");
+        AjaxResult ajax = AjaxResult.success();
+        ajax.put("url", "url");
+        ajax.put("fileName", "D://test.pdf");
+        ajax.put("newFileName", "test.pdf");
+        ajax.put("originalFilename", "file.getOriginalFilename()");
+        ajax.put("attachment", attachment);
+        System.out.println(JSONUtil.toJsonPrettyStr(ajax));
     }
 
 }

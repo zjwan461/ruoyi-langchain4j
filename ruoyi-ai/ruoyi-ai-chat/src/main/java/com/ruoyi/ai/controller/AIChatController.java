@@ -9,10 +9,13 @@ import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.service.impl.AIAssistantExecutor;
+import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.framework.config.ServerConfig;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.Resource;
@@ -39,8 +42,8 @@ public class AIChatController extends ChatController {
     @Resource
     private AIAssistantExecutor aiAssistantExecutor;
 
-    public AIChatController(IAIChatService aiChatService) {
-        super(aiChatService);
+    public AIChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient, IAttachmentService attachmentService) {
+        super(aiChatService, serverConfig, documentParseClient, attachmentService);
     }
 
     protected AgentType getAgentType(AIAgent aiAgent) {
@@ -57,10 +60,10 @@ public class AIChatController extends ChatController {
         AgentType agentType = this.getAgentType(aiAgent);
         if (agentType == AgentType.simple) {
             return aiChatService.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                    chatReq.getSessionId());
+                    chatReq.getSessionId(), chatReq.getAttachmentIds());
         } else {
             return aiAssistantExecutor.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                    chatReq.getSessionId());
+                    chatReq.getSessionId(), chatReq.getAttachmentIds());
         }
     }
 
@@ -94,5 +97,10 @@ public class AIChatController extends ChatController {
     public AjaxResult deleteSession(@PathVariable("sessionId") String sessionId) {
         aiChatService.deleteSession(sessionId);
         return success();
+    }
+
+    @PostMapping("/attach-file")
+    public AjaxResult attachChatFile(MultipartFile file) {
+        return this.uploadFile(file);
     }
 }

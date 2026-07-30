@@ -315,7 +315,9 @@ export default {
       this.loadedCount = 0
       this.hasMoreHistory = true
       this.historyLoading = false
+      this.$modal.loading("loading...")
       listChatMessage(this.sessionId, this.agentInfo.id).then(res => {
+        this.$modal.closeLoading()
         const rows = (res && res.rows) || []
         // 后端一次性返回全量历史（硬编码 999），并按 createTime 升序排序：
         // rows[0] = 最老对话，rows[end] = 最新对话。
@@ -329,6 +331,8 @@ export default {
         this.$nextTick(() => {
           this.scrollToBottom()
         })
+      }).catch(err=>{
+        this.$modal.closeLoading()
       })
     },
     /**
@@ -482,29 +486,40 @@ export default {
         const reader = response.body.getReader()
         const decoder = new TextDecoder('utf-8')
 
+        // ⚠️ buffer 定义在while循环外部！！不能放进循环内
+        let buffer = ''
+
         while (true) {
-          const {done, value} = await reader.read()
+          const { done, value } = await reader.read()
           if (done) break
 
           const chunk = decoder.decode(value)
-          const str = chunk.replace(/data:/g, '').trim()
-          const dataArray = str.split('\n')
+          buffer += chunk
 
-          dataArray.forEach(item => {
-            if (item.trim()) {
-              try {
-                const res = JSON.parse(item)
-                aiMessage.content += res.msg
-                // 外层聊天容器滚动
-                this.scrollToBottom()
-                // ==========新增：思考框内部自动滚动到底==========
-                const msgIndex = this.messages.findIndex(m => m._id === aiMessage._id)
-                if (msgIndex > -1) {
-                  this.scrollThinkBlockToBottom(msgIndex)
-                }
-              } catch (e) {}
+          let newlineIndex
+          while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+            const line = buffer.slice(0, newlineIndex).trim()
+            buffer = buffer.slice(newlineIndex + 1)
+
+            if (!line || !line.startsWith('data:')) continue
+            // 使用开头匹配替换，避免正文内包含data:被误删除
+            const jsonRaw = line.replace(/^data:\s*/, '').trim()
+            if (!jsonRaw) continue
+
+            try {
+              const res = JSON.parse(jsonRaw)
+              aiMessage.content += res.msg
+              // 外层聊天容器滚动
+              this.scrollToBottom()
+              // ==========新增：思考框内部自动滚动到底==========
+              const msgIndex = this.messages.findIndex(m => m._id === aiMessage._id)
+              if (msgIndex > -1) {
+                this.scrollThinkBlockToBottom(msgIndex)
+              }
+            } catch (e) {
+              console.error('JSON解析失败', jsonRaw, e)
             }
-          })
+          }
         }
 
         aiMessage.loading = false

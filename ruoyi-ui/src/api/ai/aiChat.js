@@ -44,3 +44,22 @@ export function deleteSession(sessionId) {
     method: 'delete',
   })
 }
+
+export function attachFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return request({
+    url: '/ai-chat/attach-file',
+    method: 'post',
+    data: formData,
+    // 关键1：禁用全局的 transformRequest，不做 JSON 序列化
+    transformRequest: [function(data) {
+      return data; // 直接返回 FormData，不转换
+    }],
+    // 关键2：显式删除 Content-Type，让浏览器自动生成带 boundary 的 multipart/form-data
+    headers: {
+      'Content-Type': null
+    }
+  })
+}

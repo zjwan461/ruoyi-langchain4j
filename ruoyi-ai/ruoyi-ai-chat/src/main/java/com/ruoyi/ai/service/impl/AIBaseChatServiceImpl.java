@@ -69,6 +69,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
     protected final PgVectorEmbeddingStore pgVectorEmbeddingStore;
 
+    protected final IAttachmentService attachmentService;
+
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     public AIBaseChatServiceImpl(IChatMessageService chatMessageService,
@@ -83,7 +85,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                                  IModelService modelService,
                                  ModelBuilder modelBuilder,
                                  IAIAgentService aiAgentService,
-                                 PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                                 PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                                 IAttachmentService attachmentService) {
         this.chatMessageService = chatMessageService;
         this.inMemoryChatMemoryStore = inMemoryChatMemoryStore;
         this.redisMemoryChatMemoryStore = redisMemoryChatMemoryStore;
@@ -97,21 +100,22 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         this.modelBuilder = modelBuilder;
         this.aiAgentService = aiAgentService;
         this.pgVectorEmbeddingStore = pgVectorEmbeddingStore;
+        this.attachmentService = attachmentService;
     }
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         throw new ServiceException("not implemented");
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         throw new ServiceException("not implemented");
     }
 
     @Override
     public ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                                       ChatMessageType chatMessageType) {
+                                       ChatMessageType chatMessageType, List<Long> attachmentIds) {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setAgentId(agentId);
         chatMessage.setContent(content);
@@ -130,6 +134,14 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         chatMessage.setSessionId(sessionId);
         chatMessage.setCreateBy("system");
         chatMessageService.insertChatMessage(chatMessage);
+        if (CollUtil.isNotEmpty(attachmentIds)) {
+            List<Attachment> attachments = attachmentService.selectAttachmentByIds(attachmentIds.toArray(Long[]::new));
+            attachments.forEach(attachment -> {
+                attachment.setMessageId(chatMessage.getId());
+                attachmentService.updateAttachment(attachment);
+            });
+            chatMessage.setAttachments(attachments);
+        }
         return chatMessage;
     }
 

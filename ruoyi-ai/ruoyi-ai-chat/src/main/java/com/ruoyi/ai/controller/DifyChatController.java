@@ -19,12 +19,15 @@ import com.ruoyi.ai.domain.ChatMessage;
 import com.ruoyi.ai.dto.DifyChatHistoryPage;
 import com.ruoyi.ai.service.IAIAgentService;
 import com.ruoyi.ai.service.IAIChatService;
+import com.ruoyi.ai.service.IAttachmentService;
 import com.ruoyi.ai.util.Constants;
+import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.constant.HttpStatus;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.bean.BeanUtils;
+import com.ruoyi.framework.config.ServerConfig;
 import com.ruoyi.system.service.ISysConfigService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -57,8 +60,9 @@ public class DifyChatController extends ChatController {
     @Resource
     private ObjectMapper objectMapper;
 
-    public DifyChatController(IAIChatService aiChatService) {
-        super(aiChatService);
+    public DifyChatController(IAIChatService aiChatService, ServerConfig serverConfig, DocumentParseClient documentParseClient,
+                              IAttachmentService attachmentService) {
+        super(aiChatService, serverConfig, documentParseClient, attachmentService);
     }
 
     @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
@@ -156,6 +160,7 @@ public class DifyChatController extends ChatController {
         }
         return AjaxResult.success(list);
     }
+
     /**
      * 查询 Dify 聊天历史。
      * <p>

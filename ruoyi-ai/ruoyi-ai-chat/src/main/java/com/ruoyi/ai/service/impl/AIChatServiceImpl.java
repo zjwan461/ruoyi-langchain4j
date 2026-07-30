@@ -5,18 +5,16 @@ import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.domain.AIAgent;
+import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.domain.ChatMessage;
-import com.ruoyi.ai.domain.KnowledgeBase;
-import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.document.Metadata;
-import dev.langchain4j.data.message.ChatMessageType;
-import dev.langchain4j.data.message.SystemMessage;
-import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.message.*;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -65,7 +63,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                              IModelService modelService,
                              ModelBuilder modelBuilder,
                              IAIAgentService aiAgentService,
-                             PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                             PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                             IAttachmentService attachmentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -78,12 +77,13 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 modelService,
                 modelBuilder,
                 aiAgentService,
-                pgVectorEmbeddingStore);
+                pgVectorEmbeddingStore,
+                attachmentService);
     }
 
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -127,7 +127,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
 
-        saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER);
+        ChatMessage uMsg = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
@@ -146,7 +146,20 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
             systemMessage = SystemMessage.from(sysMsgContent);
         }
 
-        UserMessage userMessage = UserMessage.from(promptTemplate);
+        List<Content> messages = new ArrayList<>();
+        messages.add(TextContent.from(promptTemplate));
+        if (CollUtil.isNotEmpty(uMsg.getAttachments())) {
+            for (Attachment attachment : uMsg.getAttachments()) {
+                if (FileUtils.isImageBySuffix(attachment.getFileName())) {
+                    Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil.parse(attachment.getFileContent());
+                    messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
+                } else {
+                    TextContent attachContent = TextContent.from(String.format(Constants.DEFAULT_ATTACHMENT_FILE_PROMPT, attachment.getFileName(), attachment.getFileContent()));
+                    messages.add(attachContent);
+                }
+            }
+        }
+        UserMessage userMessage = UserMessage.from(messages);
 
         if (chatMemory != null) {
             if (systemMessage != null) {
@@ -204,7 +217,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     }
                     String aiText = completeResponse.aiMessage().text();
                     content.append(aiText);
-                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI);
+                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null);
                     for (Map<String, Object> item : retrievedContents) {
                         root.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
                                 String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));

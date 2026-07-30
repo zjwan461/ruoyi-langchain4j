@@ -35,7 +35,7 @@ public interface AgentFlowService {
      * @return 最终一轮 AgentRoundOut（批次结束时的最后输出）
      */
     Mono<AgentRoundOut> nextRoundBatch(List<AgentSpec> specs, String sessionId, String clientId,
-                                      String transferRequest, FlowRoundContext ctx);
+                                       String transferRequest, FlowRoundContext ctx);
 
     String attachSubAgentPrompt(String prompt, String currentNodeId);
 

@@ -95,4 +95,11 @@ public interface Constants {
 
             """;
 
+    String DEFAULT_ATTACHMENT_FILE_PROMPT = """
+            User uploaded document name: 《%s》.
+            The document content:
+            
+            %s
+            
+            """;
 }

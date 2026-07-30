@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ai.mapper.AttachmentMapper">
+
+    <resultMap type="Attachment" id="AttachmentResult">
+        <result property="id" column="id"/>
+        <result property="fileName" column="file_name"/>
+        <result property="fileExt" column="file_ext"/>
+        <result property="fileContent" column="file_content"/>
+        <result property="fileUrl" column="file_url"/>
+        <result property="messageId" column="message_id"/>
+        <result property="messageFlowId" column="message_flow_id"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="selectAttachmentVo">
+        select id, file_name, file_ext, file_content, file_url, message_id, message_flow_id, create_time
+        from attachment
+    </sql>
+
+    <select id="selectAttachmentList" parameterType="Attachment" resultMap="AttachmentResult">
+        <include refid="selectAttachmentVo"/>
+        <where>
+            <if test="fileName != null  and fileName != ''">and file_name like concat('%', #{fileName}, '%')</if>
+            <if test="fileExt != null  and fileExt != ''">and file_ext = #{fileExt}</if>
+            <if test="fileContent != null  and fileContent != ''">and file_content = #{fileContent}</if>
+            <if test="fileUrl != null  and fileUrl != ''">and file_url = #{fileUrl}</if>
+            <if test="messageId != null ">and message_id = #{messageId}</if>
+            <if test="messageFlowId != null ">and message_flow_id = #{messageFlowId}</if>
+        </where>
+    </select>
+
+    <select id="selectAttachmentById" parameterType="Long" resultMap="AttachmentResult">
+        <include refid="selectAttachmentVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertAttachment" parameterType="Attachment" useGeneratedKeys="true" keyProperty="id">
+        insert into attachment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="fileName != null and fileName != ''">file_name,</if>
+            <if test="fileExt != null and fileExt != ''">file_ext,</if>
+            <if test="fileContent != null and fileContent != ''">file_content,</if>
+            <if test="fileUrl != null and fileUrl != ''">file_url,</if>
+            <if test="messageId != null">message_id,</if>
+            <if test="messageFlowId != null">message_flow_id,</if>
+            <if test="createTime != null">create_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="fileName != null and fileName != ''">#{fileName},</if>
+            <if test="fileExt != null and fileExt != ''">#{fileExt},</if>
+            <if test="fileContent != null and fileContent != ''">#{fileContent},</if>
+            <if test="fileUrl != null and fileUrl != ''">#{fileUrl},</if>
+            <if test="messageId != null">#{messageId},</if>
+            <if test="messageFlowId != null">#{messageFlowId},</if>
+            <if test="createTime != null">#{createTime},</if>
+        </trim>
+    </insert>
+
+    <update id="updateAttachment" parameterType="Attachment">
+        update attachment
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="fileName != null and fileName != ''">file_name = #{fileName},</if>
+            <if test="fileExt != null and fileExt != ''">file_ext = #{fileExt},</if>
+            <if test="fileContent != null and fileContent != ''">file_content = #{fileContent},</if>
+            <if test="fileUrl != null and fileUrl != ''">file_url = #{fileUrl},</if>
+            <if test="messageId != null">message_id = #{messageId},</if>
+            <if test="messageFlowId != null">message_flow_id = #{messageFlowId},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteAttachmentById" parameterType="Long">
+        delete
+        from attachment
+        where id = #{id}
+    </delete>
+
+    <delete id="deleteAttachmentByIds" parameterType="String">
+        delete from attachment where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectAttachmentByIds" parameterType="String" resultMap="AttachmentResult">
+        <include refid="selectAttachmentVo"/>
+        where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <delete id="deleteAttachmentNoMessageRef" parameterType="int">
+        <![CDATA[
+        DELETE FROM attachment
+        WHERE message_id IS NULL
+        AND message_flow_id IS NULL
+        AND create_time < NOW() - INTERVAL #{keepDay} DAY
+        ]]>
+    </delete>
+</mapper>

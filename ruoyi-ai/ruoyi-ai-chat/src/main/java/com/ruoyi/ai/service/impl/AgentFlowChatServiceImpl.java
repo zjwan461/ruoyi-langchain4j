@@ -14,18 +14,19 @@ import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.AIAgent;
 import com.ruoyi.ai.domain.AgentFlow;
+import com.ruoyi.ai.domain.Attachment;
 import com.ruoyi.ai.domain.ChatFlowMessage;
 import com.ruoyi.ai.dto.FlowRoundContext;
 import com.ruoyi.ai.service.*;
+import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.*;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
@@ -78,7 +79,8 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                                     IModelService modelService,
                                     ModelBuilder modelBuilder,
                                     IAIAgentService aiAgentService,
-                                    PgVectorEmbeddingStore pgVectorEmbeddingStore) {
+                                    PgVectorEmbeddingStore pgVectorEmbeddingStore,
+                                    IAttachmentService attachmentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -91,7 +93,8 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                 modelService,
                 modelBuilder,
                 aiAgentService,
-                pgVectorEmbeddingStore);
+                pgVectorEmbeddingStore,
+                attachmentService);
     }
 
     @Override
@@ -162,7 +165,21 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         .build()
         );
 
-        TokenStream tokenStream = assistant.chatStream(finalPromptTemplate);
+        List<Content> messages = new ArrayList<>();
+        messages.add(TextContent.from(finalPromptTemplate));
+        if (CollUtil.isNotEmpty(ctx.getAttachments())) {
+            for (Attachment attachment : ctx.getAttachments()) {
+                if (FileUtils.isImageBySuffix(attachment.getFileName())) {
+                    Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil.parse(attachment.getFileContent());
+                    messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
+                } else {
+                    TextContent attachContent = TextContent.from(String.format(Constants.DEFAULT_ATTACHMENT_FILE_PROMPT, attachment.getFileName(), attachment.getFileContent()));
+                    messages.add(attachContent);
+                }
+            }
+        }
+
+        TokenStream tokenStream = assistant.chatStream(messages);
         AtomicInteger thinkCount = new AtomicInteger(0);
         AtomicBoolean thinkFinish = new AtomicBoolean(false);
 
@@ -198,7 +215,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     if (aiAgent.getShowReasoning()) {
                         String content = this.getAIResponse(resp);
                         ChatFlowMessage assistantMessage = this.saveChatFlowMessage(content, clientId, sessionId, aiAgent.getId(), aiAgent.getName(),
-                                this.agentFlow.getId(), ChatMessageType.AI);
+                                this.agentFlow.getId(), ChatMessageType.AI, null);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
@@ -396,12 +413,13 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         oneCtx.setRawSink(parentCtx.getRawSink());
         oneCtx.setSafeEmitter(parentCtx.getSafeEmitter());
         oneCtx.setSinkClosed(parentCtx.getSinkClosed());
+        oneCtx.setAttachments(parentCtx.getAttachments());
 
         return invoke(sessionId, clientId, requestForThisAgent, oneCtx);
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
             // ========== 全部并发对象由父类统一创建 ==========
@@ -411,7 +429,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             BiConsumer<String, String> safeEmitter = emitterCtx.safeEmitter;
 
             log.info("AgentFlow chat start, sessionId={}", sessionId);
-            saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER);
+            ChatFlowMessage chatFlowMessage = saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER, attachmentIds);
 
             AtomicInteger roundCount = new AtomicInteger(0);
 
@@ -425,6 +443,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             rootCtx.setRawSink(rawSink);
             rootCtx.setSafeEmitter(safeEmitter);
             rootCtx.setSinkClosed(sinkClosed);
+            rootCtx.setAttachments(chatFlowMessage.getAttachments());
 
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, rootCtx);
 
@@ -532,7 +551,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     protected ChatFlowMessage saveChatFlowMessage(String content, String clientId, String sessionId, Long agentId, String agentName,
-                                                  Long agentFlowId, ChatMessageType chatMessageType) {
+                                                  Long agentFlowId, ChatMessageType chatMessageType, List<Long> attachmentIds) {
         ChatFlowMessage chatFlowMessage = new ChatFlowMessage();
         chatFlowMessage.setAgentId(agentId);
         chatFlowMessage.setContent(content);
@@ -553,6 +572,14 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         chatFlowMessage.setAgentName(agentName);
         chatFlowMessage.setCreateBy("system");
         chatFlowMessageService.insertChatMessage(chatFlowMessage);
+        if (CollUtil.isNotEmpty(attachmentIds)) {
+            List<Attachment> attachments = attachmentService.selectAttachmentByIds(attachmentIds.toArray(Long[]::new));
+            attachments.forEach(attachment -> {
+                attachment.setMessageFlowId(chatFlowMessage.getId());
+                attachmentService.updateAttachment(attachment);
+            });
+            chatFlowMessage.setAttachments(attachments);
+        }
         return chatFlowMessage;
     }
 }

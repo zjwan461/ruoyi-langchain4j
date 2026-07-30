@@ -1,6 +1,7 @@
 package com.ruoyi.ai.controller.model;
 
 import javax.validation.constraints.NotBlank;
+import java.util.List;
 
 public class ChatReq {
 
@@ -16,6 +17,8 @@ public class ChatReq {
 
   @NotBlank
   private String sessionId;
+
+  private List<Long> attachmentIds;
 
   public Long getAgentId() {
     return agentId;
@@ -57,6 +60,14 @@ public class ChatReq {
     this.agentFlowId = agentFlowId;
   }
 
+  public List<Long> getAttachmentIds() {
+    return attachmentIds;
+  }
+
+  public void setAttachmentIds(List<Long> attachmentIds) {
+    this.attachmentIds = attachmentIds;
+  }
+
   @Override
   public String toString() {
     return "ChatReq{" +
@@ -65,6 +76,7 @@ public class ChatReq {
         ", prompt='" + prompt + '\'' +
         ", clientId='" + clientId + '\'' +
         ", sessionId='" + sessionId + '\'' +
+        ", attachmentIds='" + attachmentIds + '\'' +
         '}';
   }
 }

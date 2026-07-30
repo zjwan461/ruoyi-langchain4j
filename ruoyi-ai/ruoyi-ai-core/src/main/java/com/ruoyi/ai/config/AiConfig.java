@@ -23,6 +23,8 @@ public class AiConfig {
 
     private Mcp mcp;
 
+    private DocParser docParser;
+
     public PgVector getPgVector() {
         return pgVector;
     }
@@ -69,6 +71,14 @@ public class AiConfig {
 
     public void setMcp(Mcp mcp) {
         this.mcp = mcp;
+    }
+
+    public DocParser getDocParser() {
+        return docParser;
+    }
+
+    public void setDocParser(DocParser docParser) {
+        this.docParser = docParser;
     }
 
     public static class PgVector {
@@ -275,6 +285,48 @@ public class AiConfig {
 
         public void setTimeout(Duration timeout) {
             this.timeout = timeout;
+        }
+    }
+
+    public static class DocParser {
+        private String serverUrl;
+
+        private String apiKey;
+
+        private int connectTimeout;
+
+        private int readTimeout;
+
+        public String getServerUrl() {
+            return serverUrl;
+        }
+
+        public void setServerUrl(String serverUrl) {
+            this.serverUrl = serverUrl;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public int getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public void setConnectTimeout(int connectTimeout) {
+            this.connectTimeout = connectTimeout;
+        }
+
+        public int getReadTimeout() {
+            return readTimeout;
+        }
+
+        public void setReadTimeout(int readTimeout) {
+            this.readTimeout = readTimeout;
         }
     }
 }

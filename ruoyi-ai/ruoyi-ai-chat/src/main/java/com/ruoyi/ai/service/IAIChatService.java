@@ -12,9 +12,9 @@ import java.util.Map;
 
 public interface IAIChatService {
 
-    Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId);
+    Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds);
 
-    Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId);
+    Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds);
 
     String createSession(String clientId);
 
@@ -32,7 +32,7 @@ public interface IAIChatService {
      * 按时间倒序分页查询聊天记录（需在调用前使用 PageHelper.startPage 启动分页）
      *
      * @param sessionId 会话ID
-     * @param agentId 智能体ID
+     * @param agentId   智能体ID
      * @return 当前页聊天记录（按 create_time desc, id desc）
      */
     List<ChatMessage> listAgentChatMessageBySessionIdOrderDesc(String sessionId, Long agentId);
@@ -42,5 +42,5 @@ public interface IAIChatService {
     void deleteSession(String sessionId);
 
     ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                         ChatMessageType chatMessageType);
+                                ChatMessageType chatMessageType, List<Long> attachmentIds);
 }
