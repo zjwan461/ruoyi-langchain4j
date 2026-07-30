@@ -101,6 +101,9 @@ pdf_pipeline_options = PdfPipelineOptions(
 pdf_pipeline_options.do_ocr = True
 pdf_pipeline_options.do_table_structure = True
 pdf_pipeline_options.table_structure_options.do_cell_matching = True
+pdf_pipeline_options.picture_description_options = pic_desc_api_options
+pdf_pipeline_options.do_picture_description = True
+pdf_pipeline_options.enable_remote_services = True
 
 
 def get_doc_converter():
