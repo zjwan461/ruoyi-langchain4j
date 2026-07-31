@@ -499,7 +499,24 @@ public class AiTest {
                 .description("主管agent，根据需要调用子agent完成各种功能")
                 .build();
 
-        TokenStream tokenStream = supervisorAgent.invoke("你好");
+        TokenStream stream = supervisorAgent.invoke("你好");
+
+        stream.onPartialThinkingWithContext((x, y) -> {
+            System.out.print(x.text());
+        }).onPartialResponseWithContext((x, y) -> {
+            System.out.println();
+            System.out.print(x.text());
+        }).onCompleteResponse(chatResponse -> {
+            System.out.println();
+            System.err.println(chatResponse.aiMessage().text());
+        }).onError(new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        });
+        stream.start();
+        System.in.read();
 
     }
 

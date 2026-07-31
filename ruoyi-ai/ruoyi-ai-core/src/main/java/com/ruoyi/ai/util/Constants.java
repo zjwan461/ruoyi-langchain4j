@@ -102,4 +102,9 @@ public interface Constants {
             %s
             
             """;
+
+    String DEFAULT_ROOT_AGENT_SYNC_CONTEXT_PROMPT = """
+            SubAgent **%s** reply:
+            %s
+            """;
 }

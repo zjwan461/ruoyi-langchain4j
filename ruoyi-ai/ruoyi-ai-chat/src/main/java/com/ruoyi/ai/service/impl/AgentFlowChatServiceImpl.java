@@ -235,7 +235,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                         ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
                                 redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
                         List<ChatMessage> rootMessages = memoryStore.getMessages(sessionId);
-                        rootMessages.add(AiMessage.aiMessage(content));
+                        rootMessages.add(AiMessage.aiMessage(String.format(Constants.DEFAULT_ROOT_AGENT_SYNC_CONTEXT_PROMPT, aiAgent.getName(), content)));
                         memoryStore.updateMessages(sessionId, rootMessages);
                     }
                 })
