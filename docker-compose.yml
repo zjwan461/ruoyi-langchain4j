@@ -92,6 +92,7 @@ services:
       -c max_wal_size=4GB
   sandbox:
     image: langgenius/dify-sandbox:0.2.15
+    container_name: sandbox
     restart: always
     environment:
       # The DifySandbox configurations
@@ -115,7 +116,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-admin
-    image: ruoyi-admin:latest
+    image: ghcr.io/zjwan461/ruoyi-admin:latest
     container_name: ruoyi-admin
     restart: unless-stopped
     ports:
@@ -138,7 +139,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-ui
-    image: ruoyi-ui:latest
+    image: ghcr.io/zjwan461/ruoyi-ui:latest
     container_name: ruoyi-ui
     restart: unless-stopped
     ports:
@@ -160,7 +161,7 @@ services:
       args:
         HTTP_PROXY: ${HTTP_PROXY:-}
         HTTPS_PROXY: ${HTTPS_PROXY:-}
-    image: doc-parser:latest
+    image: ghcr.io/zjwan461/doc-parser:latest
     container_name: doc-parser
     restart: unless-stopped
     ports:
