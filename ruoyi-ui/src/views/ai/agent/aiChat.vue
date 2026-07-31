@@ -1713,6 +1713,25 @@ export default {
   text-align: center;
 }
 
+/* 上传中遮罩 */
+.attachment-loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.attachment-loading-mask .typing-indicator span {
+  width: 6px;
+  height: 6px;
+}
+
 .remove-attachment-btn {
   position: absolute;
   top: 2px;
