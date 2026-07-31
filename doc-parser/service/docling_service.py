@@ -77,7 +77,7 @@ vlm_pipeline_options.vlm_options = ApiVlmOptions(
 # pdf_pipeline_options.picture_description_options = pic_desc_api_options
 
 print("Loading RapidOCR models")
-download_path = snapshot_download(repo_id="SWHL/RapidOCR", local_files_only=True)
+download_path = snapshot_download(repo_id="SWHL/RapidOCR")
 
 # Setup RapidOcrOptions for english detection
 det_model_path = os.path.join(
