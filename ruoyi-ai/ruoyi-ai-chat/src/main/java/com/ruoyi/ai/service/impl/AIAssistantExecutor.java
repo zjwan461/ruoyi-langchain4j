@@ -12,6 +12,7 @@ import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.file.FileUtils;
+import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.ChatMessageType;
@@ -72,7 +73,8 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
 
     @Override
     public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
-        ChatMessage userMessage = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
+        String traceId = IdUtils.fastSimpleUUID();
+        ChatMessage userMessage = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds, traceId);
         String promptTemplate = aiAgent.getPromptTemplate();
         if (promptTemplate.contains(Constants.USER_MSG_TEMPLATE)) {
             promptTemplate = promptTemplate.replace(Constants.USER_MSG_TEMPLATE, prompt);
@@ -126,7 +128,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                     })
                     .onCompleteResponse(resp -> {
                         String content = getAIResponse(resp);
-                        ChatMessage assistantMessage = saveChatMessage(content, clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null);
+                        ChatMessage assistantMessage = saveChatMessage(content, clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null, traceId);
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),

@@ -11,6 +11,7 @@
         <result property="clientId" column="client_id"/>
         <result property="sessionId" column="session_id"/>
         <result property="agentId" column="agent_id"/>
+        <result property="traceId" column="trace_id"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
 
@@ -41,7 +42,7 @@
     </resultMap>
 
     <sql id="selectChatMessageVo">
-        select id, role, content, client_id, session_id, agent_id, create_time
+        select id, role, content, client_id, session_id, agent_id, create_time, trace_id
         from chat_message
     </sql>
 
@@ -53,6 +54,7 @@
             <if test="clientId != null  and clientId != ''">and client_id = #{clientId}</if>
             <if test="sessionId != null  and sessionId != ''">and session_id = #{sessionId}</if>
             <if test="agentId != null  and sessionId != ''">and agent_id = #{agentId}</if>
+            <if test="traceId != null  and traceId != ''">and trace_id = #{traceId}</if>
         </where>
     </select>
 
@@ -71,6 +73,7 @@
             <if test="sessionId != null and sessionId != ''">session_id,</if>
             <if test="agentId != null and agentId != ''">agent_id,</if>
             <if test="createTime != null">create_time,</if>
+            <if test="traceId != null and traceId !=''">trace_id,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="role != null and role != ''">#{role},</if>
@@ -79,6 +82,7 @@
             <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
             <if test="agentId != null and agentId != ''">#{agentId},</if>
             <if test="createTime != null">#{createTime},</if>
+            <if test="traceId != null and traceId !=''">#{traceId},</if>
         </trim>
     </insert>
 
@@ -91,6 +95,7 @@
             <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
             <if test="agentId != null and agentId != ''">agent_id = #{agentId},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="traceId != null and traceId != ''">trace_id = #{traceId},</if>
         </trim>
         where id = #{id}
     </update>
@@ -187,4 +192,70 @@
     where session_id = #{sessionId} and agent_id = #{agentId}
     order by create_time desc, id desc
 </select>
+
+<!-- ============================================== -->
+<!-- 对话日志：按 traceId 分组聚合的单 Agent 分页查询 -->
+<!-- 入参：agentId（必填）、sessionId（可选）、traceId（可选，模糊匹配） -->
+<!-- 出参：每行表示一次对话（同一 traceId）以及首条 user 消息、消息数、最大时间等 -->
+<!-- ============================================== -->
+<select id="selectChatLogTraceList" resultType="java.util.Map">
+    SELECT
+        t.trace_id                                                              AS traceId,
+        t.session_id                                                            AS sessionId,
+        t.client_id                                                             AS clientId,
+        t.agent_id                                                              AS agentId,
+        COUNT(*)                                                                AS msgCount,
+        MIN(t.create_time)                                                      AS startTime,
+        MAX(t.create_time)                                                      AS endTime,
+        (SELECT content
+         FROM chat_message
+         WHERE trace_id = t.trace_id
+           AND role = 'user'
+         ORDER BY create_time ASC, id ASC
+         LIMIT 1)                                                               AS userQuestion,
+        (SELECT content
+         FROM chat_message
+         WHERE trace_id = t.trace_id
+           AND role = 'assistant'
+         ORDER BY create_time DESC, id DESC
+         LIMIT 1)                                                               AS lastAnswer
+    FROM chat_message t
+    WHERE t.agent_id = #{agentId}
+      AND t.trace_id IS NOT NULL
+      <if test="sessionId != null and sessionId != ''">AND t.session_id = #{sessionId}</if>
+      <if test="traceId != null and traceId != ''">AND t.trace_id LIKE CONCAT('%', #{traceId}, '%')</if>
+    GROUP BY t.trace_id, t.session_id, t.client_id, t.agent_id
+    ORDER BY startTime DESC, t.trace_id DESC
+</select>
+
+<!-- 对话日志：根据 traceId 查询单 Agent 一次对话的全部消息（按时间正序） -->
+<select id="selectChatLogMessagesByTraceId" resultMap="ChatMessageResultWithInvokeData">
+    <include refid="selectChatMessageVo"/>
+    where trace_id = #{traceId}
+    order by create_time asc, id asc
+</select>
+
+<!-- 对话日志：仅查询单 Agent 一次对话的消息列表（不含 invoke 数据） -->
+<select id="selectChatLogSimpleMessagesByTraceId" resultMap="ChatMessageResult">
+    <include refid="selectChatMessageVo"/>
+    where trace_id = #{traceId}
+    order by create_time asc, id asc
+</select>
+
+<!-- 对话日志：查询某 Agent 流水中出现过的全部 sessionId（用于下拉） -->
+<select id="selectChatLogSessionIdList" resultType="java.util.Map">
+    SELECT session_id AS sessionId,
+           MIN(create_time) AS startTime,
+           COUNT(DISTINCT trace_id) AS traceCount
+    FROM chat_message
+    WHERE agent_id = #{agentId}
+      AND session_id IS NOT NULL
+    GROUP BY session_id
+    ORDER BY startTime DESC
+</select>
+
+<!-- 对话日志：删除单个 traceId 对应的所有消息 -->
+<delete id="deleteChatLogByTraceId">
+    delete from chat_message where trace_id = #{traceId}
+</delete>
 </mapper>

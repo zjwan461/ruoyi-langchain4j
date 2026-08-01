@@ -27,4 +27,6 @@ public class FlowRoundContext {
 
     //用户在聊天中上传的附件
     private List<Attachment> attachments;
+    //追踪ID，用于串联同一请求的所有消息
+    private String traceId;
 }

@@ -58,6 +58,11 @@ public class ChatFlowMessage extends BaseEntity {
 
     private List<Attachment> attachments;
 
+    /**
+     * 追踪ID
+     */
+    private String traceId;
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -146,6 +151,14 @@ public class ChatFlowMessage extends BaseEntity {
         this.attachments = attachments;
     }
 
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -161,6 +174,7 @@ public class ChatFlowMessage extends BaseEntity {
                 .append("retrievedList", getRetrievedList())
                 .append("toolCalledList", getToolCalledList())
                 .append("attachments", getAttachments())
+                .append("traceId", getTraceId())
                 .toString();
     }
 }
