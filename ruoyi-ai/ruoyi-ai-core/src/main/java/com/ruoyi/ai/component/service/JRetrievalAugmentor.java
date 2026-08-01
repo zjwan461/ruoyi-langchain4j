@@ -71,7 +71,7 @@ public class JRetrievalAugmentor implements RetrievalAugmentor {
             } else {
                 for (dev.langchain4j.data.message.Content content : userMessage.contents()) {
                     if (content.type() == ContentType.TEXT && content instanceof TextContent tc) {
-                        queryText.append(tc.text());
+                        queryText.append(tc.text()).append("\n");
                     }
                 }
             }
