@@ -30,6 +30,7 @@ import dev.langchain4j.observability.api.event.AiServiceResponseReceivedEvent;
 import dev.langchain4j.observability.api.event.AiServiceStartedEvent;
 import dev.langchain4j.rag.AugmentationRequest;
 import dev.langchain4j.rag.AugmentationResult;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.query.Metadata;
 import dev.langchain4j.service.*;
 import dev.langchain4j.service.guardrail.GuardrailService;
@@ -49,16 +50,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import static com.ruoyi.ai.component.service.JAiServiceParamsUtil.chatRequestParameters;
+import static com.ruoyi.ai.component.service.JAiServiceParamsUtil.findArgumentOfType;
+import static com.ruoyi.ai.component.service.JAiServiceValidation.validateParameters;
 import static dev.langchain4j.agent.tool.ReturnBehavior.IMMEDIATE;
 import static dev.langchain4j.agent.tool.ReturnBehavior.IMMEDIATE_IF_LAST;
 import static dev.langchain4j.internal.Exceptions.illegalArgument;
 import static dev.langchain4j.internal.Utils.isNullOrEmpty;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
 import static dev.langchain4j.model.chat.request.ResponseFormatType.JSON;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
-import static com.ruoyi.ai.component.service.JAiServiceParamsUtil.chatRequestParameters;
-import static com.ruoyi.ai.component.service.JAiServiceParamsUtil.findArgumentOfType;
-import static com.ruoyi.ai.component.service.JAiServiceValidation.validateParameters;
 import static dev.langchain4j.service.IllegalConfigurationException.illegalConfiguration;
 import static dev.langchain4j.service.TypeUtils.*;
 import static dev.langchain4j.spi.ServiceHelper.loadFactories;
@@ -862,5 +864,14 @@ public class JAiServices<T> extends AiServices<T> {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public AiServices<T> contentRetriever(ContentRetriever contentRetriever) {
+        super.contentRetriever(contentRetriever);
+        this.context.retrievalAugmentor = JRetrievalAugmentor.builder()
+                .contentRetriever(ensureNotNull(contentRetriever, "contentRetriever"))
+                .build();
+        return this;
     }
 }

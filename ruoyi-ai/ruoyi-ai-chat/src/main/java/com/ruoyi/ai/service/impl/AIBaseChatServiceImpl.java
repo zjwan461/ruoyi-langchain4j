@@ -5,6 +5,7 @@ import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
+import com.ruoyi.ai.component.service.JAiServices;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.enums.ModelType;
@@ -276,7 +277,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
         ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
                 redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
-        AiServices<AIAssistant> builder = AiServices.builder(AIAssistant.class);
+        AiServices<AIAssistant> builder = JAiServices.builder(AIAssistant.class);
         EmbeddingStoreContentRetriever contentRetriever = null;
         String kbIds = currentAgent.getKbIds();
         if (StringUtils.isNotBlank(kbIds)) {
