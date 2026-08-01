@@ -79,4 +79,58 @@ public interface ChatFlowMessageMapper {
      * @return 聊天信息集合（按 create_time desc, id desc）
      */
     List<ChatFlowMessage> selectAgentChatMessageBySessionIdWithInvokeDataOrderDesc(@Param("sessionId") String sessionId, @Param("agentFlowId") Long agentFlowId);
+
+    // ========================= 对话日志（新增） =========================
+
+    /**
+     * 对话日志：按 traceId 分组聚合查询 Agent Flow 一次对话的概要
+     *
+     * @param agentFlowId 智能体Flow ID（必填）
+     * @param sessionId   会话ID（可选）
+     * @param traceId     追踪ID（可选，模糊匹配）
+     * @return 每次对话一行，包含 traceId、sessionId、msgCount、agentCount、agentNames、startTime、endTime、userQuestion、lastAnswer
+     */
+    List<Map<String, Object>> selectChatLogTraceList(@Param("agentFlowId") Long agentFlowId,
+                                                    @Param("sessionId") String sessionId,
+                                                    @Param("traceId") String traceId);
+
+    /**
+     * 对话日志：根据 traceId 查询 Agent Flow 一次对话的全部消息（含 invoke 数据）
+     *
+     * @param traceId 追踪ID
+     * @return 消息集合（按 create_time asc, id asc）
+     */
+    List<ChatFlowMessage> selectChatLogMessagesByTraceId(@Param("traceId") String traceId);
+
+    /**
+     * 对话日志：根据 traceId 查询 Agent Flow 一次对话的全部消息（不含 invoke 数据）
+     *
+     * @param traceId 追踪ID
+     * @return 消息集合（按 create_time asc, id asc）
+     */
+    List<ChatFlowMessage> selectChatLogSimpleMessagesByTraceId(@Param("traceId") String traceId);
+
+    /**
+     * 对话日志：查询某 Agent Flow 流水中出现过的全部 sessionId
+     *
+     * @param agentFlowId 智能体Flow ID
+     * @return sessionId 列表
+     */
+    List<Map<String, Object>> selectChatLogSessionIdList(@Param("agentFlowId") Long agentFlowId);
+
+    /**
+     * 对话日志：删除单个 traceId 对应的所有消息（Agent Flow）
+     *
+     * @param traceId 追踪ID
+     * @return 删除行数
+     */
+    int deleteChatLogByTraceId(@Param("traceId") String traceId);
+
+    /**
+     * 对话日志：查询 Agent Flow 一次对话中参与的 Agent 列表
+     *
+     * @param traceId 追踪ID
+     * @return 参与的 Agent 列表
+     */
+    List<Map<String, Object>> selectChatLogAgentsByTraceId(@Param("traceId") String traceId);
 }

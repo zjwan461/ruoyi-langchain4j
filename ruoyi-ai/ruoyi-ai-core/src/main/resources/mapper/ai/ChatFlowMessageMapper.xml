@@ -200,4 +200,85 @@
     where session_id = #{sessionId} and agent_flow_id = #{agentFlowId}
     order by create_time desc, id desc
 </select>
+
+<!-- ============================================== -->
+<!-- 对话日志：按 traceId 分组聚合的 Agent Flow 分页查询 -->
+<!-- 入参：agentFlowId（必填）、sessionId（可选）、traceId（可选，模糊匹配） -->
+<!-- 出参：每行表示一次对话（同一 traceId）以及首条 user 消息、消息数、参与的 Agent 数、最大时间等 -->
+<!-- ============================================== -->
+<select id="selectChatLogTraceList" resultType="java.util.Map">
+    SELECT
+        t.trace_id                                                              AS traceId,
+        t.session_id                                                            AS sessionId,
+        t.client_id                                                             AS clientId,
+        t.agent_flow_id                                                         AS agentFlowId,
+        COUNT(*)                                                                AS msgCount,
+        COUNT(DISTINCT t.agent_id)                                              AS agentCount,
+        GROUP_CONCAT(DISTINCT t.agent_name SEPARATOR ',')                       AS agentNames,
+        MIN(t.create_time)                                                      AS startTime,
+        MAX(t.create_time)                                                      AS endTime,
+        (SELECT content
+         FROM chat_flow_message
+         WHERE trace_id = t.trace_id
+           AND role = 'user'
+         ORDER BY create_time ASC, id ASC
+         LIMIT 1)                                                               AS userQuestion,
+        (SELECT content
+         FROM chat_flow_message
+         WHERE trace_id = t.trace_id
+           AND role = 'assistant'
+         ORDER BY create_time DESC, id DESC
+         LIMIT 1)                                                               AS lastAnswer
+    FROM chat_flow_message t
+    WHERE t.agent_flow_id = #{agentFlowId}
+      AND t.trace_id IS NOT NULL
+      <if test="sessionId != null and sessionId != ''">AND t.session_id = #{sessionId}</if>
+      <if test="traceId != null and traceId != ''">AND t.trace_id LIKE CONCAT('%', #{traceId}, '%')</if>
+    GROUP BY t.trace_id, t.session_id, t.client_id, t.agent_flow_id
+    ORDER BY startTime DESC, t.trace_id DESC
+</select>
+
+<!-- 对话日志：根据 traceId 查询 Agent Flow 一次对话的全部消息（按时间正序） -->
+<select id="selectChatLogMessagesByTraceId" resultMap="ChatFlowMessageResultWithInvokeData">
+    <include refid="selectChatMessageVo"/>
+    where trace_id = #{traceId}
+    order by create_time asc, id asc
+</select>
+
+<!-- 对话日志：仅查询 Agent Flow 一次对话的消息列表（不含 invoke 数据） -->
+<select id="selectChatLogSimpleMessagesByTraceId" resultMap="ChatFlowMessageResult">
+    <include refid="selectChatMessageVo"/>
+    where trace_id = #{traceId}
+    order by create_time asc, id asc
+</select>
+
+<!-- 对话日志：查询某 Agent Flow 流水中出现过的全部 sessionId（用于下拉） -->
+<select id="selectChatLogSessionIdList" resultType="java.util.Map">
+    SELECT session_id AS sessionId,
+           MIN(create_time) AS startTime,
+           COUNT(DISTINCT trace_id) AS traceCount
+    FROM chat_flow_message
+    WHERE agent_flow_id = #{agentFlowId}
+      AND session_id IS NOT NULL
+    GROUP BY session_id
+    ORDER BY startTime DESC
+</select>
+
+<!-- 对话日志：删除单个 traceId 对应的所有消息（Agent Flow） -->
+<delete id="deleteChatLogByTraceId">
+    delete from chat_flow_message where trace_id = #{traceId}
+</delete>
+
+<!-- 对话日志：查询 Agent Flow 一次对话中参与的 Agent 列表（按出现顺序排序） -->
+<select id="selectChatLogAgentsByTraceId" resultType="java.util.Map">
+    SELECT agent_id      AS agentId,
+           agent_name    AS agentName,
+           MIN(create_time) AS firstTime,
+           MAX(create_time) AS lastTime,
+           COUNT(*)      AS msgCount
+    FROM chat_flow_message
+    WHERE trace_id = #{traceId}
+    GROUP BY agent_id, agent_name
+    ORDER BY firstTime ASC
+</select>
 </mapper>

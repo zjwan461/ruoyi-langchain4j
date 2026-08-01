@@ -79,4 +79,50 @@ public interface ChatMessageMapper {
      * @return 聊天信息集合（按 create_time desc, id desc）
      */
     List<ChatMessage> selectAgentChatMessageBySessionIdWithInvokeDataOrderDesc(@Param("sessionId") String sessionId, @Param("agentId") Long agentId);
+
+    // ========================= 对话日志（新增） =========================
+
+    /**
+     * 对话日志：按 traceId 分组聚合查询单 Agent 一次对话的概要
+     *
+     * @param agentId   智能体ID（必填）
+     * @param sessionId 会话ID（可选）
+     * @param traceId   追踪ID（可选，模糊匹配）
+     * @return 每次对话一行，包含 traceId、sessionId、msgCount、startTime、endTime、userQuestion、lastAnswer
+     */
+    List<Map<String, Object>> selectChatLogTraceList(@Param("agentId") Long agentId,
+                                                    @Param("sessionId") String sessionId,
+                                                    @Param("traceId") String traceId);
+
+    /**
+     * 对话日志：根据 traceId 查询一次对话的全部消息（含 invoke 数据）
+     *
+     * @param traceId 追踪ID
+     * @return 消息集合（按 create_time asc, id asc）
+     */
+    List<ChatMessage> selectChatLogMessagesByTraceId(@Param("traceId") String traceId);
+
+    /**
+     * 对话日志：根据 traceId 查询一次对话的全部消息（不含 invoke 数据）
+     *
+     * @param traceId 追踪ID
+     * @return 消息集合（按 create_time asc, id asc）
+     */
+    List<ChatMessage> selectChatLogSimpleMessagesByTraceId(@Param("traceId") String traceId);
+
+    /**
+     * 对话日志：查询某 Agent 流水中出现过的全部 sessionId
+     *
+     * @param agentId 智能体ID
+     * @return sessionId 列表
+     */
+    List<Map<String, Object>> selectChatLogSessionIdList(@Param("agentId") Long agentId);
+
+    /**
+     * 对话日志：删除单个 traceId 对应的所有消息
+     *
+     * @param traceId 追踪ID
+     * @return 删除行数
+     */
+    int deleteChatLogByTraceId(@Param("traceId") String traceId);
 }
