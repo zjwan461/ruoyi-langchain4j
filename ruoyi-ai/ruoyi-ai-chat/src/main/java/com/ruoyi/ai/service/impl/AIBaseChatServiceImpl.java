@@ -115,7 +115,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
     @Override
     public ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                                       ChatMessageType chatMessageType, List<Long> attachmentIds) {
+                                       ChatMessageType chatMessageType, List<Long> attachmentIds, String traceId) {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setAgentId(agentId);
         chatMessage.setContent(content);
@@ -132,6 +132,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         }
         chatMessage.setClientId(clientId);
         chatMessage.setSessionId(sessionId);
+        chatMessage.setTraceId(traceId);
         chatMessage.setCreateBy("system");
         chatMessageService.insertChatMessage(chatMessage);
         if (CollUtil.isNotEmpty(attachmentIds)) {

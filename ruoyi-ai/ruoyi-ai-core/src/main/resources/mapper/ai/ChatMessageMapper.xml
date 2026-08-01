@@ -11,6 +11,7 @@
         <result property="clientId" column="client_id"/>
         <result property="sessionId" column="session_id"/>
         <result property="agentId" column="agent_id"/>
+        <result property="traceId" column="trace_id"/>
         <result property="createTime" column="create_time"/>
     </resultMap>
 
@@ -41,7 +42,7 @@
     </resultMap>
 
     <sql id="selectChatMessageVo">
-        select id, role, content, client_id, session_id, agent_id, create_time
+        select id, role, content, client_id, session_id, agent_id, create_time, trace_id
         from chat_message
     </sql>
 
@@ -53,6 +54,7 @@
             <if test="clientId != null  and clientId != ''">and client_id = #{clientId}</if>
             <if test="sessionId != null  and sessionId != ''">and session_id = #{sessionId}</if>
             <if test="agentId != null  and sessionId != ''">and agent_id = #{agentId}</if>
+            <if test="traceId != null  and traceId != ''">and trace_id = #{traceId}</if>
         </where>
     </select>
 
@@ -71,6 +73,7 @@
             <if test="sessionId != null and sessionId != ''">session_id,</if>
             <if test="agentId != null and agentId != ''">agent_id,</if>
             <if test="createTime != null">create_time,</if>
+            <if test="traceId != null and traceId !=''">trace_id,</if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="role != null and role != ''">#{role},</if>
@@ -79,6 +82,7 @@
             <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
             <if test="agentId != null and agentId != ''">#{agentId},</if>
             <if test="createTime != null">#{createTime},</if>
+            <if test="traceId != null and traceId !=''">#{traceId},</if>
         </trim>
     </insert>
 
@@ -91,6 +95,7 @@
             <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
             <if test="agentId != null and agentId != ''">agent_id = #{agentId},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
+            <if test="traceId != null and traceId != ''">trace_id = #{traceId},</if>
         </trim>
         where id = #{id}
     </update>

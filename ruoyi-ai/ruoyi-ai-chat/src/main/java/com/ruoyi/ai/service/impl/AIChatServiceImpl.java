@@ -12,6 +12,7 @@ import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUtils;
+import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.system.service.ISysConfigService;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.message.*;
@@ -84,6 +85,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
 
     @Override
     public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+        String traceId = IdUtils.fastSimpleUUID();
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -127,7 +129,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
 
-        ChatMessage uMsg = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds);
+        ChatMessage uMsg = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds, traceId);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
@@ -217,7 +219,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     }
                     String aiText = completeResponse.aiMessage().text();
                     content.append(aiText);
-                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null);
+                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null, traceId);
                     for (Map<String, Object> item : retrievedContents) {
                         root.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
                                 String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));

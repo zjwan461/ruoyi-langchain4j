@@ -215,7 +215,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                     if (aiAgent.getShowReasoning()) {
                         String content = this.getAIResponse(resp);
                         ChatFlowMessage assistantMessage = this.saveChatFlowMessage(content, clientId, sessionId, aiAgent.getId(), aiAgent.getName(),
-                                this.agentFlow.getId(), ChatMessageType.AI, null);
+                                this.agentFlow.getId(), ChatMessageType.AI, null, ctx.getTraceId());
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
@@ -414,12 +414,14 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         oneCtx.setSafeEmitter(parentCtx.getSafeEmitter());
         oneCtx.setSinkClosed(parentCtx.getSinkClosed());
         oneCtx.setAttachments(parentCtx.getAttachments());
+        oneCtx.setTraceId(parentCtx.getTraceId());
 
         return invoke(sessionId, clientId, requestForThisAgent, oneCtx);
     }
 
     @Override
     public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+        final String traceId = IdUtils.fastSimpleUUID();
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
             // ========== 全部并发对象由父类统一创建 ==========
@@ -428,8 +430,8 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             AtomicBoolean sinkClosed = emitterCtx.sinkClosed;
             BiConsumer<String, String> safeEmitter = emitterCtx.safeEmitter;
 
-            log.info("AgentFlow chat start, sessionId={}", sessionId);
-            ChatFlowMessage chatFlowMessage = saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER, attachmentIds);
+            log.info("AgentFlow chat start, sessionId={}, traceId={}", sessionId, traceId);
+            ChatFlowMessage chatFlowMessage = saveChatFlowMessage(prompt, clientId, sessionId, rootAgent.getId(), rootAgent.getName(), agentFlow.getId(), ChatMessageType.USER, attachmentIds, traceId);
 
             AtomicInteger roundCount = new AtomicInteger(0);
 
@@ -444,6 +446,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             rootCtx.setSafeEmitter(safeEmitter);
             rootCtx.setSinkClosed(sinkClosed);
             rootCtx.setAttachments(chatFlowMessage.getAttachments());
+            rootCtx.setTraceId(traceId);
 
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, rootCtx);
 
@@ -551,10 +554,11 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     protected ChatFlowMessage saveChatFlowMessage(String content, String clientId, String sessionId, Long agentId, String agentName,
-                                                  Long agentFlowId, ChatMessageType chatMessageType, List<Long> attachmentIds) {
+                                                  Long agentFlowId, ChatMessageType chatMessageType, List<Long> attachmentIds, String traceId) {
         ChatFlowMessage chatFlowMessage = new ChatFlowMessage();
         chatFlowMessage.setAgentId(agentId);
         chatFlowMessage.setContent(content);
+        chatFlowMessage.setTraceId(traceId);
         if (chatMessageType == ChatMessageType.AI) {
             chatFlowMessage.setRole("assistant");
         } else if (chatMessageType == ChatMessageType.USER) {
