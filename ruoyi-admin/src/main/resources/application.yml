@@ -178,3 +178,11 @@ ai:
     connect-timeout: 120000
     read-timeout: 3000000
     server-url: http://doc-parser:8143/process
+  tavily-web-search:
+    enabled: true
+    # put your search apikey here
+    api-key: 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
+    timeout: 5s
+    search-depth: basic
+    include-answer: true
+    include-raw-content: true

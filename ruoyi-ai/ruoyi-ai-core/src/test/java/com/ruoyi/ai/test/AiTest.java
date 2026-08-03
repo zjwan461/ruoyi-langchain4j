@@ -50,6 +50,8 @@ import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.filter.comparison.IsEqualTo;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import dev.langchain4j.web.search.WebSearchResults;
+import dev.langchain4j.web.search.tavily.TavilyWebSearchEngine;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -536,5 +538,17 @@ public class AiTest {
         messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
         String resp = assistant.chat(messages);
         System.out.println(resp);
+    }
+
+    @Test
+    public void testWebSearch() {
+        TavilyWebSearchEngine searchEngine = TavilyWebSearchEngine.builder()
+                .apiKey("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")
+                .build();
+
+        WebSearchResults results = searchEngine.search("ruoyi-langchain4j");
+        results.results().forEach(item -> {
+            System.out.println(item);
+        });
     }
 }

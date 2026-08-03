@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "ai")
@@ -24,6 +25,8 @@ public class AiConfig {
     private Mcp mcp;
 
     private DocParser docParser;
+
+    private TavilyWebSearch tavilyWebSearch;
 
     public PgVector getPgVector() {
         return pgVector;
@@ -79,6 +82,14 @@ public class AiConfig {
 
     public void setDocParser(DocParser docParser) {
         this.docParser = docParser;
+    }
+
+    public TavilyWebSearch getTavilyWebSearch() {
+        return tavilyWebSearch;
+    }
+
+    public void setTavilyWebSearch(TavilyWebSearch tavilyWebSearch) {
+        this.tavilyWebSearch = tavilyWebSearch;
     }
 
     public static class PgVector {
@@ -327,6 +338,89 @@ public class AiConfig {
 
         public void setReadTimeout(int readTimeout) {
             this.readTimeout = readTimeout;
+        }
+    }
+
+    public static class TavilyWebSearch {
+        // check config at: https://github.com/langchain4j/langchain4j-examples/blob/main/rag-examples/src/main/java/_3_advanced/_08_Advanced_RAG_Web_Search_Example.java
+        private Boolean enabled = Boolean.FALSE;
+
+        private String apiKey;
+
+        private Duration timeout;
+
+        private String searchDepth;
+
+        private Boolean includeAnswer = Boolean.TRUE;
+
+        private Boolean includeRawContent = Boolean.TRUE;
+
+        private List<String> includeDomains;
+
+        private List<String> excludeDomains;
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Duration timeout) {
+            this.timeout = timeout;
+        }
+
+        public String getSearchDepth() {
+            return searchDepth;
+        }
+
+        public void setSearchDepth(String searchDepth) {
+            this.searchDepth = searchDepth;
+        }
+
+        public Boolean getIncludeAnswer() {
+            return includeAnswer;
+        }
+
+        public void setIncludeAnswer(Boolean includeAnswer) {
+            this.includeAnswer = includeAnswer;
+        }
+
+        public Boolean getIncludeRawContent() {
+            return includeRawContent;
+        }
+
+        public void setIncludeRawContent(Boolean includeRawContent) {
+            this.includeRawContent = includeRawContent;
+        }
+
+        public List<String> getIncludeDomains() {
+            return includeDomains;
+        }
+
+        public void setIncludeDomains(List<String> includeDomains) {
+            this.includeDomains = includeDomains;
+        }
+
+        public List<String> getExcludeDomains() {
+            return excludeDomains;
+        }
+
+        public void setExcludeDomains(List<String> excludeDomains) {
+            this.excludeDomains = excludeDomains;
         }
     }
 }

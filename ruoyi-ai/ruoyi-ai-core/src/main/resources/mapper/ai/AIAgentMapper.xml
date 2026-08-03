@@ -28,6 +28,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="minScore"            column="min_score"           />
         <result property="maxResult"           column="max_result"          />
         <result property="description"         column="description"          />
+        <result property="webSearch"           column="web_search"          />
     </resultMap>
 
     <resultMap id="AiAgentWithToolAndSkillResult" type="AiAgent" extends="AiAgentResult">
@@ -72,7 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <sql id="selectAiAgentVo">
         select id, name, kb_ids, system_message, memory_count, model_id, model_name, create_by, create_time,
                update_by, update_time, agent_type, dify_api_id, dify_api_name, status, visit_url, day_lmt_per_client,
-                temperature, max_output_token, prompt_template, min_score, max_result, description
+                temperature, max_output_token, prompt_template, min_score, max_result, description, web_search
         from ai_agent
     </sql>
 
@@ -118,6 +119,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="minScore != null">min_score,</if>
             <if test="maxResult != null">max_result,</if>
             <if test="description != null">description,</if>
+            <if test="webSearch != null">websearch,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="name != null and name != ''">#{name},</if>
@@ -142,6 +144,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="minScore != null">#{minScore},</if>
             <if test="maxResult != null">#{maxResult},</if>
             <if test="description != null">#{description},</if>
+            <if test="webSearch != null">#{webSearch},</if>
          </trim>
     </insert>
 
@@ -170,6 +173,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="minScore != null">min_score = #{minScore},</if>
             <if test="maxResult != null">max_result = #{maxResult},</if>
             <if test="description != null">description = #{description},</if>
+            <if test="webSearch != null">web_search = #{webSearch},</if>
         </trim>
         where id = #{id}
     </update>
@@ -214,6 +218,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
                a.min_score,
                a.max_result,
                a.description,
+               a.web_search,
                c.id          tool_id,
                c.tool_name,
                c.tool_type,
