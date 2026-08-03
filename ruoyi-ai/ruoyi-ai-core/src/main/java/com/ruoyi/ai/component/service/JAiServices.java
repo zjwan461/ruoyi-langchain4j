@@ -871,6 +871,7 @@ public class JAiServices<T> extends AiServices<T> {
         super.contentRetriever(contentRetriever);
         this.context.retrievalAugmentor = JRetrievalAugmentor.builder()
                 .contentRetriever(ensureNotNull(contentRetriever, "contentRetriever"))
+                .contentInjector(ensureNotNull(new JContentInjector(), "contentInjector"))
                 .build();
         return this;
     }
