@@ -14,7 +14,7 @@ import javax.annotation.Resource;
 @Slf4j
 @RestController
 @RequestMapping("/ai")
-public class CommonController {
+public class AICommonController {
 
     @Resource
     private AiConfig aiConfig;
