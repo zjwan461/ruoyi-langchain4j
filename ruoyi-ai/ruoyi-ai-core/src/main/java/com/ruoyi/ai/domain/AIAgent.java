@@ -146,6 +146,8 @@ public class AIAgent extends BaseEntity {
 
     private Boolean webSearch;
 
+    private Integer webSearchCount;
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -418,6 +420,14 @@ public class AIAgent extends BaseEntity {
         this.webSearch = webSearch;
     }
 
+    public Integer getWebSearchCount() {
+        return webSearchCount;
+    }
+
+    public void setWebSearchCount(Integer webSearchCount) {
+        this.webSearchCount = webSearchCount;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -459,6 +469,7 @@ public class AIAgent extends BaseEntity {
                 .append("agentNodeId", getAgentNodeId())
                 .append("isRootAgent", getIsRootAgent())
                 .append("webSearch", getWebSearch())
+                .append("webSearchCount", getWebSearchCount())
                 .toString();
     }
 

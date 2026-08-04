@@ -5,8 +5,8 @@ import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
 import com.ruoyi.ai.config.AiConfig;
-import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.domain.ChatMessage;
+import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.service.*;
 import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
@@ -31,6 +31,8 @@ import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import dev.langchain4j.web.search.WebSearchResults;
+import dev.langchain4j.web.search.tavily.TavilyWebSearchEngine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -129,6 +131,26 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
 
+
+        if (aiAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled()) {
+            TavilyWebSearchEngine searchEngine = this.getTavilyWebSearchEngine();
+            try {
+                WebSearchResults results = searchEngine.search(prompt);
+                List<TextSegment> textSegments = results.toTextSegments();
+                StringBuilder searchRes = new StringBuilder("\nWebSearch Result:\n");
+                textSegments.forEach(textSegment -> {
+                    searchRes.append("- ").append(textSegment.text())
+                            .append("\n")
+                            .append(textSegment.metadata())
+                            .append("\n");
+                });
+
+                promptTemplate += searchRes.toString();
+            } catch (Exception e) {
+                log.error("web search fail ...", e);
+            }
+        }
+
         ChatMessage uMsg = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds, traceId);
 
         ChatMemory chatMemory = null;
@@ -222,7 +244,9 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null, traceId);
                     for (Map<String, Object> item : retrievedContents) {
                         root.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
-                                String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));
+                                String.valueOf(item.get("fileName") == null ? "" : item.get("fileName")),
+                                String.valueOf(item.get("text") == null ? "" : item.get("text")),
+                                String.valueOf(item.get("url") == null ? "" : item.get("url")));
                     }
                 }
 

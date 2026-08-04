@@ -12,11 +12,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="messageId"    column="message_id"    />
         <result property="fileName"    column="file_name"    />
         <result property="text"    column="text"    />
+        <result property="url"    column="url"    />
         <result property="createTime"    column="create_time"    />
     </resultMap>
 
     <sql id="selectAgentKbInvokeVo">
-        select id, agent_id, client_id, session_id, message_id, file_name, text, create_time from agent_kb_invoke
+        select id, agent_id, client_id, session_id, message_id, file_name, text, url, create_time from agent_kb_invoke
     </sql>
 
     <select id="selectAgentKbInvokeList" parameterType="AgentKbInvoke" resultMap="AgentKbInvokeResult">
@@ -45,6 +46,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="messageId != null and messageId != ''">message_id,</if>
             <if test="fileName != null and fileName != ''">file_name,</if>
             <if test="text != null and text != ''">text,</if>
+            <if test="url != null and url != ''">url,</if>
             <if test="createTime != null">create_time,</if>
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
@@ -55,6 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="messageId != null and messageId != ''">#{messageId},</if>
             <if test="fileName != null and fileName != ''">#{fileName},</if>
             <if test="text != null and text != ''">#{text},</if>
+            <if test="url != null and url != ''">#{url},</if>
             <if test="createTime != null">#{createTime},</if>
          </trim>
     </insert>
@@ -68,6 +71,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="messageId != null and messageId != ''">message_id = #{messageId},</if>
             <if test="fileName != null and fileName != ''">file_name = #{fileName},</if>
             <if test="text != null and text != ''">text = #{text},</if>
+            <if test="url != null and url != ''">url = #{url},</if>
             <if test="createTime != null">create_time = #{createTime},</if>
         </trim>
         where id = #{id}

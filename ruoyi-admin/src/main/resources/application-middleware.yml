@@ -237,8 +237,8 @@ ai:
   tavily-web-search:
     enabled: true
     # put your search apikey here
-    api-key: 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
-    timeout: 5s
+    api-key: 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
+    timeout: 30s
     search-depth: basic
-    include-answer: true
+    include-answer: false
     include-raw-content: true

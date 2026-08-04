@@ -1,6 +1,7 @@
 package com.ruoyi.ai.test;
 
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.json.JSONUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.mcp.JHttpMcpTransport;
@@ -543,12 +544,13 @@ public class AiTest {
     @Test
     public void testWebSearch() {
         TavilyWebSearchEngine searchEngine = TavilyWebSearchEngine.builder()
-                .apiKey("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")
+                .apiKey("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")
                 .build();
 
         WebSearchResults results = searchEngine.search("ruoyi-langchain4j");
         results.results().forEach(item -> {
             System.out.println(item);
+            System.out.println("==============");
         });
     }
 }

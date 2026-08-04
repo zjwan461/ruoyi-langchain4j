@@ -152,6 +152,7 @@
                session_id sessionId,
                client_id clientId,
                text,
+               url,
                file_name fileName,
                create_time createTime
         from agent_kb_invoke

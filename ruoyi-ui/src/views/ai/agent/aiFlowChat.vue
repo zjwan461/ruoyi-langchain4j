@@ -162,7 +162,7 @@
                 </div>
                 <div class="retrieved-list" :class="{ 'folded': isRetrievedFolded(msg, msg._id) }">
                   <div v-for="(item, itemIdx) in msg.retrievedList" :key="itemIdx" class="retrieved-item">
-                    <div class="retrieved-filename">{{ item.fileName }}</div>
+                    <div class="retrieved-filename">{{ item.fileName || item.url }}</div>
                     <div class="retrieved-content">{{ item.text }}</div>
                   </div>
                 </div>

@@ -132,7 +132,9 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                         if (CollUtil.isNotEmpty(retrieveList.get())) {
                             for (Map<String, Object> item : retrieveList.get()) {
                                 saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
-                                        String.valueOf(item.get("fileName")), String.valueOf(item.get("text")));
+                                        String.valueOf(item.get("fileName") == null ? "" : item.get("fileName")),
+                                        String.valueOf(item.get("text") == null ? "" : item.get("text")),
+                                        String.valueOf(item.get("url") == null ? "" : item.get("url")));
                             }
                         }
                         if (CollUtil.isNotEmpty(toolCallList.get())) {

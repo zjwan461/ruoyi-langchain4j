@@ -5,6 +5,8 @@ import cn.hutool.core.map.MapUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.component.memory.RedisMemoryChatMemoryStore;
+import com.ruoyi.ai.component.service.JContentInjector;
+import com.ruoyi.ai.component.service.JRetrievalAugmentor;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.ai.domain.*;
 import com.ruoyi.ai.enums.ModelType;
@@ -21,12 +23,17 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.Content;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.rag.content.retriever.WebSearchContentRetriever;
+import dev.langchain4j.rag.query.router.DefaultQueryRouter;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.store.embedding.filter.comparison.IsIn;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.store.memory.chat.InMemoryChatMemoryStore;
+import dev.langchain4j.web.search.WebSearchEngine;
+import dev.langchain4j.web.search.tavily.TavilyWebSearchEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -40,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 
 public abstract class AIBaseChatServiceImpl implements IAIChatService {
 
@@ -255,7 +264,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     protected void saveKBRetrieved(AIAgent aiAgent, String sessionId, String clientId, Long messageId,
-                                   String fileName, String text) {
+                                   String fileName, String text, String url) {
         try {
             AgentKbInvoke invoke = new AgentKbInvoke();
             invoke.setAgentId(aiAgent.getId());
@@ -264,6 +273,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
             invoke.setMessageId(messageId);
             invoke.setFileName(fileName);
             invoke.setText(text);
+            invoke.setUrl(url);
             invoke.setCreateTime(new Date());
             aiAgentService.insertAgentKBInvoked(invoke);
         } catch (Exception e) {
@@ -278,6 +288,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
                 redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
         AiServices<AIAssistant> builder = AiServices.builder(AIAssistant.class);
+        List<ContentRetriever> contentRetrievers = new ArrayList<>();
         EmbeddingStoreContentRetriever contentRetriever = null;
         String kbIds = currentAgent.getKbIds();
         if (StringUtils.isNotBlank(kbIds)) {
@@ -291,8 +302,28 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
                     .embeddingStore(pgVectorEmbeddingStore)
                     .filter(new IsIn("kb_id", kbIdList))
                     .build();
-            builder.contentRetriever(contentRetriever);
+            contentRetrievers.add(contentRetriever);
         }
+
+        WebSearchContentRetriever webSearchContentRetriever = null;
+        if (currentAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled()) {
+            WebSearchEngine webSearchEngine = this.getTavilyWebSearchEngine();
+            webSearchContentRetriever = WebSearchContentRetriever.builder()
+                    .webSearchEngine(webSearchEngine)
+                    .maxResults(currentAgent.getWebSearchCount())
+                    .build();
+            contentRetrievers.add(webSearchContentRetriever);
+        }
+
+        if (CollUtil.isNotEmpty(contentRetrievers)) {
+            DefaultQueryRouter queryRouter = new DefaultQueryRouter(contentRetrievers);
+            JRetrievalAugmentor retrievalAugmentor = JRetrievalAugmentor.builder()
+                    .contentInjector(ensureNotNull(new JContentInjector(), "contentInjector"))
+                    .queryRouter(queryRouter)
+                    .build();
+            builder.retrievalAugmentor(retrievalAugmentor);
+        }
+
         // 如果Agent开启共享flow memory功能
         String memoryId = shareSessionMemory ? sessionId : sessionId + ":" + currentAgent.getAgentNodeId();
         return builder.streamingChatModel(llm)
@@ -371,10 +402,12 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
             String text = content.textSegment().text();
             Long kbId = content.textSegment().metadata().getLong("kb_id");
             String fileName = content.textSegment().metadata().getString("file_name");
+            String url = content.textSegment().metadata().getString("url");
             return MapUtil.<String, Object>builder()
                     .put("kbId", kbId)
                     .put("fileName", fileName)
                     .put("text", text)
+                    .put("url", url)
                     .build();
         }).toList());
     }
@@ -462,6 +495,19 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         } catch (JsonProcessingException e) {
             log.error("SSE事件序列化失败,event={}", event, e);
         }
+    }
+
+    protected TavilyWebSearchEngine getTavilyWebSearchEngine() {
+        AiConfig.TavilyWebSearch tavilyWebSearch = aiConfig.getTavilyWebSearch();
+        return TavilyWebSearchEngine.builder()
+                .apiKey(tavilyWebSearch.getApiKey())
+                .timeout(tavilyWebSearch.getTimeout())
+                .searchDepth(tavilyWebSearch.getSearchDepth())
+                .includeAnswer(tavilyWebSearch.getIncludeAnswer())
+                .includeDomains(tavilyWebSearch.getIncludeDomains())
+                .includeRawContent(tavilyWebSearch.getIncludeRawContent())
+                .excludeDomains(tavilyWebSearch.getExcludeDomains())
+                .build();
     }
 
 }

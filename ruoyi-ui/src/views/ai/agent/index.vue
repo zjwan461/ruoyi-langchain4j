@@ -186,6 +186,18 @@
               </el-form-item>
             </el-col>
           </el-row>
+          <el-row :gutter="20">
+            <el-col :span="6">
+              <el-form-item label="联网搜索" prop="webSearch">
+                <el-switch v-model="form.webSearch"></el-switch>
+              </el-form-item>
+            </el-col>
+            <el-col :span="6">
+              <el-form-item label="联网搜索结果数" prop="webSearchCount">
+                <el-input-number v-model="form.webSearchCount" :max="10" :step="1"></el-input-number>
+              </el-form-item>
+            </el-col>
+          </el-row>
           <el-form-item label="系统提示词" prop="systemMessage">
             <el-input v-model="form.systemMessage" type="textarea" rows="3" placeholder="请输入内容" :maxlength="3000"
                       show-word-limit clearable/>
