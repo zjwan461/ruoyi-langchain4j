@@ -70,7 +70,7 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 > 5. **Python 工具（Sandbox 类型）**依赖外部 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 服务，部署完成后请在 `application.yml` 中配置 `ai.sandbox.*` 相关地址与 API Key；本仓库 `sandbox/conf/config.yaml` 已附 dify-sandbox 启动配置模板。
 > 6. **MCP 工具**需要在【AI 工具箱 → MCP】维护外部 MCP Server（`url` + `transport`），`sse` / `streamable-http` 需保证后端能访问到 MCP 服务的 HTTP 地址，`stdio` 需确保 MCP 进程在宿主环境可被拉起。
 > 7. **Skills 技能**支持两种录入方式：在【AI 工具箱 → Skill】直接 `create` 新增，或者在仓库 `skills/` 目录下维护 `SKILL.md` 后选择 `import` 同步入库；所有已挂载到智能体的技能都会通过 `SKILL_APPEND_SYSTEM_MESSAGE` 自动注入到系统提示词。
-> 8. **数据库迁移（Flyway 自动执行）**：本项目已集成 **[Flyway](https://flywaydb.org/)**，`ruoyi-admin` 启动时会按版本号顺序自动执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql`），涵盖业务库初始化、AI 工具表（`agent_tool` / `agent_tool_mapping` / `agent_tool_invoke` / `agent_kb_invoke`）、Skill / MCP 表与字典、以及 Agent Flow（`agent_flow` / `chat_flow_message`）与 `ai_agent.description` 字段，无需手动执行 SQL。
+> 8. **数据库迁移（Flyway 自动执行）**：本项目已集成 **[Flyway](https://flywaydb.org/)**，`ruoyi-admin` 启动时会按版本号顺序自动执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql`），涵盖业务库初始化、AI 工具表（`agent_tool` / `agent_tool_mapping` / `agent_tool_invoke` / `agent_kb_invoke`）、Skill / MCP 表与字典、Agent Flow（`agent_flow` / `chat_flow_message`）、附件表（`attachment`）、聊天日志 trace_id 字段与网页搜索相关字段，无需手动执行 SQL。
 > 9. **多智能体编排（Agent Flow）**：v1.3 起新增 `agent_flow`、`chat_flow_message` 两张表，同时 `ai_agent` 表新增 `description` 列、AI 工具箱子菜单同步重命名为「工具管理 / 多智能体 / Skill管理 / MCP管理」，全部纳入 `V5__create_agent_flow_table.sql` 由 Flyway 自动迁移。
 
 ---
@@ -78,6 +78,17 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 ## 🆕 最新更新
 
 > ⭐ **随手 Star 是一种美德**，你们的 Star 就是我持续维护的动力！
+
+### v1.4（网页搜索 / 聊天日志 / 附件管理 / langchain4j 修复）
+
+1. 🆕 新增 **Tavily 网页搜索集成**：在【AI 工具箱 → 智能体管理】新增 `web_search_enabled`、`tavily_result_count`、`tavily_source_urls` 字段，支持在 RAG 管道中通过内容检索器集成 Tavily 网页搜索，实现同步网页搜索增强直接聊天提示。
+2. 🆕 新增 **聊天日志管理（Trace ID）**：新增 `trace_id` 字段用于跨请求追踪聊天消息，新增【聊天日志】菜单页面，支持按 trace_id 查询聊天详情与 Flow 轮次上下文；后端新增 `ChatLogController`、`ChatLogQuery`、`ChatLogDetail`、`FlowRoundContext.traceId` 等模块。
+3. 🐛 修复 **langchain4j 知识库查询与多模态输入冲突问题**：修复无法同时开启 context.retrieval（知识库查询）和传入多条 Content（如多图片）的 bug，重构 `JAiServices` 与 `JContentInjector` 组件以支持混合内容注入。
+4. 🆕 新增 **聊天附件与文档解析能力**：新增 `attachment` 表与 `IAttachmentService`、`AttachmentServiceImpl`，支持聊天中上传图片 / 文档预览与描述生成；集成 doc-parser 文档解析服务（支持 PDF / XLS 等格式），完善 `DocumentParseClient` 与前端 `DocPreview.vue` / `ImagePreview.vue` 组件。
+5. 🔧 优化 **多智能体 Flow 调度策略**：Agent Flow 从原选择器模式切换为有序批量顺序执行，改进 `FlowTool` 节点流转逻辑与 `FlowRoundContext` 线程安全机制。
+6. 🔧 优化 **SSE 流式响应**：提取 SSE emitter 上下文到基类统一事件分发，修复 SSE 提前截断问题；前端聊天页面添加文件上传 loading 效果。
+7. 🆕 新增 **数据库迁移脚本**：`V6__create_attachment_table.sql`（附件表）、`V7__add_trace_id_to_chat_tables.sql`（trace_id 字段）、`V8__add_web_search_to_ai_agent_tables.sql`（网页搜索字段）。
+8. 🐳 **Docker 镜像优化**：添加 ghcr.io 镜像前缀以优化文档解析服务拉取，更新 docker-compose 配置。
 
 ### v1.3（多智能体编排 / Agent Flow）
 
@@ -250,18 +261,18 @@ docker compose -f docker-compose.yml up -d --build
 ```
 
 > - 无需手动执行 `build.sh` 或 `bin/` 下的脚本；`--build` 会让 Compose 按 Dockerfile 自动构建前后端镜像。
-> - 后端容器启动后，**Flyway 会自动执行** `ruoyi-admin/src/main/resources/db/migration/` 下全部 `V1` ~ `V5` 脚本完成建表与字典初始化。
+> - 后端容器启动后，**Flyway 会自动执行** `ruoyi-admin/src/main/resources/db/migration/` 下全部 `V1` ~ `V8` 脚本完成建表与字典初始化。
 > - Windows PowerShell / CMD 用户可直接使用 `docker compose -f docker-compose.yml up -d --build`。
 
 ### 三、本地开发模式
 
-项目已集成 **[Flyway](https://flywaydb.org/)**，启动后端时 `ruoyi-admin` 会自动扫描并按版本号顺序执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有迁移脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql`），**无需手动执行任何 SQL**。首次启动前只需在 MySQL 中手动创建一个空库（库名与 `application-druid.yml` / `application.yml` 中的 `url` 保持一致），Flyway 会自动建表与初始化业务数据。
+项目已集成 **[Flyway](https://flywaydb.org/)**，启动后端时 `ruoyi-admin` 会自动扫描并按版本号顺序执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有迁移脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql`），**无需手动执行任何 SQL**。首次启动前只需在 MySQL 中手动创建一个空库（库名与 `application-druid.yml` / `application.yml` 中的 `url` 保持一致），Flyway 会自动建表与初始化业务数据。
 
 ```bash
 # （可选）首次启动前在 MySQL 中手动创建空库
 mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS `ry-vue` DEFAULT CHARACTER SET utf8mb4;"
 
-# 启动后端（Flyway 会自动执行 db/migration 下所有 V1~V5 脚本）
+# 启动后端（Flyway 会自动执行 db/migration 下所有 V1~V8 脚本）
 mvn spring-boot:run -pl ruoyi-admin
 cd ruoyi-ui
 npm install

@@ -61,6 +61,18 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
+            <el-collapse-item title="v1.4 - 2026-08-04">
+              <ol>
+                <li><b>新增 Tavily 网页搜索集成</b>：在【AI 工具箱 → 智能体管理】新增 `web_search_enabled`、`tavily_result_count`、`tavily_source_urls` 字段，支持在 RAG 管道中通过内容检索器集成 Tavily 网页搜索，实现同步网页搜索增强直接聊天提示。</li>
+                <li><b>新增聊天日志管理（Trace ID）</b>：新增 `trace_id` 字段用于跨请求追踪聊天消息，新增【聊天日志】菜单页面，支持按 trace_id 查询聊天详情与 Flow 轮次上下文；后端新增 `ChatLogController`、`ChatLogQuery`、`ChatLogDetail` 等模块。</li>
+                <li><b>修复 langchain4j 知识库查询与多模态输入冲突问题</b>：修复无法同时开启 context.retrieval（知识库查询）和传入多条 Content（如多图片）的 bug，重构 `JAiServices` 与 `JContentInjector` 组件以支持混合内容注入。</li>
+                <li><b>新增聊天附件与文档解析能力</b>：新增 `attachment` 表与 `IAttachmentService`，支持聊天中上传图片 / 文档预览与描述生成；集成 doc-parser 文档解析服务（支持 PDF / XLS 等格式），完善 `DocumentParseClient` 与前端 DocPreview / ImagePreview 组件。</li>
+                <li><b>优化多智能体 Flow 调度策略</b>：Agent Flow 从原选择器模式切换为有序批量顺序执行，改进 `FlowTool` 节点流转逻辑与 `FlowRoundContext` 线程安全机制。</li>
+                <li><b>优化 SSE 流式响应</b>：提取 SSE emitter 上下文到基类统一事件分发，修复 SSE 提前截断问题；前端聊天页面添加文件上传 loading 效果。</li>
+                <li><b>新增数据库迁移脚本</b> `V6__create_attachment_table.sql`、`V7__add_trace_id_to_chat_tables.sql`、`V8__add_web_search_to_ai_agent_tables.sql`，涵盖附件表、trace_id 字段与网页搜索相关字段。</li>
+                <li><b>Docker 镜像优化</b>：添加 ghcr.io 镜像前缀以优化文档解析服务拉取，更新 docker-compose 配置。</li>
+              </ol>
+            </el-collapse-item>
             <el-collapse-item title="v1.3 - 2026-07-25">
               <ol>
                 <li><b>新增多智能体编排（Agent Flow）</b>：在【AI 工具箱 → 多智能体】通过 [AntV X6](https://x6.antv.antgroup.com/) 可视化画布拖拽多个智能体节点，拼接为多智能体协作链 / 树状 Flow（`agent_flow`）。后端 `FlowTreeParser` 将 X6 `flowJson` 解析为节点树，由 `AgentFlowChatServiceImpl` 按节点调度智能体并产出流式响应，支持节点独立设置 `promptTemplate` / `flowMemory` / `showReasoning`。</li>
