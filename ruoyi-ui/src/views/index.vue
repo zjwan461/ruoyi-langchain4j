@@ -61,6 +61,18 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
+            <el-collapse-item title="v1.3 - 2026-07-25">
+              <ol>
+                <li><b>新增多智能体编排（Agent Flow）</b>：在【AI 工具箱 → 多智能体】通过 [AntV X6](https://x6.antv.antgroup.com/) 可视化画布拖拽多个智能体节点，拼接为多智能体协作链 / 树状 Flow（`agent_flow`）。后端 `FlowTreeParser` 将 X6 `flowJson` 解析为节点树，由 `AgentFlowChatServiceImpl` 按节点调度智能体并产出流式响应，支持节点独立设置 `promptTemplate` / `flowMemory` / `showReasoning`。</li>
+                <li><b>新增 Flow 对话与独立访问 URL</b>：每个 Flow 自动生成 `visit_url` 访问链接，前端可通过 `aiFlowChat.vue` 与整个 Flow 对话；支持 `day_lmt_per_client`（单客户端每日访问限流）。</li>
+                <li><b>新增 Flow 聊天记录</b> `chat_flow_message` 表：记录每个 Flow 中每个智能体节点产生的消息，包含 `agent_flow_id` / `agent_id` / `agent_name` / `session_id` / `client_id`，方便排障与审计。</li>
+                <li><b>新增 AntV X6 可视化画布</b>：集成 `@antv/x6` + `@antv/x6-plugin-dnd` / `snapline` / `history`，在线拖拽、保存、加载 `flowJson`；菜单路由 `ai/agent_flow_edit/index/:id`。</li>
+                <li><b>新增数据库迁移脚本</b> `sql/V5__create_agent_flow_table.sql`：包含 `agent_flow`、`chat_flow_message` 新表，`ai_agent.description` 列补充，以及 AI 工具箱子菜单统一重命名（Agent Tools → 工具管理、Agent Flow → 多智能体、Skill → Skill管理、MCP → MCP管理）。</li>
+                <li><b>新增后端模块</b>：`ruoyi-ai-core` 新增 `component/flow`（`FlowTreeParser`、`AgentSpecAdaptor` 与 DTO）、`service/IAgentFlowService`、`controller/AgentFlowController`、`domain/AgentFlow` / `ChatFlowMessage`；`ruoyi-ai-chat` 新增 `AgentFlowChatServiceImpl` 与 `controller/AIFlowChatController`。</li>
+                <li><b>新增 FlowTool</b>：为 Flow 调度提供节点流转工具入口。</li>
+                <li><b>菜单路径统一</b>：AI 工具箱下子菜单统一使用中文名（多智能体 / 工具管理 / Skill管理 / MCP管理）。</li>
+              </ol>
+            </el-collapse-item>
             <el-collapse-item title="v1.2 - 2026-07-16">
               <ol>
                 <li><b>新增 MCP 工具市场</b>：在【AI 工具箱 → MCP】统一维护 agent_mcp_service（服务地址 / transport / authToken）与子级 agent_mcp_tool（名称 / 描述 / 参数 / 元数据），支持 sse / stdio / streamable-http 三种传输方式（字典 ai_mcp_transport），底层通过 langchain4j-mcp 把远端 MCP 工具加载到 JToolProvider，原生智能体可直接调用。智能体侧通过 agent_mcp_tool_mapping 多对多绑定 MCP 工具。</li>
