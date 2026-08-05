@@ -33,7 +33,8 @@ public class AIFlowChatController extends ChatController {
     public Flux<String> aiChat(@RequestBody @Valid ChatReq chatReq) {
         AgentFlow agentFlow = agentFlowService.selectAgentFlowById(chatReq.getAgentFlowId());
         this.preCheckAgentFlow(agentFlow, chatReq);
-        return aiChatService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId(), chatReq.getAttachmentIds());
+        return aiChatService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId(),
+                chatReq.getAttachmentIds(), chatReq.isWebSearch());
     }
 
     @GetMapping("/agent-info/{visitId}")

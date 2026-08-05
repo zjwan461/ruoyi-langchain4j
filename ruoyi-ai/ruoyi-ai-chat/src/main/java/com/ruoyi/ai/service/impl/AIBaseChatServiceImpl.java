@@ -113,12 +113,12 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch) {
         throw new ServiceException("not implemented");
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch) {
         throw new ServiceException("not implemented");
     }
 
@@ -281,7 +281,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         }
     }
 
-    protected AIAssistant buildAIAssistant(AIAgent currentAgent, String sessionId, boolean enableFlowTool, boolean shareSessionMemory) {
+    protected AIAssistant buildAIAssistant(AIAgent currentAgent, String sessionId, boolean enableFlowTool,
+                                           boolean shareSessionMemory, boolean userEnableWebSearch) {
         Long modelId = currentAgent.getModelId();
         Model model = modelService.selectModelById(modelId);
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
@@ -306,7 +307,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         }
 
         WebSearchContentRetriever webSearchContentRetriever = null;
-        if (currentAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled()) {
+        // 仅系统开启，agent开启，且用户也打开了websearch开关的情况下使用websearch
+        if (currentAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled() && userEnableWebSearch) {
             WebSearchEngine webSearchEngine = this.getTavilyWebSearchEngine();
             webSearchContentRetriever = WebSearchContentRetriever.builder()
                     .webSearchEngine(webSearchEngine)

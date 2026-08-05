@@ -20,6 +20,8 @@ public class ChatReq {
 
   private List<Long> attachmentIds;
 
+  private boolean webSearch;
+
   public Long getAgentId() {
     return agentId;
   }
@@ -68,6 +70,14 @@ public class ChatReq {
     this.attachmentIds = attachmentIds;
   }
 
+  public boolean isWebSearch() {
+    return webSearch;
+  }
+
+  public void setWebSearch(boolean webSearch) {
+    this.webSearch = webSearch;
+  }
+
   @Override
   public String toString() {
     return "ChatReq{" +
@@ -77,6 +87,7 @@ public class ChatReq {
         ", clientId='" + clientId + '\'' +
         ", sessionId='" + sessionId + '\'' +
         ", attachmentIds='" + attachmentIds + '\'' +
+        ", webSearch='" + webSearch + '\'' +
         '}';
   }
 }

@@ -60,10 +60,10 @@ public class AIChatController extends ChatController {
         AgentType agentType = this.getAgentType(aiAgent);
         if (agentType == AgentType.simple) {
             return aiChatService.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                    chatReq.getSessionId(), chatReq.getAttachmentIds());
+                    chatReq.getSessionId(), chatReq.getAttachmentIds(), chatReq.isWebSearch());
         } else {
             return aiAssistantExecutor.chat(aiAgent, chatReq.getPrompt(), chatReq.getClientId(),
-                    chatReq.getSessionId(), chatReq.getAttachmentIds());
+                    chatReq.getSessionId(), chatReq.getAttachmentIds(), chatReq.isWebSearch());
         }
     }
 

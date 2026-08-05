@@ -405,12 +405,13 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
         // 构造当前 Agent 的上下文：复用 SSE sink
         FlowRoundContext oneCtx = new FlowRoundContext();
         oneCtx.setCurrentNodeId(spec.getNodeId());
+        oneCtx.setWebSearch(parentCtx.isWebSearch());
         AIAgent subAgent = aiAgentService.selectAiAgentWithToolAndSkillById(spec.getAgentId());
         subAgent.setShowReasoning(spec.getShowReasoning());
         subAgent.setFlowMemory(spec.getFlowMemory());
         subAgent.setAgentNodeId(spec.getNodeId());
         oneCtx.setCurrentAgent(subAgent);
-        AIAssistant subAssistant = buildAIAssistant(subAgent, sessionId, true, subAgent.getFlowMemory());
+        AIAssistant subAssistant = buildAIAssistant(subAgent, sessionId, true, subAgent.getFlowMemory(), oneCtx.isWebSearch());
         oneCtx.setCurrentAssistant(subAssistant);
         oneCtx.setRawSink(parentCtx.getRawSink());
         oneCtx.setSafeEmitter(parentCtx.getSafeEmitter());
@@ -422,7 +423,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch) {
         final String traceId = IdUtils.fastSimpleUUID();
         this.init(sessionId, agentFlow);
         return Flux.create(fluxOriginSink -> {
@@ -439,7 +440,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
 
             // 构造第一轮根上下文
             String rootNodeId = treeNode.getNode().getNodeId();
-            AIAssistant rootAssistant = buildAIAssistant(rootAgent, sessionId, true, true);
+            AIAssistant rootAssistant = buildAIAssistant(rootAgent, sessionId, true, true, enableWebSearch);
             FlowRoundContext rootCtx = new FlowRoundContext();
             rootCtx.setCurrentNodeId(rootNodeId);
             rootCtx.setCurrentAgent(rootAgent);
@@ -449,6 +450,7 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
             rootCtx.setSinkClosed(sinkClosed);
             rootCtx.setAttachments(chatFlowMessage.getAttachments());
             rootCtx.setTraceId(traceId);
+            rootCtx.setWebSearch(enableWebSearch);
 
             Mono<AgentRoundOut> firstRound = invoke(sessionId, clientId, prompt, rootCtx);
 

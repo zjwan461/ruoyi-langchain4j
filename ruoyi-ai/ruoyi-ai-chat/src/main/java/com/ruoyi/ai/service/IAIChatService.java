@@ -12,9 +12,9 @@ import java.util.Map;
 
 public interface IAIChatService {
 
-    Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds);
+    Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch);
 
-    Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds);
+    Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch);
 
     String createSession(String clientId);
 

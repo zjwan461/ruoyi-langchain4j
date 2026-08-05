@@ -72,7 +72,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
     }
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch) {
         String traceId = IdUtils.fastSimpleUUID();
         ChatMessage userMessage = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds, traceId);
         String promptTemplate = aiAgent.getPromptTemplate();
@@ -85,7 +85,7 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
         String finalPromptTemplate = promptTemplate;
-        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId, false, false);
+        AIAssistant assistant = this.buildAIAssistant(aiAgent, sessionId, false, false, enableWebSearch);
         return Flux.create(fluxSink -> {
             SseEmitterContext sseEmitterContext = this.createSseEmitterContext(fluxSink);
             AtomicReference<List<Map<String, Object>>> retrieveList = new AtomicReference<>();

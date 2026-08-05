@@ -303,6 +303,18 @@
                   d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
               </svg>
             </button>
+
+            <!-- 联网搜索开关 -->
+            <div class="web-search-switch" :class="{ active: webSearch }" @click="webSearch = !webSearch" title="启用联网搜索">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <span class="switch-label">联网搜索</span>
+              <div class="switch-toggle">
+                <div class="switch-circle"></div>
+              </div>
+            </div>
             <input
               type="file"
               ref="fileInput"
@@ -432,6 +444,8 @@ export default {
       // 附件相关
       attachmentList: [],
       uploading: false,
+      // 联网搜索开关
+      webSearch: false,
       // 预览弹窗状态
       imagePreview: {
         visible: false,
@@ -809,7 +823,8 @@ export default {
             agentFlowId: this.agentInfo.id,
             clientId: this.clientId,
             sessionId: this.sessionId,
-            attachmentIds: attachmentIds
+            attachmentIds: attachmentIds,
+            webSearch: this.webSearch
           }),
           signal: this.streamController.signal
         })
@@ -2035,6 +2050,66 @@ export default {
   border-radius: 12px;
   padding: 8px;
   transition: border-color 0.2s;
+  align-items: center;
+}
+
+/* 联网搜索开关样式 */
+.web-search-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.web-search-switch:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.web-search-switch.active {
+  color: #667eea;
+}
+
+.web-search-switch .switch-label {
+  font-size: 13px;
+  color: #a3a3a3;
+  white-space: nowrap;
+}
+
+.web-search-switch.active .switch-label {
+  color: #667eea;
+}
+
+.web-search-switch .switch-toggle {
+  width: 32px;
+  height: 18px;
+  background: #3f3f3f;
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.web-search-switch.active .switch-toggle {
+  background: #667eea;
+}
+
+.web-search-switch .switch-circle {
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.web-search-switch.active .switch-circle {
+  transform: translateX(14px);
 }
 
 .input-container:focus-within {

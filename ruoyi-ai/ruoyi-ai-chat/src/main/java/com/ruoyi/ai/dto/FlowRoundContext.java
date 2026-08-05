@@ -29,4 +29,5 @@ public class FlowRoundContext {
     private List<Attachment> attachments;
     //追踪ID，用于串联同一请求的所有消息
     private String traceId;
+    private boolean webSearch;
 }

@@ -86,7 +86,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
 
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds,boolean enableWebSearch) {
         String traceId = IdUtils.fastSimpleUUID();
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
@@ -132,7 +132,7 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         }
 
 
-        if (aiAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled()) {
+        if (aiAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled() && enableWebSearch) {
             TavilyWebSearchEngine searchEngine = this.getTavilyWebSearchEngine();
             try {
                 WebSearchResults results = searchEngine.search(prompt);
