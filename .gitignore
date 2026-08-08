@@ -51,3 +51,4 @@ models/
 logs
 __pycache__
 package-lock.json
+.vscode

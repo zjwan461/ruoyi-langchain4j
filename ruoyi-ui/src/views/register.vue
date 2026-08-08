@@ -61,7 +61,7 @@
     </el-form>
     <!--  底部  -->
     <div class="el-register-footer">
-      <span>Copyright © 2018-2025 ruoyi.vip All Rights Reserved.</span>
+      <span>Copyright © 2025-2026 ruoyi-langchain4j All Rights Reserved.</span>
     </div>
   </div>
 </template>
@@ -150,27 +150,39 @@ export default {
 <style rel="stylesheet/scss" lang="scss">
 .register {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
+  padding: 0 8% 0 0;
+  box-sizing: border-box;
+  background-image: url("../assets/images/login-background.png");
   background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #0b1530;
 }
+
 .title {
   margin: 0px auto 30px auto;
   text-align: center;
-  color: #707070;
+  color: #303133;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 
 .register-form {
-  border-radius: 6px;
+  border-radius: 10px;
   background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
+  width: 420px;
+  padding: 32px 36px 18px 36px;
+  z-index: 1;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.15);
   .el-input {
-    height: 38px;
+    height: 40px;
     input {
-      height: 38px;
+      height: 40px;
+      border-radius: 4px;
     }
   }
   .input-icon {
@@ -197,15 +209,32 @@ export default {
   height: 40px;
   line-height: 40px;
   position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
   width: 100%;
+  margin: 0;
   text-align: center;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.85);
   font-family: Arial;
   font-size: 12px;
   letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  z-index: 2;
 }
 .register-code-img {
   height: 38px;
+}
+
+@media (max-width: 900px) {
+  .register {
+    justify-content: center;
+    padding: 0 16px;
+  }
+  .register-form {
+    width: 100%;
+    max-width: 400px;
+    padding: 25px 25px 5px 25px;
+  }
 }
 </style>
