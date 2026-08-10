@@ -1,13 +1,7 @@
 from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
 from langchain.messages import AIMessageChunk, ToolMessage
 
-llm = init_chat_model(
-    model="qwen3.7-plus",
-    model_provider="openai",
-    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-    api_key="sk-xxxxx",
-)
+from constant import llm
 
 
 def get_weather(city: str) -> str:
@@ -25,7 +19,7 @@ agent = create_agent(
 # print(result.get("messages"))
 
 for chunk in agent.stream(
-    {"messages": [{"role": "user", "content": "深圳的天气怎么样"}]},
+    {"messages": [{"role": "user", "content": "深圳的天气怎么样? 给点出行建议。"}]},
     stream_mode="messages",
 ):
     msg_chunk = chunk[0]
@@ -41,6 +35,7 @@ for chunk in agent.stream(
             print(msg_chunk.content, end="", flush=True)
     elif isinstance(msg_chunk, ToolMessage):
         print(f"工具{msg_chunk.name}执行结果：{msg_chunk.content}")
+
     # latest_message = chunk["messages"][-1]
     # if latest_message.content:
     #     print(f"智能体：{latest_message.content}")
