@@ -2,11 +2,14 @@ import os
 from typing import Literal
 from tavily import TavilyClient
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
+from langchain.tools import tool
 from constant import llm
 
 tavily_client = TavilyClient(api_key="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")
 
 
+@tool
 def internet_search(
     query: str,
     max_results: int = 5,
@@ -33,11 +36,29 @@ research_instructions = """您是一位专家级研究员。您的工作是进�
 """
 
 agent = create_deep_agent(
-    model=llm, tools=[internet_search], system_prompt=research_instructions
+    model=llm,
+    tools=[internet_search],
+    system_prompt=research_instructions,
+    backend=FilesystemBackend(root_dir="."),
 )
 
 
-result = agent.invoke({"messages": [{"role": "user", "content": "什么是 langgraph？"}]})
+# result = agent.invoke({"messages": [{"role": "user", "content": "什么是 langgraph？"}]})
 
-# 打印Agent的响应
-print(result["messages"][-1].content)
+# # 打印Agent的响应
+# print(result["messages"][-1].content)
+
+
+async def chat():
+    async for chunk, metadata in agent.astream(
+        {"messages": [{"role": "user", "content": "当前文件夹中文字最多的python文件是哪一个?"}]},
+        stream_mode="messages",
+    ):
+        # print(metadata['langgraph_node'])
+        print(chunk.content_blocks)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(chat())

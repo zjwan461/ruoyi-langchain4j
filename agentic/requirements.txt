@@ -9,3 +9,4 @@ grpcio>=1.68.1
 grpcio-tools>=1.68.1
 protobuf>=7.35.1
 PyJWT>=2.8.0
+requests>=2.31.0
