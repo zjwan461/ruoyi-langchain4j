@@ -21,7 +21,7 @@ agent = create_agent(
 # print(result.get("messages"))
 
 for chunk in agent.stream(
-    {"messages": [{"role": "user", "content": "帮我写一个python随机数函数，并执行给我这个随机数"}]},
+    {"messages": [{"role": "user", "content": "帮我写一个python抽奖函数，并执行一次看看我有没有中奖。你可以参考双色球的玩法。另外在最后请给我你写的代码。"}]},
     stream_mode="messages",
 ):
     msg_chunk = chunk[0]

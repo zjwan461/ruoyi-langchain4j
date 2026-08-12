@@ -55,7 +55,9 @@ async def chat():
         stream_mode="messages",
     ):
         # print(metadata['langgraph_node'])
-        print(chunk.content_blocks)
+        content = chunk.content_blocks
+        if content:
+            print(content)
 
 
 if __name__ == "__main__":
