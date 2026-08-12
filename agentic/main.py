@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from typing import List, Dict, Any
 from contextlib import asynccontextmanager
 import os
@@ -45,3 +46,39 @@ async def list_models(user=Depends(verify_token)):
         return models
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取模型列表失败: {str(e)}")
+
+
+@app.get("/health", summary="健康检查接口")
+async def health_check():
+    """
+    健康检查接口
+
+    用于 Docker 容器健康检查（liveness probe）。
+    返回当前服务自身状态及 gRPC 后端连接信息。
+    无需鉴权，便于容器编排 / 负载均衡器直接探测。
+    """
+    grpc_status = "DOWN"
+    grpc_error: str | None = None
+
+    try:
+        client = get_grpc_client()
+        if client is not None and getattr(client, "channel", None) is not None:
+            grpc_status = "UP"
+    except Exception as e:
+        grpc_error = str(e)
+
+    payload = {
+        "status": "UP",
+        "service": "agentic-agent-service",
+        "grpc": {
+            "host": GRPC_HOST,
+            "port": GRPC_PORT,
+            "status": grpc_status,
+        },
+    }
+    if grpc_error:
+        payload["grpc"]["error"] = grpc_error
+
+    # 只要 HTTP 进程能正常响应，就认为容器存活；
+    # gRPC 后端状态作为附加信息返回，便于运维排查。
+    return JSONResponse(status_code=200, content=payload)

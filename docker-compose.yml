@@ -183,6 +183,30 @@ services:
       - DESCRIBE_DOC_IMG=false
     networks:
       - app-net
+  # agentic 服务：基于 LangChain/DeepAgents 的 AI Agent 网关
+  # 通过 gRPC 调用 ruoyi-admin 容器内的 ModelGrpcService（端口 9090）
+  agentic:
+    build:
+      context: .
+      dockerfile: Dockerfile-agentic
+    image: ghcr.io/zjwan461/agentic:latest
+    container_name: agentic
+    restart: unless-stopped
+    ports:
+      - "8142:8142"
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=C.UTF-8
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # gRPC 服务端指向 ruoyi-admin 容器，端口与 ruoyi-admin 的 grpc.server.port 一致
+      - GRPC_HOST=ruoyi-admin
+      - GRPC_PORT=9090
+    depends_on:
+      ruoyi-admin:
+        condition: service_started
+    networks:
+      - app-net
 
 volumes:
   mysql-data:
