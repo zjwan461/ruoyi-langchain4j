@@ -32,6 +32,11 @@ for chunk in agent.stream(
                 else:
                     print(f"工具参数：{tc['args']}")
         else:
+            reason_chunk = msg_chunk.additional_kwargs.get("reasoning_content")
+            if reason_chunk:
+                print(
+                    reason_chunk, end="", flush=True
+                )
             print(msg_chunk.content, end="", flush=True)
     elif isinstance(msg_chunk, ToolMessage):
         print(f"工具{msg_chunk.name}执行结果：{msg_chunk.content}")

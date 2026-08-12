@@ -6,6 +6,7 @@ from operator import add
 from constant import llm
 import asyncio
 from langchain.messages import AIMessageChunk
+from langgraph.config import get_stream_writer
 
 
 # 定义图状态
@@ -31,25 +32,37 @@ evaluator = llm.with_structured_output(PunchlineEvaluation)
 
 def generate_joke(state: State):
     """生成一个关于给定主题的笑话"""
+    writer = get_stream_writer()
+    writer('正在生成笑话中...')
     joke = llm.invoke(f"写一个关于 {state['topic']} 的笑话")
+    writer('生成笑话完成')
     return {"joke": joke.content}
 
 
 def check_punchline(state: State):
     """检查笑话是否需要改进"""
+    writer = get_stream_writer()
+    writer("正在评估笑话是否需要改进...")
     evaluation = evaluator.invoke(f"评估这个笑话的笑点: {state['joke']}")
+    writer(f"评估完成,当前笑话是否需要改进：{evaluation.needs_improvement}")
     return {"needs_improvement": evaluation.needs_improvement}
 
 
 def improve_joke(state: State):
     """改进笑话"""
+    writer = get_stream_writer()
+    writer("正在改进笑话...")
     improved_joke = llm.invoke(f"改进这个笑话，使其更有趣: {state['joke']}")
+    writer("改进完成")
     return {"joke": improved_joke.content}
 
 
 def polish_joke(state: State):
     """润色笑话，确保质量"""
+    writer = get_stream_writer()
+    writer("正在润色笑话...")
     polished_joke = llm.invoke(f"润色这个笑话，使其更加完美: {state['joke']}")
+    writer("润色完成")
     return {"joke": polished_joke.content}
 
 
@@ -104,14 +117,19 @@ with open("./workflow.png", "w+b") as f:
 
 
 async def run_workflow_stream():
-    async for chunk, params in workflow.astream(
-        input={"topic": "编程"}, stream_mode="messages"
+    async for stream_mode, chunk in workflow.astream(
+        input={"topic": "编程"}, stream_mode=["messages", "custom"]
     ):
-        if isinstance(chunk, AIMessageChunk):
-            print(chunk.content, end="", flush=True)
-        else:
-            print(type(chunk))
+        if stream_mode == "custom":
             print(chunk)
+        else:
+            msg_chunk = chunk[0]
+            params = chunk[1]
+            if isinstance(msg_chunk, AIMessageChunk):
+                print(msg_chunk.content, end="", flush=True)
+            else:
+                print(type(msg_chunk))
+                print(msg_chunk)
 
 
 if __name__ == "__main__":

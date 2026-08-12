@@ -1,0 +1,40 @@
+syntax = "proto3";
+package com.ruoyi.ai.service.grpc;
+// 生成代码包名（Java专用）
+option java_multiple_files = true;
+option java_package = "com.ruoyi.ai.service.grpc.impl";
+option java_outer_classname = "ModelServiceGrpc";
+
+// 模型实体，对应Java Model实体
+message Model {
+  int64 id = 1;
+  // 模型名称
+  string name = 2;
+  // base url
+  string baseUrl = 3;
+  // api key
+  string apiKey = 4;
+  // temperature
+  double temperature = 5;
+  // token最大生成数
+  int32 maxOutputToken = 6;
+  // 类型
+  int32 type = 7;
+  // 模型提供商
+  string provider = 8;
+}
+
+// 空请求（无入参）
+message ListModelRequest {}
+
+// 响应，返回Model列表
+message ListModelResponse {
+  // 模型集合
+  repeated Model modelList = 1;
+}
+
+// gRPC服务定义
+service ModelGrpcService {
+  // 查询模型列表，无入参，返回模型数组
+  rpc ListModel (ListModelRequest) returns (ListModelResponse);
+}
