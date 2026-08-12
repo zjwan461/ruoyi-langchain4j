@@ -1,9 +1,11 @@
 from langchain.agents import create_agent
 from langchain.messages import AIMessageChunk, ToolMessage
+from langchain.tools import tool
 
-from constant import llm
+from .constant import llm
+from sandbox.sandbox_tool import check_sandbox_health, run_python_code
 
-
+@tool
 def get_weather(city: str) -> str:
     """获取指定城市的天气。"""
     return f"{city}总是阳光明媚！"
@@ -11,7 +13,7 @@ def get_weather(city: str) -> str:
 
 agent = create_agent(
     model=llm,
-    tools=[get_weather],
+    tools=[get_weather, check_sandbox_health, run_python_code],
     system_prompt="你是一个乐于助人的AI助手，在适当的时候调用工具",
 )
 
@@ -19,7 +21,7 @@ agent = create_agent(
 # print(result.get("messages"))
 
 for chunk in agent.stream(
-    {"messages": [{"role": "user", "content": "深圳的天气怎么样? 给点出行建议。"}]},
+    {"messages": [{"role": "user", "content": "帮我写一个python随机数函数，并执行给我这个随机数"}]},
     stream_mode="messages",
 ):
     msg_chunk = chunk[0]

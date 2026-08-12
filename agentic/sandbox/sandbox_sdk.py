@@ -32,8 +32,8 @@ from typing import Optional
 
 import requests
 
-from sandbox_request import SandboxRequest
-from sandbox_response import SandboxResponse
+from .sandbox_request import SandboxRequest
+from .sandbox_response import SandboxResponse
 
 logger = logging.getLogger(__name__)
 
