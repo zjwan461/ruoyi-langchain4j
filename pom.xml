@@ -40,6 +40,8 @@
         <flyway.version>7.7.0</flyway.version>
         <okhttp.version>4.12.0</okhttp.version>
         <jackson-bom.version>2.21.4</jackson-bom.version>
+        <!-- gRPC版本 -->
+        <grpc-boot-version>2.13.0.RELEASE</grpc-boot-version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -329,6 +331,11 @@
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-sse</artifactId>
                 <version>${okhttp.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.devh</groupId>
+                <artifactId>grpc-spring-boot-starter</artifactId>
+                <version>${grpc-boot-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
