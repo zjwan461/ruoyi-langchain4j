@@ -32,6 +32,7 @@ public class ModelGrpcServer extends ModelGrpcServiceImplBase {
             List<com.ruoyi.ai.service.grpc.impl.Model> respList = models.stream().map(model -> {
                 return com.ruoyi.ai.service.grpc.impl.Model.newBuilder()
                         .setId(model.getId())
+                        .setName(model.getName())
                         .setBaseUrl(model.getBaseUrl())
                         .setApiKey(model.getApiKey())
                         .setTemperature(model.getTemperature())

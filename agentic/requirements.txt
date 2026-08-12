@@ -6,3 +6,4 @@ uvicorn[standard]==0.32.1
 grpcio>=1.68.1
 grpcio-tools>=1.68.1
 protobuf>=7.35.1
+PyJWT>=2.8.0
