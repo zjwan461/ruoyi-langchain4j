@@ -47,6 +47,11 @@
           </router-link>
         </template>
       </el-table-column>
+      <el-table-column label="多智能体类型" align="center" prop="agentType">
+        <template slot-scope="scope">
+          <dict-tag :options="dict.type.agent_flow_type" :value="scope.row.implType"/>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" align="center" prop="status">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.ai_agent_status" :value="scope.row.status" />

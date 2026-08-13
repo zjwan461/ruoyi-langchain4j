@@ -21,6 +21,7 @@ import reactor.netty.http.client.HttpClient;
 import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -30,10 +31,14 @@ import java.util.function.Consumer;
 /**
  * Agentic Agent 服务 HTTP 请求工具。
  *
- * <p>对接 FastAPI 的 {@code POST /chat-agentic} 接口，支持 SSE 流式响应。</p>
+ * <p>
+ * 对接 FastAPI 的 {@code POST /chat-agentic} 接口，支持 SSE 流式响应。
+ * </p>
  *
- * <p>流式方法使用 Spring {@link WebClient} + {@link Flux} 订阅 {@link DataBuffer}，
- * 每个 SSE 事件到达 socket 即可立即回调 consumer，确保真正的 Server-Sent Events 流式语义。</p>
+ * <p>
+ * 流式方法使用 Spring {@link WebClient} + {@link Flux} 订阅 {@link DataBuffer}，
+ * 每个 SSE 事件到达 socket 即可立即回调 consumer，确保真正的 Server-Sent Events 流式语义。
+ * </p>
  */
 @Component
 @Slf4j
@@ -51,8 +56,8 @@ public class AgenticRequestUtil {
      * 复用的 WebClient，已配置连接超时和读取超时。
      *
      * <ul>
-     *     <li>通过 Reactor Netty {@link HttpClient} 配置连接超时和读取超时</li>
-     *     <li>关闭默认的内存缓冲上限（{@code maxInMemorySize=-1}），避免超长 SSE 流被提前缓存</li>
+     * <li>通过 Reactor Netty {@link HttpClient} 配置连接超时和读取超时</li>
+     * <li>关闭默认的内存缓冲上限（{@code maxInMemorySize=-1}），避免超长 SSE 流被提前缓存</li>
      * </ul>
      */
     private final WebClient webClient;
@@ -72,8 +77,7 @@ public class AgenticRequestUtil {
                 // 响应超时（从发送请求到收到第一个字节）
                 .responseTimeout(Duration.ofMillis(readTimeout))
                 // 读取超时：如果连续 readTimeout 毫秒没有新数据到达，则关闭连接
-                .doOnConnected(conn ->
-                        conn.addHandlerLast(new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS)));
+                .doOnConnected(conn -> conn.addHandlerLast(new ReadTimeoutHandler(readTimeout, TimeUnit.MILLISECONDS)));
 
         this.webClient = WebClient.builder()
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(-1))
@@ -84,9 +88,11 @@ public class AgenticRequestUtil {
     /**
      * SSE 流式对话。
      *
-     * <p>使用 Spring {@link WebClient} 发起 POST 请求，通过 {@code exchangeToFlux} +
+     * <p>
+     * 使用 Spring {@link WebClient} 发起 POST 请求，通过 {@code exchangeToFlux} +
      * {@code bodyToFlux(DataBuffer.class)} 拿到按网络包粒度到达的字节流。
-     * 解析层维护跨 {@link DataBuffer} 的行缓冲，每读到完整一行就解析 SSE data 并回调 consumer。</p>
+     * 解析层维护跨 {@link DataBuffer} 的行缓冲，每读到完整一行就解析 SSE data 并回调 consumer。
+     * </p>
      *
      * @param token    JWT 认证令牌（Bearer token）
      * @param request  对话请求体
@@ -94,7 +100,7 @@ public class AgenticRequestUtil {
      * @throws ServiceException 当参数不合法、HTTP 状态非 2xx 或 SSE 数据解析失败时抛出
      */
     public void chatStreaming(String token, AgenticChatRequest request,
-                              Consumer<AgenticChatResponse> consumer) {
+            Consumer<AgenticChatResponse> consumer) {
         if (StringUtils.isBlank(token)) {
             throw new ServiceException("agentic token is empty");
         }
@@ -127,27 +133,27 @@ public class AgenticRequestUtil {
         StringBuilder lineBuf = new StringBuilder(256);
 
         spec.exchangeToFlux(resp -> {
-                    if (resp.statusCode().is2xxSuccessful()) {
-                        return resp.bodyToFlux(DataBuffer.class);
-                    }
-                    // 非 2xx：拼出 body 后抛 ServiceException
-                    return resp.bodyToFlux(DataBuffer.class)
-                            .collectList()
-                            .defaultIfEmpty(java.util.Collections.emptyList())
-                            .flatMapMany(list -> {
-                                StringBuilder sb = new StringBuilder();
-                                for (DataBuffer b : list) {
-                                    try {
-                                        sb.append(StandardCharsets.UTF_8.decode(b.asByteBuffer()).toString());
-                                    } finally {
-                                        DataBufferUtils.release(b);
-                                    }
-                                }
-                                return Flux.<DataBuffer>error(new ServiceException(
-                                        "request agentic return http status=" + resp.statusCode().value()
-                                                + " body=" + sb));
-                            });
-                })
+            if (resp.statusCode().is2xxSuccessful()) {
+                return resp.bodyToFlux(DataBuffer.class);
+            }
+            // 非 2xx：拼出 body 后抛 ServiceException
+            return resp.bodyToFlux(DataBuffer.class)
+                    .collectList()
+                    .defaultIfEmpty(java.util.Collections.emptyList())
+                    .flatMapMany(list -> {
+                        StringBuilder sb = new StringBuilder();
+                        for (DataBuffer b : list) {
+                            try {
+                                sb.append(StandardCharsets.UTF_8.decode(b.asByteBuffer()).toString());
+                            } finally {
+                                DataBufferUtils.release(b);
+                            }
+                        }
+                        return Flux.<DataBuffer>error(new ServiceException(
+                                "request agentic return http status=" + resp.statusCode().value()
+                                        + " body=" + sb));
+                    });
+        })
                 .doOnNext(buf -> {
                     try {
                         String chunk = StandardCharsets.UTF_8.decode(buf.asByteBuffer()).toString();
@@ -192,9 +198,9 @@ public class AgenticRequestUtil {
     /**
      * 解析一行 SSE 字段：
      * <ul>
-     *     <li>空行：作为事件分隔，忽略</li>
-     *     <li>{@code data:} 开头：去掉前缀后若为空或 {@code [DONE]} 则跳过；否则按 JSON 反序列化</li>
-     *     <li>其它行（{@code event:}/{@code id:}/注释行等）：直接忽略</li>
+     * <li>空行：作为事件分隔，忽略</li>
+     * <li>{@code data:} 开头：去掉前缀后若为空或 {@code [DONE]} 则跳过；否则按 JSON 反序列化</li>
+     * <li>其它行（{@code event:}/{@code id:}/注释行等）：直接忽略</li>
      * </ul>
      */
     private void parseSseLine(String line, Consumer<AgenticChatResponse> consumer) {
@@ -229,6 +235,7 @@ public class AgenticRequestUtil {
         private String client_id;
         private String session_id;
         private Boolean web_search;
+        private List<String> images;
 
         public Long getAgent_flow_id() {
             return agent_flow_id;
@@ -270,17 +277,26 @@ public class AgenticRequestUtil {
             this.web_search = web_search;
         }
 
+        public List<String> getImages() {
+            return images;
+        }
+
+        public void setImages(List<String> images) {
+            this.images = images;
+        }
+
         /**
          * 便捷构造方法
          */
         public static AgenticChatRequest of(Long agentFlowId, String prompt,
-                                            String clientId, String sessionId, Boolean webSearch) {
+                String clientId, String sessionId, Boolean webSearch, List<String> images) {
             AgenticChatRequest req = new AgenticChatRequest();
             req.setAgent_flow_id(agentFlowId);
             req.setPrompt(prompt);
             req.setClient_id(clientId);
             req.setSession_id(sessionId);
             req.setWeb_search(webSearch);
+            req.setImages(images);
             return req;
         }
     }
@@ -290,7 +306,9 @@ public class AgenticRequestUtil {
     /**
      * Agentic SSE 流式响应体，与 Python 端返回的 JSON 对齐。
      *
-     * <p>Python 端返回格式：{@code {"msg": "chunk text"}}，流结束时发送 {@code data: [DONE]}</p>
+     * <p>
+     * Python 端返回格式：{@code {"msg": "chunk text"}}，流结束时发送 {@code data: [DONE]}
+     * </p>
      */
     public static class AgenticChatResponse {
         /**

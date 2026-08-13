@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from typing import List, Dict, Any, AsyncGenerator, Optional
 from contextlib import asynccontextmanager
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from grpc_client import init_grpc_client, close_grpc_client, get_grpc_client
 from service.auth import verify_token
@@ -31,11 +31,15 @@ app = FastAPI(title="Agentic Agent Service", lifespan=lifespan)
 
 
 class ChatReq(BaseModel):
-    agent_flow_id: int
-    prompt: str
-    client_id: str
-    session_id: str
-    web_search: Optional[bool] = None
+    agent_flow_id: int = Field(description="智能体流程ID")
+    prompt: str = Field(description="用户输入提示词")
+    client_id: str = Field(description="客户端标识")
+    session_id: str = Field(description="会话唯一ID")
+    web_search: bool = Field(False, description="是否启用联网搜索，默认关闭")
+    # 新增图片数组，不传默认空列表
+    images: list[str] = Field(
+        default_factory=list, description="图片url数组，多模态上传图片的base64"
+    )
 
 
 # 固定模拟大模型返回全文

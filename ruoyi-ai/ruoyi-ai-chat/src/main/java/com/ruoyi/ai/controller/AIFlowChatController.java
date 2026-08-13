@@ -2,12 +2,15 @@ package com.ruoyi.ai.controller;
 
 import com.ruoyi.ai.controller.model.ChatReq;
 import com.ruoyi.ai.domain.AgentFlow;
+import com.ruoyi.ai.service.AgenticService;
 import com.ruoyi.ai.service.IAIChatService;
 import com.ruoyi.ai.service.IAgentFlowService;
 import com.ruoyi.ai.service.IAttachmentService;
 import com.ruoyi.ai.util.DocumentParseClient;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
+import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.DictUtils;
 import com.ruoyi.framework.config.ServerConfig;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
@@ -24,17 +27,30 @@ public class AIFlowChatController extends ChatController {
     @Resource
     private IAgentFlowService agentFlowService;
 
-    public AIFlowChatController(@Qualifier("agentFlowChatService") IAIChatService aiChatService, ServerConfig serverConfig,
-                                DocumentParseClient documentParseClient, IAttachmentService attachmentService) {
+    @Resource
+    private AgenticService agenticService;
+
+    public AIFlowChatController(@Qualifier("agentFlowChatService") IAIChatService aiChatService,
+            ServerConfig serverConfig,
+            DocumentParseClient documentParseClient, IAttachmentService attachmentService) {
         super(aiChatService, serverConfig, documentParseClient, attachmentService);
     }
 
-    @PostMapping(produces = {MediaType.TEXT_EVENT_STREAM_VALUE})
+    @PostMapping(produces = { MediaType.TEXT_EVENT_STREAM_VALUE })
     public Flux<String> aiChat(@RequestBody @Valid ChatReq chatReq) {
         AgentFlow agentFlow = agentFlowService.selectAgentFlowById(chatReq.getAgentFlowId());
         this.preCheckAgentFlow(agentFlow, chatReq);
-        return aiChatService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId(),
-                chatReq.getAttachmentIds(), chatReq.isWebSearch());
+        String originFlow = DictUtils.getDictValue("agent_flow_type", "origin");
+        String agenticFlow = DictUtils.getDictValue("agent_flow_type", "agentic");
+        if (originFlow.equals(agentFlow.getImplType())) {
+            return aiChatService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId(),
+                    chatReq.getAttachmentIds(), chatReq.isWebSearch());
+        } else if (agenticFlow.equals(agentFlow.getImplType())) {
+            return agenticService.chat(agentFlow, chatReq.getPrompt(), chatReq.getClientId(), chatReq.getSessionId(),
+                    chatReq.getAttachmentIds(), chatReq.isWebSearch());
+        } else {
+            throw new ServiceException("unsupported flow impl type: " + agentFlow.getImplType());
+        }
     }
 
     @GetMapping("/agent-info/{visitId}")
@@ -48,7 +64,8 @@ public class AIFlowChatController extends ChatController {
     }
 
     @GetMapping("/list-chat-session/{clientId}/{agentId}")
-    public AjaxResult listChatSession(@PathVariable("clientId") String clientId, @PathVariable("agentId") Long agentId) {
+    public AjaxResult listChatSession(@PathVariable("clientId") String clientId,
+            @PathVariable("agentId") Long agentId) {
         return success(aiChatService.listClientSession(clientId, agentId));
     }
 
@@ -58,7 +75,7 @@ public class AIFlowChatController extends ChatController {
      */
     @GetMapping("/list-chat-message/{sessionId}/{agentId}")
     public TableDataInfo listChatHistory(@PathVariable("sessionId") String sessionId,
-                                         @PathVariable("agentId") Long agentId) {
+            @PathVariable("agentId") Long agentId) {
         startPage();
         return getDataTable(aiChatService.listAgentFlowChatMessageBySessionIdOrderDesc(sessionId, agentId));
     }
