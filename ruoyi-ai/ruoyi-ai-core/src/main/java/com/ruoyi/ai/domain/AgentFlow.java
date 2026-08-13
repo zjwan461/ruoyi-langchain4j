@@ -34,6 +34,8 @@ public class AgentFlow extends BaseEntity
 
     private String visitUrl;
 
+    private String implType;
+
     public void setId(Long id) 
     {
         this.id = id;
@@ -88,6 +90,14 @@ public class AgentFlow extends BaseEntity
         this.dayLmtPerClient = dayLmtPerClient;
     }
 
+    public String getImplType() {
+        return implType;
+    }
+
+    public void setImplType(String implType) {
+        this.implType = implType;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this,ToStringStyle.MULTI_LINE_STYLE)
@@ -97,6 +107,7 @@ public class AgentFlow extends BaseEntity
             .append("visitUrl", getVisitUrl())
             .append("status", getStatus())
             .append("dayLmtPerClient", getDayLmtPerClient())
+            .append("implType", getImplType())
             .append("createTime", getCreateTime())
             .append("updateTime", getUpdateTime())
             .append("createBy", getCreateBy())

@@ -2,21 +2,13 @@
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" v-show="showSearch" label-width="120px">
       <el-form-item label="Agent Flow名称" prop="agentFlowName">
-        <el-input
-          v-model="queryParams.agentFlowName"
-          placeholder="请输入agent flow名称"
-          clearable
-          @keyup.enter.native="handleQuery"
-        />
+        <el-input v-model="queryParams.agentFlowName" placeholder="请输入agent flow名称" clearable
+          @keyup.enter.native="handleQuery" />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable>
-          <el-option
-            v-for="dict in dict.type.ai_agent_status"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
+          <el-option v-for="dict in dict.type.ai_agent_status" :key="dict.value" :label="dict.label"
+            :value="dict.value" />
         </el-select>
       </el-form-item>
       <el-form-item>
@@ -27,46 +19,20 @@
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="el-icon-plus"
-          size="mini"
-          @click="handleAdd"
-          v-hasPermi="['ai:agent_flow:add']"
-        >新增</el-button>
+        <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd"
+          v-hasPermi="['ai:agent_flow:add']">新增</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="el-icon-edit"
-          size="mini"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['ai:agent_flow:edit']"
-        >修改</el-button>
+        <el-button type="success" plain icon="el-icon-edit" size="mini" :disabled="single" @click="handleUpdate"
+          v-hasPermi="['ai:agent_flow:edit']">修改</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="el-icon-delete"
-          size="mini"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['ai:agent_flow:remove']"
-        >删除</el-button>
+        <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="multiple" @click="handleDelete"
+          v-hasPermi="['ai:agent_flow:remove']">删除</el-button>
       </el-col>
       <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="el-icon-download"
-          size="mini"
-          @click="handleExport"
-          v-hasPermi="['ai:agent_flow:export']"
-        >导出</el-button>
+        <el-button type="warning" plain icon="el-icon-download" size="mini" @click="handleExport"
+          v-hasPermi="['ai:agent_flow:export']">导出</el-button>
       </el-col>
       <right-toolbar :showSearch.sync="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
@@ -74,7 +40,7 @@
     <el-table v-loading="loading" :data="agent_flowList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="主键ID" align="center" prop="id" />
-      <el-table-column label="agent flow名称" align="center" prop="agentFlowName" >
+      <el-table-column label="agent flow名称" align="center" prop="agentFlowName">
         <template slot-scope="scope">
           <router-link :to="'/ai/agent_flow_edit/index/' + scope.row.id" class="link-type">
             <span>{{ scope.row.agentFlowName }}</span>
@@ -83,7 +49,7 @@
       </el-table-column>
       <el-table-column label="状态" align="center" prop="status">
         <template slot-scope="scope">
-          <dict-tag :options="dict.type.ai_agent_status" :value="scope.row.status"/>
+          <dict-tag :options="dict.type.ai_agent_status" :value="scope.row.status" />
         </template>
       </el-table-column>
       <el-table-column label="访问链接" align="center" prop="visitUrl">
@@ -92,49 +58,40 @@
             {{ scope.row.visitUrl }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column label="单个Client每日访问限制次数" align="center" prop="dayLmtPerClient"/>
+      <el-table-column label="单个Client每日访问限制次数" align="center" prop="dayLmtPerClient" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template slot-scope="scope">
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-edit"
-            @click="handleUpdate(scope.row)"
-            v-hasPermi="['ai:agent_flow:edit']"
-          >修改</el-button>
-          <el-button
-            size="mini"
-            type="text"
-            icon="el-icon-delete"
-            @click="handleDelete(scope.row)"
-            v-hasPermi="['ai:agent_flow:remove']"
-          >删除</el-button>
+          <el-button size="mini" type="text" icon="el-icon-edit" @click="handleUpdate(scope.row)"
+            v-hasPermi="['ai:agent_flow:edit']">修改</el-button>
+          <el-button size="mini" type="text" icon="el-icon-delete" @click="handleDelete(scope.row)"
+            v-hasPermi="['ai:agent_flow:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <pagination
-      v-show="total>0"
-      :total="total"
-      :page.sync="queryParams.pageNum"
-      :limit.sync="queryParams.pageSize"
-      @pagination="getList"
-    />
+    <pagination v-show="total > 0" :total="total" :page.sync="queryParams.pageNum" :limit.sync="queryParams.pageSize"
+      @pagination="getList" />
 
     <!-- 添加或修改agent_flow对话框 -->
     <el-dialog :title="title" :visible.sync="open" width="600px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="120px">
+        <el-form-item label="智能体类型" prop="implType">
+          <el-select v-model="form.implType" placeholder="请选择多智能体实现方案">
+            <el-option v-for="dict in dict.type.agent_flow_type" :key="dict.value" :label="dict.label"
+              :value="dict.value"></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="agent flow名称" prop="agentFlowName">
           <el-input v-model="form.agentFlowName" placeholder="请输入agent flow名称" />
         </el-form-item>
         <el-form-item label="Client LMT" prop="dayLmtPerClient">
-          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容"/>
+          <el-input-number v-model="form.dayLmtPerClient" :max="9999999" :min="1" :step="1" placeholder="请输入内容" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
             <el-radio v-for="dict in dict.type.ai_agent_status" :key="dict.value" :label="parseInt(dict.value)">{{
-                dict.label
-              }}
+              dict.label
+            }}
             </el-radio>
           </el-radio-group>
         </el-form-item>
@@ -152,7 +109,7 @@ import { listAgent_flow, getAgent_flow, delAgent_flow, addAgent_flow, updateAgen
 
 export default {
   name: "Agent_flow",
-  dicts: ['ai_agent_status'],
+  dicts: ['ai_agent_status', "agent_flow_type"],
   data() {
     return {
       // 遮罩层
@@ -181,14 +138,16 @@ export default {
         status: null,
       },
       // 表单参数
-      form: {},
+      form: {
+        implType: 'origin'
+      },
       // 表单校验
       rules: {
         agentFlowName: [
           { required: true, message: "agent flow名称不能为空", trigger: "blur" }
         ],
         dayLmtPerClient: [
-          {required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur"}
+          { required: true, message: "单个Client每日访问限制次数不能为空", trigger: "blur" }
         ],
         status: [
           { required: true, message: "状态不能为空", trigger: "change" }
@@ -247,7 +206,7 @@ export default {
     // 多选框选中数据
     handleSelectionChange(selection) {
       this.ids = selection.map(item => item.id)
-      this.single = selection.length!==1
+      this.single = selection.length !== 1
       this.multiple = !selection.length
     },
     /** 新增按钮操作 */
@@ -292,12 +251,12 @@ export default {
     /** 删除按钮操作 */
     handleDelete(row) {
       const ids = row.id || this.ids
-      this.$modal.confirm('是否确认删除agent_flow编号为"' + ids + '"的数据项？').then(function() {
+      this.$modal.confirm('是否确认删除agent_flow编号为"' + ids + '"的数据项？').then(function () {
         return delAgent_flow(ids)
       }).then(() => {
         this.getList()
         this.$modal.msgSuccess("删除成功")
-      }).catch(() => {})
+      }).catch(() => { })
     },
     /** 导出按钮操作 */
     handleExport() {

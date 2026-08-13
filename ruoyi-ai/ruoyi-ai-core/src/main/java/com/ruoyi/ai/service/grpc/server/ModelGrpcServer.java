@@ -1,18 +1,16 @@
 package com.ruoyi.ai.service.grpc.server;
 
-import java.util.List;
-
-import org.springframework.stereotype.Component;
-
 import com.ruoyi.ai.domain.Model;
 import com.ruoyi.ai.service.IModelService;
 import com.ruoyi.ai.service.grpc.impl.ListModelRequest;
 import com.ruoyi.ai.service.grpc.impl.ListModelResponse;
 import com.ruoyi.ai.service.grpc.impl.ModelGrpcServiceGrpc.ModelGrpcServiceImplBase;
-
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @GrpcService
 @Component
@@ -29,18 +27,16 @@ public class ModelGrpcServer extends ModelGrpcServiceImplBase {
     public void listModel(ListModelRequest request, StreamObserver<ListModelResponse> responseObserver) {
         try {
             List<Model> models = modelService.selectModelList(null);
-            List<com.ruoyi.ai.service.grpc.impl.Model> respList = models.stream().map(model -> {
-                return com.ruoyi.ai.service.grpc.impl.Model.newBuilder()
-                        .setId(model.getId())
-                        .setName(model.getName())
-                        .setBaseUrl(model.getBaseUrl())
-                        .setApiKey(model.getApiKey())
-                        .setTemperature(model.getTemperature())
-                        .setMaxOutputToken(model.getMaxOutputToken())
-                        .setType(model.getType())
-                        .setProvider(model.getProvider())
-                        .build();
-            }).toList();
+            List<com.ruoyi.ai.service.grpc.impl.Model> respList = models.stream().map(model -> com.ruoyi.ai.service.grpc.impl.Model.newBuilder()
+                    .setId(model.getId())
+                    .setName(model.getName())
+                    .setBaseUrl(model.getBaseUrl())
+                    .setApiKey(model.getApiKey())
+                    .setTemperature(model.getTemperature())
+                    .setMaxOutputToken(model.getMaxOutputToken())
+                    .setType(model.getType())
+                    .setProvider(model.getProvider())
+                    .build()).toList();
 
             // 3. 构建返回响应体，填充列表
             ListModelResponse response = ListModelResponse.newBuilder()
