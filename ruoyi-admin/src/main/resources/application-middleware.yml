@@ -246,3 +246,7 @@ ai:
     search-depth: basic
     include-answer: false
     include-raw-content: true
+  agentic:
+    server-url: http://127.0.0.1:38142/chat-agentic
+    connect-timeout: 30000
+    read-timeout: 300000

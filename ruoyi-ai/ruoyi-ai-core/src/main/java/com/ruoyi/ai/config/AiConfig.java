@@ -28,6 +28,8 @@ public class AiConfig {
 
     private TavilyWebSearch tavilyWebSearch;
 
+    private Agentic agentic;
+
     public PgVector getPgVector() {
         return pgVector;
     }
@@ -90,6 +92,14 @@ public class AiConfig {
 
     public void setTavilyWebSearch(TavilyWebSearch tavilyWebSearch) {
         this.tavilyWebSearch = tavilyWebSearch;
+    }
+
+    public Agentic getAgentic() {
+        return agentic;
+    }
+
+    public void setAgentic(Agentic agentic) {
+        this.agentic = agentic;
     }
 
     public static class PgVector {
@@ -421,6 +431,50 @@ public class AiConfig {
 
         public void setExcludeDomains(List<String> excludeDomains) {
             this.excludeDomains = excludeDomains;
+        }
+    }
+
+    /**
+     * Agentic Agent 服务配置
+     */
+    public static class Agentic {
+        /**
+         * 服务完整地址: http://ip:port/chat-agentic
+         */
+        private String serverUrl;
+
+        /**
+         * 连接超时 ms
+         */
+        private int connectTimeout = 30000;
+
+        /**
+         * 读取超时 ms（SSE 流式响应需要较长超时）
+         */
+        private int readTimeout = 300000;
+
+        public String getServerUrl() {
+            return serverUrl;
+        }
+
+        public void setServerUrl(String serverUrl) {
+            this.serverUrl = serverUrl;
+        }
+
+        public int getConnectTimeout() {
+            return connectTimeout;
+        }
+
+        public void setConnectTimeout(int connectTimeout) {
+            this.connectTimeout = connectTimeout;
+        }
+
+        public int getReadTimeout() {
+            return readTimeout;
+        }
+
+        public void setReadTimeout(int readTimeout) {
+            this.readTimeout = readTimeout;
         }
     }
 }
