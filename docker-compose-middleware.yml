@@ -172,6 +172,9 @@ services:
       - GRPC_PORT=9090
       - JWT_SECRET=abcdefghijklmnopqrstuvwxyz
       - TOKEN_WHITELIST=admin_token,dev_token
+      - SANDBOX_BASE_URL=http://sandbox:8194
+      - SANDBOX_API_KEY=dify-sandbox
+      - SANDBOX_TIMEOUT=30
     # 兼容 Linux 平台（Windows/macOS Docker Desktop 已内置 host.docker.internal）
     extra_hosts:
       - "host.docker.internal:host-gateway"

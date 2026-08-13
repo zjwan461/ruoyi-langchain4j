@@ -52,3 +52,4 @@ logs
 __pycache__
 package-lock.json
 .vscode
+.env

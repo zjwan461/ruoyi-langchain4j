@@ -5,7 +5,8 @@ import os
 
 # JWT 密钥（与 Java 端 token.secret 配置一致）
 JWT_SECRET = os.environ.get("JWT_SECRET", "abcdefghijklmnopqrstuvwxyz")
-TOKEN_WHITELIST = ",".join(os.environ.get("TOKEN_WHITELIST", "admin_token,dev_token"))
+token_env = os.environ.get("TOKEN_WHITELIST", "admin_token,dev_token")
+TOKEN_WHITELIST = [t.strip() for t in token_env.split(",") if t.strip()]
 
 bearer_security = HTTPBearer(auto_error=False)
 
@@ -25,10 +26,11 @@ async def verify_token(
     if auth_token is None:
         raise HTTPException(status_code=401, detail="未提供认证令牌")
 
-    if TOKEN_WHITELIST and auth_token in TOKEN_WHITELIST:
-        return {"user_id": "admin", "login_user_key": "admin"}
 
     token = auth_token.credentials
+    if TOKEN_WHITELIST and token in TOKEN_WHITELIST:
+        return {"user_id": "admin", "login_user_key": "admin"}
+
     try:
         # 使用 HS512 算法解析 JWT（与 Java 端 SignatureAlgorithm.HS512 一致）
         claims = jwt.decode(token, JWT_SECRET, algorithms=["HS512"])
