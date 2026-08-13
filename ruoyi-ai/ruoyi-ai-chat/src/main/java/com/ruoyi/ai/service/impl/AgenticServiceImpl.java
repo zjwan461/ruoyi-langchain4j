@@ -2,7 +2,6 @@ package com.ruoyi.ai.service.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.annotation.Resource;
 
 import org.springframework.stereotype.Service;
@@ -17,11 +16,11 @@ import com.ruoyi.ai.util.AgenticRequestUtil;
 import com.ruoyi.ai.util.AgenticRequestUtil.AgenticChatRequest;
 import com.ruoyi.ai.util.Base64DataUriUtil;
 import com.ruoyi.ai.util.Constants;
-import com.ruoyi.common.utils.ServletUtils;
 import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.framework.web.service.TokenService;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.thread.ThreadUtil;
 import reactor.core.publisher.Flux;
 
 @Service
@@ -61,19 +60,27 @@ public class AgenticServiceImpl implements AgenticService {
                 }
             }
         }
-        String token = tokenService.getToken(ServletUtils.getRequest());
+        String token = Constants.AGENTIC_TOKEN;
         return Flux.create(fluxSink -> {
-            agenticRequestUtil.chatStreaming(token,
-                    AgenticChatRequest.of(agentFlow.getId(), promptBuilder.toString(), clientId, sessionId,
-                            enableWebSearch, images),
-                    response -> {
-                        try {
-                            System.out.println(response);
-                            fluxSink.next(objectMapper.writeValueAsString(response));
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+            ThreadUtil.execute(() -> {
+                try {
+                    agenticRequestUtil.chatStreaming(token,
+                            AgenticChatRequest.of(agentFlow.getId(), promptBuilder.toString(), clientId, sessionId,
+                                    enableWebSearch, images),
+                            response -> {
+                                try {
+                                    fluxSink.next(objectMapper.writeValueAsString(response));
+                                } catch (JsonProcessingException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
+
+                } catch (Exception e) {
+                    fluxSink.error(e);
+                } finally {
+                    fluxSink.complete();
+                }
+            });
 
         });
     }

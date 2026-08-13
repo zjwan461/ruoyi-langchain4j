@@ -107,4 +107,7 @@ public interface Constants {
             SubAgent **%s** reply:
             %s
             """;
+
+
+    String AGENTIC_TOKEN = "admin_token";
 }

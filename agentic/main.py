@@ -60,7 +60,7 @@ async def stream_ai_response() -> AsyncGenerator[str, None]:
         chunk = "".join(chars[idx : idx + take_count])
         idx += take_count
 
-        chunk_obj = {"msg", chunk}
+        chunk_obj = {"msg": chunk}
         chunk_str = json.dumps(chunk_obj)
         # SSE标准格式：data: {内容}\n\n
         yield f"data: {chunk_str}\n\n"

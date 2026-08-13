@@ -323,5 +323,11 @@ public class AgenticRequestUtil {
         public void setMsg(String msg) {
             this.msg = msg;
         }
+
+        @Override
+        public String toString() {
+            return "AgenticChatResponse [msg=" + msg + "]";
+        }
+
     }
 }
