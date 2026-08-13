@@ -33,8 +33,22 @@ message ListModelResponse {
   repeated Model modelList = 1;
 }
 
+// 根据ID查询模型请求
+message GetModelByIdRequest {
+  // 模型ID
+  int64 modelId = 1;
+}
+
+// 根据ID查询模型响应
+message GetModelByIdResponse {
+  // 模型信息
+  Model model = 1;
+}
+
 // gRPC服务定义
 service ModelGrpcService {
   // 查询模型列表，无入参，返回模型数组
   rpc ListModel (ListModelRequest) returns (ListModelResponse);
+  // 根据ID查询模型
+  rpc GetModelById (GetModelByIdRequest) returns (GetModelByIdResponse);
 }

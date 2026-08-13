@@ -40,7 +40,7 @@ REM 3. 确保输出目录存在
 if not exist grpc_generated mkdir grpc_generated
 
 REM 4. 执行 protoc 生成命令
-echo 正在生成代码...
+echo 正在生成 Model 服务代码...
 python -m grpc_tools.protoc ^
     -I proto ^
     --python_out=grpc_generated ^
@@ -49,14 +49,52 @@ python -m grpc_tools.protoc ^
 
 if errorlevel 1 (
     echo.
-    echo [错误] 生成失败，请检查上方日志。
+    echo [错误] Model 服务代码生成失败，请检查上方日志。
     pause
     exit /b 1
 )
 
-echo.
 echo [成功] 已生成 grpc_generated\model_service_pb2.py
 echo [成功] 已生成 grpc_generated\model_service_pb2_grpc.py
+
 echo.
+echo 正在生成 AgentFlow 服务代码...
+python -m grpc_tools.protoc ^
+    -I proto ^
+    --python_out=grpc_generated ^
+    --grpc_python_out=grpc_generated ^
+    proto\agent_flow_service.proto
+
+if errorlevel 1 (
+    echo.
+    echo [错误] AgentFlow 服务代码生成失败，请检查上方日志。
+    pause
+    exit /b 1
+)
+
+echo [成功] 已生成 grpc_generated\agent_flow_service_pb2.py
+echo [成功] 已生成 grpc_generated\agent_flow_service_pb2_grpc.py
+
+echo.
+echo 正在生成 AIAgent 服务代码...
+python -m grpc_tools.protoc ^
+    -I proto ^
+    --python_out=grpc_generated ^
+    --grpc_python_out=grpc_generated ^
+    proto\ai_agent_service.proto
+
+if errorlevel 1 (
+    echo.
+    echo [错误] AIAgent 服务代码生成失败，请检查上方日志。
+    pause
+    exit /b 1
+)
+
+echo [成功] 已生成 grpc_generated\ai_agent_service_pb2.py
+echo [成功] 已生成 grpc_generated\ai_agent_service_pb2_grpc.py
+echo.
+echo ========================================
+echo   所有 gRPC 代码生成完成！
+echo ========================================
 pause
 endlocal

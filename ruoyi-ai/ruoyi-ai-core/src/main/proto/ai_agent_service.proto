@@ -1,0 +1,127 @@
+syntax = "proto3";
+package com.ruoyi.ai.service.grpc;
+// 生成代码包名（Java专用）
+option java_multiple_files = true;
+option java_package = "com.ruoyi.ai.service.grpc.impl";
+option java_outer_classname = "AiAgentServiceGrpc";
+
+// AgentTool实体
+message AgentTool {
+  int64 id = 1;
+  // 工具名称
+  string toolName = 2;
+  // 工具类型：builtin,sandbox
+  string toolType = 3;
+  // 工具代码，仅sandbox类型有值
+  string code = 4;
+  // 内置工具全类名，仅builtin类型有值
+  string clazz = 5;
+  // 工具描述
+  string description = 6;
+  // 工具参数定义
+  string parameters = 7;
+}
+
+// AgentSkill实体
+message AgentSkill {
+  int64 id = 1;
+  // skill名称
+  string skillName = 2;
+  // skill描述
+  string skillDescription = 3;
+  // skill内容
+  string skillContent = 4;
+  // skill类型
+  string skillType = 5;
+}
+
+// AIAgent实体，对应Java AIAgent实体
+message AiAgent {
+  int64 id = 1;
+  // 应用名
+  string name = 2;
+  // 知识库ID
+  string kbIds = 3;
+  // 知识库名
+  string kbNames = 4;
+  // 系统提示词
+  string systemMessage = 5;
+  // 记忆轮次
+  int32 memoryCount = 6;
+  // 模型ID
+  int64 modelId = 7;
+  // 模型名
+  string modelName = 8;
+  // 智能体类型
+  string agentType = 9;
+  // 状态
+  int32 status = 10;
+  // 访问链接
+  string visitUrl = 11;
+  // dify应用主键id
+  int64 difyApiId = 12;
+  // dify应用名称
+  string difyApiName = 13;
+  // 单个Client每日访问限制次数
+  int32 dayLmtPerClient = 14;
+  // temperature
+  double temperature = 15;
+  // token最大生成数
+  int32 maxOutputToken = 16;
+  // 提示词模板
+  string promptTemplate = 17;
+  // 知识库查询最小得分
+  double minScore = 18;
+  // 知识库查询最多条数
+  int32 maxResult = 19;
+  // 智能体描述
+  string description = 20;
+  // 工具ID列表
+  string toolIds = 21;
+  // 工具名称列表
+  string toolNames = 22;
+  // 工具列表
+  repeated AgentTool agentTools = 23;
+  // 技能ID列表
+  string skillIds = 24;
+  // 技能名称列表
+  string skillNames = 25;
+  // 技能列表
+  repeated AgentSkill agentSkills = 26;
+  // MCP工具ID列表
+  string mcpToolIds = 27;
+  // MCP工具名称列表
+  string mcpToolNames = 28;
+  // 是否显示推理过程
+  bool showReasoning = 29;
+  // 是否开启流式记忆
+  bool flowMemory = 30;
+  // 智能体节点ID
+  string agentNodeId = 31;
+  // 是否根智能体
+  bool isRootAgent = 32;
+  // 是否开启联网搜索
+  bool webSearch = 33;
+  // 联网搜索次数
+  int32 webSearchCount = 34;
+}
+
+// 根据ID查询AIAgent请求
+message GetAiAgentByIdRequest {
+  // AIAgent ID
+  int64 agentId = 1;
+}
+
+// 根据ID查询AIAgent响应
+message GetAiAgentByIdResponse {
+  // AIAgent信息
+  AiAgent agent = 1;
+}
+
+// gRPC服务定义
+service AiAgentGrpcService {
+  // 根据ID查询AIAgent（不含tool/skill详情）
+  rpc GetAiAgentById (GetAiAgentByIdRequest) returns (GetAiAgentByIdResponse);
+  // 根据ID查询AIAgent（含tool和skill详情）
+  rpc GetAiAgentWithToolAndSkillById (GetAiAgentByIdRequest) returns (GetAiAgentByIdResponse);
+}

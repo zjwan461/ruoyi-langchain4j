@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13model_service.proto\x12\x19\x63om.ruoyi.ai.service.grpc\"\x8f\x01\n\x05Model\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07\x62\x61seUrl\x18\x03 \x01(\t\x12\x0e\n\x06\x61piKey\x18\x04 \x01(\t\x12\x13\n\x0btemperature\x18\x05 \x01(\x01\x12\x16\n\x0emaxOutputToken\x18\x06 \x01(\x05\x12\x0c\n\x04type\x18\x07 \x01(\x05\x12\x10\n\x08provider\x18\x08 \x01(\t\"\x12\n\x10ListModelRequest\"H\n\x11ListModelResponse\x12\x33\n\tmodelList\x18\x01 \x03(\x0b\x32 .com.ruoyi.ai.service.grpc.Model2z\n\x10ModelGrpcService\x12\x66\n\tListModel\x12+.com.ruoyi.ai.service.grpc.ListModelRequest\x1a,.com.ruoyi.ai.service.grpc.ListModelResponseB4\n\x1e\x63om.ruoyi.ai.service.grpc.implB\x10ModelServiceGrpcP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13model_service.proto\x12\x19\x63om.ruoyi.ai.service.grpc\"\x8f\x01\n\x05Model\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x07\x62\x61seUrl\x18\x03 \x01(\t\x12\x0e\n\x06\x61piKey\x18\x04 \x01(\t\x12\x13\n\x0btemperature\x18\x05 \x01(\x01\x12\x16\n\x0emaxOutputToken\x18\x06 \x01(\x05\x12\x0c\n\x04type\x18\x07 \x01(\x05\x12\x10\n\x08provider\x18\x08 \x01(\t\"\x12\n\x10ListModelRequest\"H\n\x11ListModelResponse\x12\x33\n\tmodelList\x18\x01 \x03(\x0b\x32 .com.ruoyi.ai.service.grpc.Model\"&\n\x13GetModelByIdRequest\x12\x0f\n\x07modelId\x18\x01 \x01(\x03\"G\n\x14GetModelByIdResponse\x12/\n\x05model\x18\x01 \x01(\x0b\x32 .com.ruoyi.ai.service.grpc.Model2\xeb\x01\n\x10ModelGrpcService\x12\x66\n\tListModel\x12+.com.ruoyi.ai.service.grpc.ListModelRequest\x1a,.com.ruoyi.ai.service.grpc.ListModelResponse\x12o\n\x0cGetModelById\x12..com.ruoyi.ai.service.grpc.GetModelByIdRequest\x1a/.com.ruoyi.ai.service.grpc.GetModelByIdResponseB4\n\x1e\x63om.ruoyi.ai.service.grpc.implB\x10ModelServiceGrpcP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,6 +38,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LISTMODELREQUEST']._serialized_end=214
   _globals['_LISTMODELRESPONSE']._serialized_start=216
   _globals['_LISTMODELRESPONSE']._serialized_end=288
-  _globals['_MODELGRPCSERVICE']._serialized_start=290
-  _globals['_MODELGRPCSERVICE']._serialized_end=412
+  _globals['_GETMODELBYIDREQUEST']._serialized_start=290
+  _globals['_GETMODELBYIDREQUEST']._serialized_end=328
+  _globals['_GETMODELBYIDRESPONSE']._serialized_start=330
+  _globals['_GETMODELBYIDRESPONSE']._serialized_end=401
+  _globals['_MODELGRPCSERVICE']._serialized_start=404
+  _globals['_MODELGRPCSERVICE']._serialized_end=639
 # @@protoc_insertion_point(module_scope)

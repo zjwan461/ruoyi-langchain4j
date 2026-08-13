@@ -1,0 +1,41 @@
+syntax = "proto3";
+package com.ruoyi.ai.service.grpc;
+// 生成代码包名（Java专用）
+option java_multiple_files = true;
+option java_package = "com.ruoyi.ai.service.grpc.impl";
+option java_outer_classname = "AgentFlowServiceGrpc";
+
+// AgentFlow实体，对应Java AgentFlow实体
+message AgentFlow {
+  int64 id = 1;
+  // agent flow名称
+  string agentFlowName = 2;
+  // agent flow的json
+  string flowJson = 3;
+  // 状态
+  int32 status = 4;
+  // 单个Client每日访问限制次数
+  int32 dayLmtPerClient = 5;
+  // 访问URL
+  string visitUrl = 6;
+  // 实现类型
+  string implType = 7;
+}
+
+// 根据ID查询AgentFlow请求
+message GetAgentFlowByIdRequest {
+  // AgentFlow ID
+  int64 agentFlowId = 1;
+}
+
+// 根据ID查询AgentFlow响应
+message GetAgentFlowByIdResponse {
+  // AgentFlow信息
+  AgentFlow agentFlow = 1;
+}
+
+// gRPC服务定义
+service AgentFlowGrpcService {
+  // 根据ID查询AgentFlow
+  rpc GetAgentFlowById (GetAgentFlowByIdRequest) returns (GetAgentFlowByIdResponse);
+}

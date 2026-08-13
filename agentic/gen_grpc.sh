@@ -30,13 +30,39 @@ fi
 mkdir -p grpc_generated
 
 # 4. 执行 protoc 生成命令
-echo "正在生成代码..."
+echo "正在生成 Model 服务代码..."
 python -m grpc_tools.protoc \
     -I proto \
     --python_out=grpc_generated \
     --grpc_python_out=grpc_generated \
     proto/model_service.proto
 
-echo
 echo "[成功] 已生成 grpc_generated/model_service_pb2.py"
 echo "[成功] 已生成 grpc_generated/model_service_pb2_grpc.py"
+
+echo
+echo "正在生成 AgentFlow 服务代码..."
+python -m grpc_tools.protoc \
+    -I proto \
+    --python_out=grpc_generated \
+    --grpc_python_out=grpc_generated \
+    proto/agent_flow_service.proto
+
+echo "[成功] 已生成 grpc_generated/agent_flow_service_pb2.py"
+echo "[成功] 已生成 grpc_generated/agent_flow_service_pb2_grpc.py"
+
+echo
+echo "正在生成 AIAgent 服务代码..."
+python -m grpc_tools.protoc \
+    -I proto \
+    --python_out=grpc_generated \
+    --grpc_python_out=grpc_generated \
+    proto/ai_agent_service.proto
+
+echo "[成功] 已生成 grpc_generated/ai_agent_service_pb2.py"
+echo "[成功] 已生成 grpc_generated/ai_agent_service_pb2_grpc.py"
+
+echo
+echo "========================================"
+echo "  所有 gRPC 代码生成完成！"
+echo "========================================"

@@ -40,6 +40,11 @@ class ModelGrpcServiceStub:
                 request_serializer=model__service__pb2.ListModelRequest.SerializeToString,
                 response_deserializer=model__service__pb2.ListModelResponse.FromString,
                 _registered_method=True)
+        self.GetModelById = channel.unary_unary(
+                '/com.ruoyi.ai.service.grpc.ModelGrpcService/GetModelById',
+                request_serializer=model__service__pb2.GetModelByIdRequest.SerializeToString,
+                response_deserializer=model__service__pb2.GetModelByIdResponse.FromString,
+                _registered_method=True)
 
 
 class ModelGrpcServiceServicer:
@@ -53,6 +58,13 @@ class ModelGrpcServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetModelById(self, request, context):
+        """根据ID查询模型
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ModelGrpcServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -60,6 +72,11 @@ def add_ModelGrpcServiceServicer_to_server(servicer, server):
                     servicer.ListModel,
                     request_deserializer=model__service__pb2.ListModelRequest.FromString,
                     response_serializer=model__service__pb2.ListModelResponse.SerializeToString,
+            ),
+            'GetModelById': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetModelById,
+                    request_deserializer=model__service__pb2.GetModelByIdRequest.FromString,
+                    response_serializer=model__service__pb2.GetModelByIdResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -90,6 +107,33 @@ class ModelGrpcService:
             '/com.ruoyi.ai.service.grpc.ModelGrpcService/ListModel',
             model__service__pb2.ListModelRequest.SerializeToString,
             model__service__pb2.ListModelResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetModelById(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/com.ruoyi.ai.service.grpc.ModelGrpcService/GetModelById',
+            model__service__pb2.GetModelByIdRequest.SerializeToString,
+            model__service__pb2.GetModelByIdResponse.FromString,
             options,
             channel_credentials,
             insecure,
