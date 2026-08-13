@@ -202,6 +202,8 @@ services:
       # gRPC 服务端指向 ruoyi-admin 容器，端口与 ruoyi-admin 的 grpc.server.port 一致
       - GRPC_HOST=ruoyi-admin
       - GRPC_PORT=9090
+      - JWT_SECRET=abcdefghijklmnopqrstuvwxyz
+      - TOKEN_WHITELIST=admin_token,dev_token
     depends_on:
       ruoyi-admin:
         condition: service_started

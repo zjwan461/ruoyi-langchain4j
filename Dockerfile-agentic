@@ -22,6 +22,7 @@ COPY agentic/requirements.txt .
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 COPY agentic/ .
+RUN sh gen_grpc.sh
 
 # ========== 最终运行镜像，完全继承文件，但不带构建工具 ==========
 FROM python:3.11-slim

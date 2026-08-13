@@ -4,7 +4,7 @@ from tavily import TavilyClient
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend
 from langchain.tools import tool
-from constant import llm
+from .constant import llm
 
 tavily_client = TavilyClient(api_key="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")
 

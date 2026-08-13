@@ -170,6 +170,8 @@ services:
       # 本地中间件编排不含 ruoyi-admin，需要通过 host.docker.internal 访问宿主机进程
       - GRPC_HOST=host.docker.internal
       - GRPC_PORT=9090
+      - JWT_SECRET=abcdefghijklmnopqrstuvwxyz
+      - TOKEN_WHITELIST=admin_token,dev_token
     # 兼容 Linux 平台（Windows/macOS Docker Desktop 已内置 host.docker.internal）
     extra_hosts:
       - "host.docker.internal:host-gateway"
