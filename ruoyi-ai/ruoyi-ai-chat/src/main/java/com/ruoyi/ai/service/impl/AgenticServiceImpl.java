@@ -65,7 +65,8 @@ public class AgenticServiceImpl implements AgenticService {
             ThreadUtil.execute(() -> {
                 try {
                     agenticRequestUtil.chatStreaming(token,
-                            AgenticChatRequest.of(agentFlow.getId(), promptBuilder.toString(), clientId, sessionId,
+                            AgenticChatRequest.of(agentFlow.getId(), agentFlow.getAgentFlowName(),
+                                    agentFlow.getFlowJson(), promptBuilder.toString(), clientId, sessionId,
                                     enableWebSearch, images),
                             response -> {
                                 try {

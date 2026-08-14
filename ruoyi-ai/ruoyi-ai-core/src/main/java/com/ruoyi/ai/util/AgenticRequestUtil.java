@@ -1,6 +1,7 @@
 package com.ruoyi.ai.util;
 
 import cn.hutool.core.lang.Assert;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.config.AiConfig;
@@ -231,6 +232,8 @@ public class AgenticRequestUtil {
      */
     public static class AgenticChatRequest {
         private Long agent_flow_id;
+        private String flow_json;
+        private String flow_name;
         private String prompt;
         private String client_id;
         private String session_id;
@@ -285,13 +288,32 @@ public class AgenticRequestUtil {
             this.images = images;
         }
 
+        public String getFlow_json() {
+            return flow_json;
+        }
+
+        public void setFlow_json(String flow_json) {
+            this.flow_json = flow_json;
+        }
+
+        public String getFlow_name() {
+            return flow_name;
+        }
+
+        public void setFlow_name(String flow_name) {
+            this.flow_name = flow_name;
+        }
+
         /**
          * 便捷构造方法
          */
-        public static AgenticChatRequest of(Long agentFlowId, String prompt,
-                String clientId, String sessionId, Boolean webSearch, List<String> images) {
+        public static AgenticChatRequest of(Long agentFlowId, String agentFlowName, String flowJson, String prompt,
+                String clientId, String sessionId, Boolean webSearch,
+                List<String> images) {
             AgenticChatRequest req = new AgenticChatRequest();
             req.setAgent_flow_id(agentFlowId);
+            req.setFlow_name(agentFlowName);
+            req.setFlow_json(flowJson);
             req.setPrompt(prompt);
             req.setClient_id(clientId);
             req.setSession_id(sessionId);
@@ -307,14 +329,49 @@ public class AgenticRequestUtil {
      * Agentic SSE 流式响应体，与 Python 端返回的 JSON 对齐。
      *
      * <p>
-     * Python 端返回格式：{@code {"msg": "chunk text"}}，流结束时发送 {@code data: [DONE]}
+     * Python 端返回格式：
+     * <ul>
+     *   <li>文本：{@code {"msg": "chunk text", "agentId": 1, "agentName": "Jarvis"}}</li>
+     *   <li>工具调用开始：{@code {"tool_call": {"toolName": "xxx"}, "agentId": 1, "agentName": "Jarvis"}}</li>
+     *   <li>工具调用完成：{@code {"tool_called": {"toolName": "xxx", "toolInvokeResult": "yyy"}, "agentId": 1, "agentName": "Jarvis"}}</li>
+     *   <li>错误：{@code {"error": {"message": "..."}}}</li>
+     * </ul>
+     * 流结束时发送 {@code data: [DONE]}
      * </p>
      */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class AgenticChatResponse {
         /**
          * 消息内容片段
          */
+        
         private String msg;
+
+        /**
+         * 当前 Agent ID
+         */
+        private Long agentId;
+
+        /**
+         * 当前 Agent 名称
+         */
+        
+        private String agentName;
+
+        /**
+         * 工具调用开始事件：{"toolName": "xxx"}
+         */
+        private ToolCallInfo tool_call;
+
+        /**
+         * 工具调用完成事件：{"toolName": "xxx", "toolInvokeResult": "yyy"}
+         */
+        private ToolCalledInfo tool_called;
+
+        /**
+         * 错误事件：{"message": "..."}
+         */
+        private ErrorInfo error;
 
         public String getMsg() {
             return msg;
@@ -324,10 +381,126 @@ public class AgenticRequestUtil {
             this.msg = msg;
         }
 
-        @Override
-        public String toString() {
-            return "AgenticChatResponse [msg=" + msg + "]";
+        public Long getAgentId() {
+            return agentId;
         }
 
+        public void setAgentId(Long agentId) {
+            this.agentId = agentId;
+        }
+
+        public String getAgentName() {
+            return agentName;
+        }
+
+        public void setAgentName(String agentName) {
+            this.agentName = agentName;
+        }
+
+        public ToolCallInfo getTool_call() {
+            return tool_call;
+        }
+
+        public void setTool_call(ToolCallInfo tool_call) {
+            this.tool_call = tool_call;
+        }
+
+        public ToolCalledInfo getTool_called() {
+            return tool_called;
+        }
+
+        public void setTool_called(ToolCalledInfo tool_called) {
+            this.tool_called = tool_called;
+        }
+
+        public ErrorInfo getError() {
+            return error;
+        }
+
+        public void setError(ErrorInfo error) {
+            this.error = error;
+        }
+
+        @Override
+        public String toString() {
+            return "AgenticChatResponse [msg=" + msg + ", agentId=" + agentId + ", agentName=" + agentName
+                    + ", tool_call=" + tool_call + ", tool_called=" + tool_called + ", error=" + error + "]";
+        }
+    }
+
+    /**
+     * 工具调用开始信息
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ToolCallInfo {
+        
+        private String toolName;
+
+        public String getToolName() {
+            return toolName;
+        }
+
+        public void setToolName(String toolName) {
+            this.toolName = toolName;
+        }
+
+        @Override
+        public String toString() {
+            return "ToolCallInfo [toolName=" + toolName + "]";
+        }
+    }
+
+    /**
+     * 工具调用完成信息
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ToolCalledInfo {
+        
+        private String toolName;
+        
+        private String toolInvokeResult;
+
+        public String getToolName() {
+            return toolName;
+        }
+
+        public void setToolName(String toolName) {
+            this.toolName = toolName;
+        }
+
+        public String getToolInvokeResult() {
+            return toolInvokeResult;
+        }
+
+        public void setToolInvokeResult(String toolInvokeResult) {
+            this.toolInvokeResult = toolInvokeResult;
+        }
+
+        @Override
+        public String toString() {
+            return "ToolCalledInfo [toolName=" + toolName + ", toolInvokeResult=" + toolInvokeResult + "]";
+        }
+    }
+
+    /**
+     * 错误信息
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class ErrorInfo {
+        
+        private String message;
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        @Override
+        public String toString() {
+            return "ErrorInfo [message=" + message + "]";
+        }
     }
 }

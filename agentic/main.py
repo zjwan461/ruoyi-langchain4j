@@ -7,10 +7,12 @@ from pydantic import BaseModel, Field
 
 from grpc_client import init_grpc_client, close_grpc_client, get_grpc_client
 from service.auth import verify_token
+from service.deepagent_chat_service import get_deep_agent_chat_service
 import random
 import asyncio
 import json
 from logger_config import logger
+from util.flow_tree_parser import parser, TreeNode
 
 # gRPC 服务端配置
 GRPC_HOST = os.environ.get("GRPC_HOST", "127.0.0.1")
@@ -32,6 +34,8 @@ app = FastAPI(title="Agentic Agent Service", lifespan=lifespan)
 
 class ChatReq(BaseModel):
     agent_flow_id: int = Field(description="智能体流程ID")
+    flow_json: str = Field(description="Agent flow的json结构数据")
+    flow_name: str = Field(description="Agent flow名称")
     prompt: str = Field(description="用户输入提示词")
     client_id: str = Field(description="客户端标识")
     session_id: str = Field(description="会话唯一ID")
@@ -80,16 +84,40 @@ async def chat_completion(
     logger.info(
         f"收到对话请求｜用户:{user}｜会话ID:{body.session_id}｜联网检索:{body.web_search}"
     )
+    mock_enable = bool(os.getenv("MOCK_EANBLE", "false") == "true")
 
-    return StreamingResponse(
-        stream_ai_response(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",  # 关闭Nginx缓冲，生产环境必备
-        },
-    )
+    if mock_enable:
+        return StreamingResponse(
+            stream_ai_response(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",  # 关闭Nginx缓冲，生产环境必备
+            },
+        )
+    else:
+        # 构建 TreeNode 结构，根据 TreeNode 结构创建 deep agents（嵌套子 agent）
+        tree_node: TreeNode = parser.parse_to_tree(body.flow_json)
+        
+        # 获取 DeepAgent 对话服务并执行流式对话
+        chat_service = get_deep_agent_chat_service()
+        
+        return StreamingResponse(
+            chat_service.chat_stream(
+                tree_node=tree_node,
+                prompt=body.prompt,
+                session_id=body.session_id,
+                images=body.images,
+                web_search=body.web_search,
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",  # 关闭Nginx缓冲，生产环境必备
+            },
+        )
 
 
 @app.get("/models", response_model=List[Dict[str, Any]])
