@@ -99,10 +99,10 @@ async def chat_completion(
     else:
         # 构建 TreeNode 结构，根据 TreeNode 结构创建 deep agents（嵌套子 agent）
         tree_node: TreeNode = parser.parse_to_tree(body.flow_json)
-        
+
         # 获取 DeepAgent 对话服务并执行流式对话
         chat_service = get_deep_agent_chat_service()
-        
+
         return StreamingResponse(
             chat_service.chat_stream(
                 tree_node=tree_node,
@@ -118,19 +118,6 @@ async def chat_completion(
                 "X-Accel-Buffering": "no",  # 关闭Nginx缓冲，生产环境必备
             },
         )
-
-
-@app.get("/models", response_model=List[Dict[str, Any]])
-async def list_models(user=Depends(verify_token)):
-    """
-    获取模型列表（通过 gRPC 调用 Java 后端）
-    """
-    try:
-        client = get_grpc_client()
-        models = client.list_models()
-        return models
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取模型列表失败: {str(e)}")
 
 
 @app.get("/health", summary="健康检查接口")

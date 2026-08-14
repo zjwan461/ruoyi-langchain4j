@@ -179,6 +179,12 @@ services:
     # 兼容 Linux 平台（Windows/macOS Docker Desktop 已内置 host.docker.internal）
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8142/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - middleware-net
 
