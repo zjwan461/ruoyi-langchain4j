@@ -96,6 +96,9 @@ class DeepAgentChatService:
             task_args_buffer = ""
             in_task_call = False
 
+            # 已发送 tool_call 事件的工具调用 ID 集合，用于去重
+            sent_tool_call_ids = set()
+
             # 构建输入消息
             messages = self._build_messages(prompt, images)
 
@@ -114,95 +117,109 @@ class DeepAgentChatService:
                 # 检查是否进入 tools 节点（子 Agent 执行）
                 langgraph_node = metadata.get("langgraph_node", "")
 
-                # 遍历 content_blocks
-                for block in content_blocks:
-                    if not isinstance(block, dict):
-                        continue
+                # 判断消息类型：ToolMessage 有 name 属性，AIMessage 没有
+                is_tool_message = hasattr(msg_chunk, "name") and msg_chunk.name
 
-                    block_type = block.get("type")
-
-                    if block_type == "text":
-                        # 文本内容块
-                        text = block.get("text", "")
-                        if text and show_reasoning:
-                            yield self._format_sse_text(
-                                text,
+                if is_tool_message:
+                    # ToolMessage：工具执行结果，通过 tool_called 输出
+                    tool_id = msg_chunk.tool_call_id
+                    tool_name = msg_chunk.name
+                    tool_content = msg_chunk.content if hasattr(msg_chunk, "content") else ""
+                    logger.info(f"工具： {tool_name}, tool_id: {tool_id} 执行完成")
+                    if tool_id in sent_tool_call_ids:
+                        if show_reasoning:
+                            yield self._format_sse_tool_result(
+                                tool_name,
+                                tool_content,
                                 agent_id=current_agent_id,
                                 agent_name=current_agent_name,
                             )
+                            sent_tool_call_ids.remove(tool_id)
+                else:
+                    # AIMessage：正常推理输出
+                    # 遍历 content_blocks
+                    for block in content_blocks:
+                        if not isinstance(block, dict):
+                            continue
 
-                    elif block_type == "tool_call_chunk":
-                        # 工具调用分片
-                        tool_name = block.get("name")
-                        tool_args = block.get("args", "")
+                        block_type = block.get("type")
 
-                        if tool_name == "task":
-                            # 开始调用 task 工具（切换到子 Agent）
-                            in_task_call = True
-                            task_args_buffer = ""
-                            logger.info("开始调用 task 工具，准备切换到子 Agent")
-
-                        if in_task_call and tool_args:
-                            # 累积 task 工具的 args
-                            task_args_buffer += tool_args
-
-                            # 尝试从片段中提取 subagent_type
-                            match = re.search(
-                                r'"subagent_type":\s*"([^"]*)"', task_args_buffer
-                            )
-                            if match:
-                                subagent_type = match.group(1)
-                                if (
-                                    subagent_type
-                                    and subagent_type != current_agent_name
-                                ):
-                                    # 从映射中查找 agentId
-                                    agent_info = agent_name_map.get(subagent_type)
-                                    if agent_info:
-                                        current_agent_id = agent_info.get("id")
-                                        current_agent_name = subagent_type
-                                        logger.info(
-                                            f"切换到子 Agent: {subagent_type} (ID: {current_agent_id})"
-                                        )
-
-                        if tool_name and tool_name != "task":
-                            # 其他工具调用
-                            logger.info(f"工具调用: {tool_name}")
-                            if show_reasoning:
-                                yield self._format_sse_tool_call(
-                                    tool_name,
+                        if block_type == "text":
+                            # 文本内容块
+                            text = block.get("text", "")
+                            if text and show_reasoning:
+                                yield self._format_sse_text(
+                                    text,
                                     agent_id=current_agent_id,
                                     agent_name=current_agent_name,
                                 )
 
-                # 检查是否从 tools 节点回到 model 节点（子 Agent 执行完成）
-                if langgraph_node == "model" and in_task_call:
-                    # 子 Agent 执行完成，恢复为主 Agent
-                    in_task_call = False
-                    task_args_buffer = ""
-                    current_agent_id = (
-                        root_agent_info.get("id") if root_agent_info else None
-                    )
-                    current_agent_name = (
-                        root_agent_info.get("name", "主 Agent")
-                        if root_agent_info
-                        else "主 Agent"
-                    )
-                    logger.info(
-                        f"子 Agent 执行完成，恢复为主 Agent: {current_agent_name}"
-                    )
+                        elif block_type == "tool_call_chunk":
+                            # 工具调用分片
+                            tool_name = block.get("name")
+                            tool_args = block.get("args", "")
+                            tool_id = block.get("id", "")
 
-                # 处理工具执行结果（ToolMessage）
-                if hasattr(msg_chunk, "name") and hasattr(msg_chunk, "content"):
-                    if msg_chunk.name:  # ToolMessage
-                        logger.info(f"工具 {msg_chunk.name} 执行完成")
-                        if show_reasoning:
-                            yield self._format_sse_tool_result(
-                                msg_chunk.name,
-                                msg_chunk.content,
-                                agent_id=current_agent_id,
-                                agent_name=current_agent_name,
-                            )
+                            # if tool_name == "task":
+                            #     # 开始调用 task 工具（切换到子 Agent）
+                            #     in_task_call = True
+                            #     task_args_buffer = ""
+                            #     logger.info("开始调用 task 工具，准备切换到子 Agent")
+
+                            # if in_task_call and tool_args:
+                            #     # 累积 task 工具的 args
+                            #     task_args_buffer += tool_args
+
+                            #     # 尝试从片段中提取 subagent_type
+                            #     match = re.search(
+                            #         r'"subagent_type":\s*"([^"]*)"', task_args_buffer
+                            #     )
+                            #     if match:
+                            #         subagent_type = match.group(1)
+                            #         if (
+                            #             subagent_type
+                            #             and subagent_type != current_agent_name
+                            #         ):
+                            #             # 从映射中查找 agentId
+                            #             agent_info = agent_name_map.get(subagent_type)
+                            #             if agent_info:
+                            #                 current_agent_id = agent_info.get("id")
+                            #                 current_agent_name = subagent_type
+                            #                 logger.info(
+                            #                     f"切换到子 Agent: {subagent_type} (ID: {current_agent_id})"
+                            #                 )
+
+                            # if tool_id and tool_name and tool_name != "task":
+                            if tool_id and tool_name:
+                                # 其他工具调用，使用 tool_name 去重
+                                # tool_call_chunk 流式传输时，后续 chunk 的 id 为空字符串，导致 id 去重失效
+                                # 改用 name 去重，确保每个工具名只发送一次 tool_call 事件
+                                if tool_id not in sent_tool_call_ids:
+                                    sent_tool_call_ids.add(tool_id)
+                                    logger.info(f"工具调用：{tool_name}, tool_id: {tool_id}")
+                                    if show_reasoning:
+                                        yield self._format_sse_tool_call(
+                                            tool_name,
+                                            agent_id=current_agent_id,
+                                            agent_name=current_agent_name,
+                                        )
+
+                    # 检查是否从 tools 节点回到 model 节点（子 Agent 执行完成）
+                    if langgraph_node == "model" and in_task_call:
+                        # 子 Agent 执行完成，恢复为主 Agent
+                        in_task_call = False
+                        task_args_buffer = ""
+                        current_agent_id = (
+                            root_agent_info.get("id") if root_agent_info else None
+                        )
+                        current_agent_name = (
+                            root_agent_info.get("name", "主 Agent")
+                            if root_agent_info
+                            else "主 Agent"
+                        )
+                        logger.info(
+                            f"子 Agent 执行完成，恢复为主 Agent: {current_agent_name}"
+                        )
 
             # 流结束标记
             yield "data: [DONE]\n\n"
