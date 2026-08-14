@@ -51,8 +51,14 @@ agent = create_deep_agent(
 
 async def chat():
     async for chunk, metadata in agent.astream(
-        {"messages": [{"role": "user", "content": "当前文件夹中文字最多的python文件是哪一个?"}]},
+        {
+            "messages": [
+                {"role": "user", "content": "当前文件夹中文字最多的python文件是哪一个?"}
+            ]
+        },
         stream_mode="messages",
+        config={"recursion_limit": 10},
+        subgraphs=True
     ):
         # print(metadata['langgraph_node'])
         content = chunk.content_blocks

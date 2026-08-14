@@ -16,11 +16,15 @@ DeepAgent Chat Service - 基于 TreeNode 构建嵌套 Deep Agents 的对话服�
 import json
 import logging
 import re
+from contextvars import ContextVar
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Literal
 
+from langchain.agents.middleware import AgentMiddleware
 from langchain.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph.state import CompiledStateGraph
 from deepagents import create_deep_agent
+from deepagents.graph import DeepAgentState
 
 from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
@@ -34,6 +38,69 @@ _memory_store = InMemorySaver()
 def get_memory_store() -> InMemorySaver:
     """获取全局记忆存储实例"""
     return _memory_store
+
+class JAgentState(DeepAgentState):
+    """扩展 DeepAgentState，添加 agent_id 字段。
+
+    注意：JAgentState 是 TypedDict 子类，不能被实例化。
+    作为 state_schema 传给 create_deep_agent 时必须传类本身，
+    否则会被当作普通 dict，无法作为 dict 的 key 哈希。
+
+    字段语义：
+      agent_id: 当前 LangGraph graph state 中的 agent_id。
+      AgentIdMiddleware 会在每次模型调用前将其覆盖为
+      "当前正在执行的 agent" 的 id —— 子 agent 会覆盖父 agent，
+      这样任意中间件 / 工具可通过 runtime.state["agent_id"]
+      读到当前正在运行的是哪个 agent。
+    """
+    agent_id: int | None
+
+
+# ---------------------------------------------------------------------------
+# agent_name 与 agent_id 的编码 / 解码辅助
+# ---------------------------------------------------------------------------
+# 构建时把 id 拼到 name 末尾（"name#id"），astream 外部循环从
+# metadata["lc_agent_name"] 中 split 得到当前正在输出的 agent 的 id。
+# 这样做避开了 ContextVar / Task 边界 / state 等复杂路径，最简单可靠。
+_AGENT_NAME_SEP = "#"
+
+
+def _encode_agent_name(name: str, agent_id: int) -> str:
+    """构建时把 agent_id 拼到 name 末尾，astream 中可 split 取回 id。"""
+    return f"{name}{_AGENT_NAME_SEP}{agent_id}"
+
+
+def _decode_agent_name(encoded: str) -> Tuple[str, Optional[int]]:
+    """astream 中从 lc_agent_name 还原出 (name, id)。"""
+    if _AGENT_NAME_SEP not in encoded:
+        return encoded, None
+    name_part, _, id_part = encoded.rpartition(_AGENT_NAME_SEP)
+    try:
+        return name_part, int(id_part)
+    except (TypeError, ValueError):
+        return encoded, None
+
+
+class AgentIdMiddleware(AgentMiddleware[Any, Any, Any]):
+    """在每次模型调用前，把当前 agent 的 id 写入 graph state 的 agent_id 字段。
+
+    使用场景：
+      构建 agent / subagent 时通过闭包传入该 agent 的 agent_id，
+      这样运行期间（工具 / middleware / 其他节点）可通过
+      `runtime.state["agent_id"]` 读到当前正在执行的是哪个 agent。
+
+    由于中间件在模型调用前执行，在子 agent 重新进入 agent 循环时，
+      子 agent 的 AgentIdMiddleware 会覆盖父 agent 留下的 agent_id，
+      所以每个 agent 在自己的范围内读到的是自己的 id。
+    """
+
+    def __init__(self, agent_id: int) -> None:
+        super().__init__()
+        self._agent_id = agent_id
+
+    def before_model(self, state, runtime):  # type: ignore[override]
+        #    供工具 / middleware 通过 runtime.state["agent_id"] 读取
+        return {"agent_id": self._agent_id}
 
 
 class DeepAgentChatService:
@@ -69,11 +136,8 @@ class DeepAgentChatService:
             SSE 格式的数据流，每个 chunk 包含 agentId 和 agentName
         """
         try:
-            # 收集所有 agent 的 name -> (agentId, agentInfo) 映射
-            agent_name_map = self._collect_agent_name_map(tree_node)
-
             # 构建根 agent（含子 agents）
-            root_agent, root_agent_info = self._build_agent_from_tree_node(
+            root_agent, _ = self._build_agent_from_tree_node(
                 tree_node, web_search
             )
 
@@ -85,16 +149,8 @@ class DeepAgentChatService:
             show_reasoning = True
 
             # 当前 Agent 信息，初始为根 Agent
-            current_agent_id = root_agent_info.get("id") if root_agent_info else None
-            current_agent_name = (
-                root_agent_info.get("name", "主 Agent")
-                if root_agent_info
-                else "主 Agent"
-            )
-
-            # 用于累积 task 工具的 args（解析 subagent_type）
-            task_args_buffer = ""
-            in_task_call = False
+            current_agent_id = tree_node.node.agent_id
+            current_agent_name = tree_node.node.agent_name
 
             # 已发送 tool_call 事件的工具调用 ID 集合，用于去重
             sent_tool_call_ids = set()
@@ -103,19 +159,32 @@ class DeepAgentChatService:
             messages = self._build_messages(prompt, images)
 
             # 配置记忆
-            config = {"configurable": {"thread_id": session_id}}
+            config = {"configurable": {"thread_id": session_id}, "recursion_limit": 10}
 
             # 流式调用 agent
-            async for msg_chunk, metadata in root_agent.astream(
-                {"messages": messages},
+            # 初始 state 同时注入 agent_id（与 JAgentState.state_schema 对齐），
+            # 这样 graph state 中始终携带当前 agent 的 id 供工具 / middleware 读取
+            async for item, chunk in root_agent.astream(
+                {"messages": messages, "agent_id": current_agent_id},
                 config=config,
                 stream_mode="messages",
+                subgraphs=True,
             ):
+                msg_chunk = chunk[0]
+                metadata = chunk[1]
                 # 获取 content_blocks
                 content_blocks = getattr(msg_chunk, "content_blocks", [])
-
+                print(content_blocks, end="---")
+                print(metadata)
                 # 检查是否进入 tools 节点（子 Agent 执行）
-                langgraph_node = metadata.get("langgraph_node", "")
+                lc_agent_name = metadata.get("lc_agent_name", "")
+                if lc_agent_name:
+                    # 构建时把 agent_id 编码进了 name（"name#id"），
+                    # astream 中 split 得到当前正在输出的 agent 的 id。
+                    decoded_name, decoded_id = _decode_agent_name(lc_agent_name)
+                    current_agent_name = decoded_name
+                    if decoded_id is not None:
+                        current_agent_id = decoded_id
 
                 # 判断消息类型：ToolMessage 有 name 属性，AIMessage 没有
                 is_tool_message = hasattr(msg_chunk, "name") and msg_chunk.name
@@ -124,7 +193,9 @@ class DeepAgentChatService:
                     # ToolMessage：工具执行结果，通过 tool_called 输出
                     tool_id = msg_chunk.tool_call_id
                     tool_name = msg_chunk.name
-                    tool_content = msg_chunk.content if hasattr(msg_chunk, "content") else ""
+                    tool_content = (
+                        msg_chunk.content if hasattr(msg_chunk, "content") else ""
+                    )
                     logger.info(f"工具： {tool_name}, tool_id: {tool_id} 执行完成")
                     if tool_id in sent_tool_call_ids:
                         if show_reasoning:
@@ -160,43 +231,15 @@ class DeepAgentChatService:
                             tool_args = block.get("args", "")
                             tool_id = block.get("id", "")
 
-                            # if tool_name == "task":
-                            #     # 开始调用 task 工具（切换到子 Agent）
-                            #     in_task_call = True
-                            #     task_args_buffer = ""
-                            #     logger.info("开始调用 task 工具，准备切换到子 Agent")
-
-                            # if in_task_call and tool_args:
-                            #     # 累积 task 工具的 args
-                            #     task_args_buffer += tool_args
-
-                            #     # 尝试从片段中提取 subagent_type
-                            #     match = re.search(
-                            #         r'"subagent_type":\s*"([^"]*)"', task_args_buffer
-                            #     )
-                            #     if match:
-                            #         subagent_type = match.group(1)
-                            #         if (
-                            #             subagent_type
-                            #             and subagent_type != current_agent_name
-                            #         ):
-                            #             # 从映射中查找 agentId
-                            #             agent_info = agent_name_map.get(subagent_type)
-                            #             if agent_info:
-                            #                 current_agent_id = agent_info.get("id")
-                            #                 current_agent_name = subagent_type
-                            #                 logger.info(
-                            #                     f"切换到子 Agent: {subagent_type} (ID: {current_agent_id})"
-                            #                 )
-
-                            # if tool_id and tool_name and tool_name != "task":
                             if tool_id and tool_name:
                                 # 其他工具调用，使用 tool_name 去重
                                 # tool_call_chunk 流式传输时，后续 chunk 的 id 为空字符串，导致 id 去重失效
                                 # 改用 name 去重，确保每个工具名只发送一次 tool_call 事件
                                 if tool_id not in sent_tool_call_ids:
                                     sent_tool_call_ids.add(tool_id)
-                                    logger.info(f"工具调用：{tool_name}, tool_id: {tool_id}")
+                                    logger.info(
+                                        f"工具调用：{tool_name}, tool_id: {tool_id}"
+                                    )
                                     if show_reasoning:
                                         yield self._format_sse_tool_call(
                                             tool_name,
@@ -204,61 +247,15 @@ class DeepAgentChatService:
                                             agent_name=current_agent_name,
                                         )
 
-                    # 检查是否从 tools 节点回到 model 节点（子 Agent 执行完成）
-                    if langgraph_node == "model" and in_task_call:
-                        # 子 Agent 执行完成，恢复为主 Agent
-                        in_task_call = False
-                        task_args_buffer = ""
-                        current_agent_id = (
-                            root_agent_info.get("id") if root_agent_info else None
-                        )
-                        current_agent_name = (
-                            root_agent_info.get("name", "主 Agent")
-                            if root_agent_info
-                            else "主 Agent"
-                        )
-                        logger.info(
-                            f"子 Agent 执行完成，恢复为主 Agent: {current_agent_name}"
-                        )
-
             # 流结束标记
             yield "data: [DONE]\n\n"
 
         except Exception as e:
             logger.error(f"对话流处理异常: {e}", exc_info=True)
             yield self._format_sse_error(str(e))
-
-    def _collect_agent_name_map(self, tree_node: TreeNode) -> Dict[str, Dict[str, Any]]:
-        """
-        遍历 TreeNode，收集所有 agent 的 name -> agentInfo 映射
-
-        Args:
-            tree_node: 树节点
-
-        Returns:
-            {agent_name: {id, name, ...}} 映射
-        """
-        name_map = {}
-
-        def _collect(node: TreeNode):
-            agent_id = node.node.agent_id
-            if agent_id is not None:
-                agent_info = self.grpc_client.get_ai_agent_with_tool_and_skill_by_id(
-                    agent_id
-                )
-                if agent_info:
-                    agent_name = agent_info.get("name", "")
-                    if agent_name:
-                        name_map[agent_name] = agent_info
-            for child in node.children:
-                _collect(child)
-
-        _collect(tree_node)
-        return name_map
-
     def _build_agent_from_tree_node(
         self, tree_node: TreeNode, web_search: bool = False
-    ) -> Tuple[Optional[Any], Optional[Dict[str, Any]]]:
+    ) -> Tuple[Optional[CompiledStateGraph], Optional[Dict[str, Any]]]:
         """
         根据 TreeNode 递归构建 deep agent
 
@@ -307,11 +304,9 @@ class DeepAgentChatService:
         tools = self._build_tools(agent_info, web_search)
 
         # 构建 system prompt
-        system_prompt = agent_info.get("systemMessage", "")
+        system_prompt = tree_node.node.description
         if not system_prompt:
-            system_prompt = (
-                f"你是一个名为 {agent_info.get('name', 'AI助手')} 的智能助手。"
-            )
+            system_prompt = f"你是一个名为 {tree_node.node.agent_name} 的智能助手。"
 
         # 递归构建子 agents 为 SubAgent spec dicts 或 CompiledSubAgent dicts
         subagents = []
@@ -321,13 +316,20 @@ class DeepAgentChatService:
                 subagents.append(child_spec)
 
         # 创建 deep agent，通过 subagents 参数实现嵌套
+        # 注意：
+        #   1. state_schema 必须传入 TypedDict 类本身，不能传其实例（实例为 dict，不可哈希）
+        #   2. middleware 挂载 AgentIdMiddleware，在每次模型调用前把本 agent 的 id
+        #      写入 state["agent_id"]，供工具 / middleware / subagent 调用时读取
         try:
             agent = create_deep_agent(
                 model=llm,
                 tools=tools,
                 system_prompt=system_prompt,
                 subagents=subagents if subagents else None,
+                middleware=[AgentIdMiddleware(agent_id)],
                 checkpointer=_memory_store,
+                name=_encode_agent_name(tree_node.node.agent_name, agent_id),
+                state_schema=JAgentState,
             )
             # show_reasoning 从 TreeNode 的 AgentNodeData 获取，而非 gRPC agent 信息
             node_show_reasoning = tree_node.node.show_reasoning
@@ -382,8 +384,8 @@ class DeepAgentChatService:
             logger.error(f"无法获取子 agent model 信息，model_id={model_id}")
             return None
 
-        agent_name = agent_info.get("name", f"agent_{agent_id}")
-        agent_description = agent_info.get("description", f"子助手 {agent_name}")
+        agent_name = node.agent_name
+        agent_description = node.description
 
         if not tree_node.children:
             # 叶子节点：构建 SubAgent spec dict，由父级的 create_deep_agent 自动编译
@@ -393,12 +395,14 @@ class DeepAgentChatService:
             tools = self._build_tools(agent_info, web_search)
 
             spec: Dict[str, Any] = {
-                "name": agent_name,
+                "name": _encode_agent_name(agent_name, agent_id),
                 "description": agent_description,
                 "system_prompt": agent_info.get("systemMessage", "")
                 or f"你是一个名为 {agent_name} 的智能助手。",
                 "tools": tools,
                 "model": llm,
+                # 挂载 AgentIdMiddleware，在子 agent 被调用时把其 agent_id 写入 state
+                "middleware": [AgentIdMiddleware(agent_id)],
             }
             logger.info(f"构建 SubAgent spec (叶子): {agent_name} (ID: {agent_id})")
             return spec
@@ -409,7 +413,7 @@ class DeepAgentChatService:
                 return None
 
             compiled_spec: Dict[str, Any] = {
-                "name": agent_name,
+                "name": _encode_agent_name(agent_name, agent_id),
                 "description": agent_description,
                 "runnable": child_agent,
             }
@@ -544,7 +548,10 @@ class DeepAgentChatService:
 
         # 动态创建工具函数，通过闭包捕获变量
         def _make_sandbox_tool(name: str, desc: str, src_code: str):
-            @tool(name=name, description=desc or f"执行 {name} 工具")
+            # langchain 1.3.x 中 tool() 装饰器的签名：
+            #   tool(name_or_callable, runnable=None, *args, description=None, ...)
+            # name 仅支持作为第一个位置参数传入，不支持作为关键字参数。
+            @tool(name, description=desc or f"执行 {name} 工具")
             def sandbox_tool(**kwargs) -> str:
                 """执行沙箱代码"""
                 try:
