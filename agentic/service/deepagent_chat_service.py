@@ -12,10 +12,11 @@ DeepAgent Chat Service - 基于 TreeNode 构建嵌套 Deep Agents 的对话服�
 - 支持 SSE 流式输出（每个 chunk 包含 agentId 和 agentName）
 - 始终使用 InMemorySaver 进行对话记忆
 """
+
 import json
 import logging
 import re
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Literal
 
 from langchain.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
@@ -25,7 +26,6 @@ from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
 from sandbox.sandbox_tool import run_python_code, check_sandbox_health
 from logger_config import logger
-
 
 # 全局记忆存储（进程级别共享），始终启用
 _memory_store = InMemorySaver()
@@ -73,7 +73,9 @@ class DeepAgentChatService:
             agent_name_map = self._collect_agent_name_map(tree_node)
 
             # 构建根 agent（含子 agents）
-            root_agent, root_agent_info = self._build_agent_from_tree_node(tree_node, web_search)
+            root_agent, root_agent_info = self._build_agent_from_tree_node(
+                tree_node, web_search
+            )
 
             if root_agent is None:
                 yield self._format_sse_error("无法构建根 Agent")
@@ -84,7 +86,11 @@ class DeepAgentChatService:
 
             # 当前 Agent 信息，初始为根 Agent
             current_agent_id = root_agent_info.get("id") if root_agent_info else None
-            current_agent_name = root_agent_info.get("name", "主 Agent") if root_agent_info else "主 Agent"
+            current_agent_name = (
+                root_agent_info.get("name", "主 Agent")
+                if root_agent_info
+                else "主 Agent"
+            )
 
             # 用于累积 task 工具的 args（解析 subagent_type）
             task_args_buffer = ""
@@ -141,16 +147,23 @@ class DeepAgentChatService:
                             task_args_buffer += tool_args
 
                             # 尝试从片段中提取 subagent_type
-                            match = re.search(r'"subagent_type":\s*"([^"]*)"', task_args_buffer)
+                            match = re.search(
+                                r'"subagent_type":\s*"([^"]*)"', task_args_buffer
+                            )
                             if match:
                                 subagent_type = match.group(1)
-                                if subagent_type and subagent_type != current_agent_name:
+                                if (
+                                    subagent_type
+                                    and subagent_type != current_agent_name
+                                ):
                                     # 从映射中查找 agentId
                                     agent_info = agent_name_map.get(subagent_type)
                                     if agent_info:
                                         current_agent_id = agent_info.get("id")
                                         current_agent_name = subagent_type
-                                        logger.info(f"切换到子 Agent: {subagent_type} (ID: {current_agent_id})")
+                                        logger.info(
+                                            f"切换到子 Agent: {subagent_type} (ID: {current_agent_id})"
+                                        )
 
                         if tool_name and tool_name != "task":
                             # 其他工具调用
@@ -167,9 +180,17 @@ class DeepAgentChatService:
                     # 子 Agent 执行完成，恢复为主 Agent
                     in_task_call = False
                     task_args_buffer = ""
-                    current_agent_id = root_agent_info.get("id") if root_agent_info else None
-                    current_agent_name = root_agent_info.get("name", "主 Agent") if root_agent_info else "主 Agent"
-                    logger.info(f"子 Agent 执行完成，恢复为主 Agent: {current_agent_name}")
+                    current_agent_id = (
+                        root_agent_info.get("id") if root_agent_info else None
+                    )
+                    current_agent_name = (
+                        root_agent_info.get("name", "主 Agent")
+                        if root_agent_info
+                        else "主 Agent"
+                    )
+                    logger.info(
+                        f"子 Agent 执行完成，恢复为主 Agent: {current_agent_name}"
+                    )
 
                 # 处理工具执行结果（ToolMessage）
                 if hasattr(msg_chunk, "name") and hasattr(msg_chunk, "content"):
@@ -205,7 +226,9 @@ class DeepAgentChatService:
         def _collect(node: TreeNode):
             agent_id = node.node.agent_id
             if agent_id is not None:
-                agent_info = self.grpc_client.get_ai_agent_with_tool_and_skill_by_id(agent_id)
+                agent_info = self.grpc_client.get_ai_agent_with_tool_and_skill_by_id(
+                    agent_id
+                )
                 if agent_info:
                     agent_name = agent_info.get("name", "")
                     if agent_name:
@@ -217,9 +240,7 @@ class DeepAgentChatService:
         return name_map
 
     def _build_agent_from_tree_node(
-        self,
-        tree_node: TreeNode,
-        web_search: bool = False
+        self, tree_node: TreeNode, web_search: bool = False
     ) -> Tuple[Optional[Any], Optional[Dict[str, Any]]]:
         """
         根据 TreeNode 递归构建 deep agent
@@ -271,7 +292,9 @@ class DeepAgentChatService:
         # 构建 system prompt
         system_prompt = agent_info.get("systemMessage", "")
         if not system_prompt:
-            system_prompt = f"你是一个名为 {agent_info.get('name', 'AI助手')} 的智能助手。"
+            system_prompt = (
+                f"你是一个名为 {agent_info.get('name', 'AI助手')} 的智能助手。"
+            )
 
         # 递归构建子 agents 为 SubAgent spec dicts 或 CompiledSubAgent dicts
         subagents = []
@@ -302,9 +325,7 @@ class DeepAgentChatService:
             return None, None
 
     def _build_subagent_spec(
-        self,
-        tree_node: TreeNode,
-        web_search: bool = False
+        self, tree_node: TreeNode, web_search: bool = False
     ) -> Optional[Dict[str, Any]]:
         """
         为子节点构建 SubAgent spec dict 或 CompiledSubAgent dict。
@@ -357,7 +378,8 @@ class DeepAgentChatService:
             spec: Dict[str, Any] = {
                 "name": agent_name,
                 "description": agent_description,
-                "system_prompt": agent_info.get("systemMessage", "") or f"你是一个名为 {agent_name} 的智能助手。",
+                "system_prompt": agent_info.get("systemMessage", "")
+                or f"你是一个名为 {agent_name} 的智能助手。",
                 "tools": tools,
                 "model": llm,
             }
@@ -374,10 +396,14 @@ class DeepAgentChatService:
                 "description": agent_description,
                 "runnable": child_agent,
             }
-            logger.info(f"构建 CompiledSubAgent (非叶子): {agent_name} (ID: {agent_id})")
+            logger.info(
+                f"构建 CompiledSubAgent (非叶子): {agent_name} (ID: {agent_id})"
+            )
             return compiled_spec
 
-    def _build_llm(self, model_info: Dict[str, Any], agent_info: Dict[str, Any]) -> Optional[Any]:
+    def _build_llm(
+        self, model_info: Dict[str, Any], agent_info: Dict[str, Any]
+    ) -> Optional[Any]:
         """
         根据 model 和 agent 信息构建 LLM
 
@@ -398,10 +424,14 @@ class DeepAgentChatService:
                 return None
 
             # 从 agent 获取温度参数（优先使用 agent 配置，否则使用 model 配置）
-            temperature = agent_info.get("temperature") or model_info.get("temperature", 0.7)
+            temperature = agent_info.get("temperature") or model_info.get(
+                "temperature", 0.7
+            )
 
             # maxOutputToken: -1 表示不限制，其他正值表示限制
-            max_output_token = agent_info.get("maxOutputToken") or model_info.get("maxOutputToken")
+            max_output_token = agent_info.get("maxOutputToken") or model_info.get(
+                "maxOutputToken"
+            )
 
             # 构建 LLM 参数
             llm_kwargs = {
@@ -422,6 +452,7 @@ class DeepAgentChatService:
 
             # 使用 ChatOpenAI 创建 LLM
             from langchain_openai import ChatOpenAI
+
             llm = ChatOpenAI(**llm_kwargs)
 
             logger.info(f"成功构建 LLM: {model_name}")
@@ -431,7 +462,9 @@ class DeepAgentChatService:
             logger.error(f"构建 LLM 失败: {e}", exc_info=True)
             return None
 
-    def _build_tools(self, agent_info: Dict[str, Any], web_search: bool = False) -> List[Any]:
+    def _build_tools(
+        self, agent_info: Dict[str, Any], web_search: bool = False
+    ) -> List[Any]:
         """
         根据 agent 信息构建工具列表
 
@@ -460,7 +493,9 @@ class DeepAgentChatService:
                 if langchain_tool:
                     tools.append(langchain_tool)
             else:
-                logger.debug(f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})")
+                logger.debug(
+                    f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})"
+                )
 
         # 如果启用联网搜索，添加搜索工具
         if web_search:
@@ -470,7 +505,9 @@ class DeepAgentChatService:
 
         return tools
 
-    def _convert_sandbox_tool_to_langchain(self, tool_info: Dict[str, Any]) -> Optional[Any]:
+    def _convert_sandbox_tool_to_langchain(
+        self, tool_info: Dict[str, Any]
+    ) -> Optional[Any]:
         """
         将 sandbox 类型的 agent tool 转换为 langchain tool
 
@@ -499,6 +536,7 @@ class DeepAgentChatService:
                         exec_code = exec_code.replace(f"${{{key}}}", str(value))
 
                     from sandbox.sandbox_sdk import get_sandbox_sdk
+
                     sdk = get_sandbox_sdk()
                     result = sdk.run_python_and_get_stdout(exec_code)
                     return result if result else "(执行无输出)"
@@ -524,10 +562,19 @@ class DeepAgentChatService:
             tavily_client = TavilyClient(api_key=api_key)
 
             @tool(description="搜索互联网获取最新信息")
-            def web_search(query: str, max_results: int = 5) -> str:
+            def web_search(
+                query: str,
+                max_results: int = 5,
+                topic: Literal["general", "news", "finance"] = "general",
+                include_raw_content: bool = False,
+            ) -> str:
                 """执行网络搜索"""
-                results = tavily_client.search(query, max_results=max_results)
-                return json.dumps(results, ensure_ascii=False)
+                return tavily_client.search(
+                    query,
+                    max_results=max_results,
+                    include_raw_content=include_raw_content,
+                    topic=topic,
+                )
 
             return web_search
         except ImportError:
@@ -556,16 +603,20 @@ class DeepAgentChatService:
             # 多模态消息格式
             content = [{"type": "text", "text": prompt}]
             for img_base64 in images:
-                content.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"},
-                })
+                content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{img_base64}"},
+                    }
+                )
             return [{"role": "user", "content": content}]
         else:
             return [{"role": "user", "content": prompt}]
 
     @staticmethod
-    def _format_sse_text(content: str, agent_id: Optional[int] = None, agent_name: str = "主 Agent") -> str:
+    def _format_sse_text(
+        content: str, agent_id: Optional[int] = None, agent_name: str = "主 Agent"
+    ) -> str:
         """
         格式化文本 SSE 数据块
         格式: {"msg": "内容", "agentId": 1, "agentName": "Jarvis"}
@@ -578,7 +629,9 @@ class DeepAgentChatService:
         return f"data: {chunk_str}\n\n"
 
     @staticmethod
-    def _format_sse_tool_call(tool_name: str, agent_id: Optional[int] = None, agent_name: str = "主 Agent") -> str:
+    def _format_sse_tool_call(
+        tool_name: str, agent_id: Optional[int] = None, agent_name: str = "主 Agent"
+    ) -> str:
         """
         格式化工具调用开始 SSE 消息
         格式: {"tool_call": {"toolName": "工具名"}, "agentId": 1, "agentName": "Jarvis"}
@@ -591,7 +644,12 @@ class DeepAgentChatService:
         return f"data: {chunk_str}\n\n"
 
     @staticmethod
-    def _format_sse_tool_result(tool_name: str, result: str, agent_id: Optional[int] = None, agent_name: str = "主 Agent") -> str:
+    def _format_sse_tool_result(
+        tool_name: str,
+        result: str,
+        agent_id: Optional[int] = None,
+        agent_name: str = "主 Agent",
+    ) -> str:
         """
         格式化工具调用完成 SSE 消息
         格式: {"tool_called": {"toolName": "工具名", "toolInvokeResult": "结果"}, "agentId": 1, "agentName": "Jarvis"}
