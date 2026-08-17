@@ -10,6 +10,7 @@ import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -40,6 +41,7 @@ public class ModelServiceImpl implements IModelService {
      * @param id 模型管理主键
      * @return 模型管理
      */
+    @Cacheable(cacheNames = "model", key = "#id")
     @Override
     public Model selectModelById(Long id) {
         return modelMapper.selectModelById(id);

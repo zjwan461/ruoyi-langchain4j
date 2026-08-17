@@ -10,6 +10,7 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param id AI智能体主键
      * @return AI智能体
      */
+    @Cacheable(cacheNames = "agent", key = "#id")
     @Override
     public AIAgent selectAiAgentById(Long id) {
         return aiAgentMapper.selectAiAgentById(id);
@@ -51,6 +53,7 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param id AI智能体主键
      * @return AI智能体
      */
+    @Cacheable(cacheNames = "agentWithData", key = "#id")
     @Override
     public AIAgent selectAiAgentWithToolAndSkillById(Long id) {
         return aiAgentMapper.selectAiAgentWithToolAndSkillById(id);

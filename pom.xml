@@ -42,6 +42,7 @@
         <jackson-bom.version>2.21.4</jackson-bom.version>
         <!-- gRPC版本 -->
         <grpc-boot-version>2.13.0.RELEASE</grpc-boot-version>
+        <caffeine.version>2.9.1</caffeine.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -336,6 +337,11 @@
                 <groupId>net.devh</groupId>
                 <artifactId>grpc-spring-boot-starter</artifactId>
                 <version>${grpc-boot-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -5,6 +5,7 @@ import com.ruoyi.ai.mapper.AgentFlowMapper;
 import com.ruoyi.ai.service.IAgentFlowService;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class AgentFlowServiceImpl implements IAgentFlowService
      * @param id agent_flow主键
      * @return agent_flow
      */
+    @Cacheable(cacheNames = "agentFlow", key = "#id")
     @Override
     public AgentFlow selectAgentFlowById(Long id)
     {

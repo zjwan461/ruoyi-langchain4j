@@ -125,6 +125,10 @@ spring:
             multi-statement-allow: true
   jackson:
     time-zone: GMT+8
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=300s
 
   # 资源信息
   messages:
