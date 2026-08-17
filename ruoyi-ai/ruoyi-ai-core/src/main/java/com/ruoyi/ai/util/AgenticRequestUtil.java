@@ -3,6 +3,7 @@ package com.ruoyi.ai.util;
 import cn.hutool.core.lang.Assert;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.common.exception.ServiceException;
@@ -451,14 +452,22 @@ public class AgenticRequestUtil {
     }
 
     /**
-     * 工具调用完成信息
+     * 工具调用完成信息。
+     *
+     * <p>
+     * 注意：{@code toolInvokeResult} 在 Python 端（LangChain 的 {@code ToolMessage.content}）
+     * 实际类型并不固定，可能是纯字符串、也可能是 {@code list[dict]}（经 {@code json.dumps} 后变成
+     * JSON 数组）。如果把字段声明为 {@link String}，Jackson 在反序列化时会尝试把数组/对象隐式转成
+     * 字符串，遇到超长 / 含控制字符 / 嵌套较深的内容时极易抛出 {@code JsonProcessingException}，
+     * 引发 SSE 流中断。这里改用 {@link JsonNode} 原样接收任意 JSON 结构以彻底规避该问题。
+     * </p>
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ToolCalledInfo {
-        
+
         private String toolName;
-        
-        private String toolInvokeResult;
+
+        private JsonNode toolInvokeResult;
 
         public String getToolName() {
             return toolName;
@@ -468,12 +477,30 @@ public class AgenticRequestUtil {
             this.toolName = toolName;
         }
 
-        public String getToolInvokeResult() {
+        public JsonNode getToolInvokeResult() {
             return toolInvokeResult;
         }
 
-        public void setToolInvokeResult(String toolInvokeResult) {
+        public void setToolInvokeResult(JsonNode toolInvokeResult) {
             this.toolInvokeResult = toolInvokeResult;
+        }
+
+        /**
+         * 便利方法：把 {@link #toolInvokeResult} 转成 JSON 字符串，供需要 String 入参的下游使用。
+         * <ul>
+         *   <li>{@code null} -> 返回 {@code null}</li>
+         *   <li>{@link com.fasterxml.jackson.databind.node.TextNode} -> 返回内部文本（自动去掉 JSON 引号）</li>
+         *   <li>其它节点（对象 / 数组 / 数值 / 布尔）-> 返回其标准 JSON 序列化形式</li>
+         * </ul>
+         */
+        public String getToolInvokeResultText() {
+            if (toolInvokeResult == null) {
+                return null;
+            }
+            if (toolInvokeResult.isTextual()) {
+                return toolInvokeResult.asText();
+            }
+            return toolInvokeResult.toString();
         }
 
         @Override

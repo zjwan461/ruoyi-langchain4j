@@ -554,22 +554,61 @@ class DeepAgentChatService:
             logger.warning(f"sandbox 工具 {tool_name} 缺少代码")
             return None
 
-        def build_pydantic_model_from_json_schema(schema: Dict[str, Any]) -> Type:
+        def build_pydantic_model_from_json_schema(schema: Any) -> Type:
             """
-            简易转换: {"properties": {...}, "required": [...]} → Pydantic Model
-            只处理最常用场景
-            """
-            fields = {}
-            properties: Dict[str, Dict] = schema.get("properties", {})
-            required_list: list = schema.get("required", [])
+            简易转换: JSON Schema / 参数列表 → Pydantic Model
 
-            type_mapping = {
+            支持两种输入格式:
+              1. 标准 JSON Schema:
+                 {"type": "object", "properties": {...}, "required": [...]}
+              2. 简化参数列表（前端常见）:
+                 [{"name": "city", "type": "str", "description": "...", "required": true}, ...]
+
+            只处理最常用场景（string/integer/number/boolean/array/object，
+            以及对应的 Python 类型名 str/int/float/bool/list/dict）。
+            """
+            fields: Dict[str, Any] = {}
+
+            # 格式 2: 简化参数列表 → 归一化为标准 properties/required
+            if isinstance(schema, list):
+                properties: Dict[str, Dict[str, Any]] = {}
+                required_list: List[str] = []
+                for item in schema:
+                    if not isinstance(item, dict):
+                        continue
+                    param_name = item.get("name")
+                    if not param_name:
+                        continue
+                    properties[param_name] = item
+                    # 兼容多种必填字段命名
+                    if item.get("required") or item.get("isRequired"):
+                        required_list.append(param_name)
+            elif isinstance(schema, dict):
+                properties = schema.get("properties", {}) or {}
+                required_list = schema.get("required", []) or []
+            else:
+                logger.warning(
+                    f"无法识别的 parameters schema 类型: {type(schema).__name__}, "
+                    f"工具 {tool_name} 将不创建参数 schema"
+                )
+                return create_model(f"SandboxTool_{tool_name}_Args")
+
+            # 同时支持 JSON Schema 类型名 与 Python 类型名
+            type_mapping: Dict[str, Type] = {
+                # JSON Schema 类型
                 "string": str,
                 "integer": int,
                 "number": float,
                 "boolean": bool,
                 "array": list,
                 "object": dict,
+                # Python 类型名（前端可能直接传）
+                "str": str,
+                "int": int,
+                "float": float,
+                "bool": bool,
+                "list": list,
+                "dict": dict,
             }
 
             for param_name, prop in properties.items():
