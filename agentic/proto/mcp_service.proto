@@ -1,0 +1,42 @@
+syntax = "proto3";
+package com.ruoyi.ai.service.grpc;
+// 生成代码包名（Java专用）
+option java_multiple_files = true;
+option java_package = "com.ruoyi.ai.service.grpc.impl";
+option java_outer_classname = "McpServiceGrpc";
+
+// 导入ai_agent_service.proto以复用AgentMcpTool定义
+import "ai_agent_service.proto";
+
+// AgentMcpService实体，对应Java AgentMcpService实体
+message AgentMcpService {
+  int64 id = 1;
+  // mcp服务名称
+  string mcpServiceName = 2;
+  // mcp链接
+  string mcpUrl = 3;
+  // mcp transport
+  string mcpTransport = 4;
+  // auth token
+  string authToken = 5;
+  // mcp工具列表
+  repeated AgentMcpTool agentMcpToolList = 6;
+}
+
+// 根据ID列表查询McpService请求
+message GetMcpServiceByIdsRequest {
+  // ID列表
+  repeated int64 ids = 1;
+}
+
+// 根据ID列表查询McpService响应
+message GetMcpServiceByIdsResponse {
+  // McpService列表
+  repeated AgentMcpService services = 1;
+}
+
+// gRPC服务定义
+service AgentMcpGrpcService {
+  // 根据ID列表查询McpService
+  rpc GetMcpServiceByIds (GetMcpServiceByIdsRequest) returns (GetMcpServiceByIdsResponse);
+}

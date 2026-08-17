@@ -864,6 +864,17 @@ export default {
             const aiMsg = this.findOrCreateAgentBubble(res.agentId, res.agentName)
             if (!aiMsg) continue
 
+            // 当子 agent 开始输出文本时，清除所有其他 agent 气泡上的工具调用效果
+            // 这表示父 agent 的工具调用阶段结束，子 agent 开始处理
+            if (res.msg != null) {
+              for (let i = this.messages.length - 1; i >= 0; i--) {
+                const m = this.messages[i]
+                if (m.role === 'assistant' && m.loading && m._id !== aiMsg._id && m.currentToolCall) {
+                  m.currentToolCall = null
+                }
+              }
+            }
+
             if (res.msg != null) {
               aiMsg.content = (aiMsg.content || '') + res.msg
             } else if (res.retrieved) {
@@ -1080,9 +1091,18 @@ export default {
         }
         return last
       }
-      // agent 切换：把上一条仍然 loading 的气泡标记为完成
+      // agent 切换：把上一条仍然 loading 的气泡标记为完成，并清除其工具调用状态
       if (last && last.role === 'assistant' && last.loading) {
         last.loading = false
+        last.currentToolCall = null
+      }
+      // 创建新气泡（子 agent 开始输出）
+      // 清除所有其他 loading 状态 agent 的工具调用效果
+      for (let i = this.messages.length - 1; i >= 0; i--) {
+        const m = this.messages[i]
+        if (m.role === 'assistant' && m.loading && m.currentToolCall) {
+          m.currentToolCall = null
+        }
       }
       // 创建新气泡
       const resolvedName = agentName || (agentId != null ? this.agentRegistry[agentId] : '') || ''

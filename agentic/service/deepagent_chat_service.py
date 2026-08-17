@@ -14,10 +14,7 @@ DeepAgent Chat Service - 基于 TreeNode 构建嵌套 Deep Agents 的对话服�
 """
 
 import json
-import logging
-import re
-from contextvars import ContextVar
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Literal
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Literal, Type
 
 from langchain.agents.middleware import AgentMiddleware
 from langchain.tools import tool
@@ -30,6 +27,7 @@ from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
 from sandbox.sandbox_tool import run_python_code, check_sandbox_health
 from logger_config import logger
+from pydantic import create_model, Field
 
 # 全局记忆存储（进程级别共享），始终启用
 _memory_store = InMemorySaver()
@@ -38,6 +36,7 @@ _memory_store = InMemorySaver()
 def get_memory_store() -> InMemorySaver:
     """获取全局记忆存储实例"""
     return _memory_store
+
 
 class JAgentState(DeepAgentState):
     """扩展 DeepAgentState，添加 agent_id 字段。
@@ -53,6 +52,7 @@ class JAgentState(DeepAgentState):
       这样任意中间件 / 工具可通过 runtime.state["agent_id"]
       读到当前正在运行的是哪个 agent。
     """
+
     agent_id: int | None
 
 
@@ -137,9 +137,7 @@ class DeepAgentChatService:
         """
         try:
             # 构建根 agent（含子 agents）
-            root_agent, _ = self._build_agent_from_tree_node(
-                tree_node, web_search
-            )
+            root_agent, _ = await self._build_agent_from_tree_node(tree_node, web_search)
 
             if root_agent is None:
                 yield self._format_sse_error("无法构建根 Agent")
@@ -174,8 +172,8 @@ class DeepAgentChatService:
                 metadata = chunk[1]
                 # 获取 content_blocks
                 content_blocks = getattr(msg_chunk, "content_blocks", [])
-                print(content_blocks, end="---")
-                print(metadata)
+                # print(content_blocks, end="---")
+                # print(metadata)
                 # 检查是否进入 tools 节点（子 Agent 执行）
                 lc_agent_name = metadata.get("lc_agent_name", "")
                 if lc_agent_name:
@@ -253,7 +251,8 @@ class DeepAgentChatService:
         except Exception as e:
             logger.error(f"对话流处理异常: {e}", exc_info=True)
             yield self._format_sse_error(str(e))
-    def _build_agent_from_tree_node(
+
+    async def _build_agent_from_tree_node(
         self, tree_node: TreeNode, web_search: bool = False
     ) -> Tuple[Optional[CompiledStateGraph], Optional[Dict[str, Any]]]:
         """
@@ -301,7 +300,7 @@ class DeepAgentChatService:
             return None, None
 
         # 构建工具列表
-        tools = self._build_tools(agent_info, web_search)
+        tools = await self._build_tools(agent_info, web_search)
 
         # 构建 system prompt
         system_prompt = tree_node.node.description
@@ -311,7 +310,7 @@ class DeepAgentChatService:
         # 递归构建子 agents 为 SubAgent spec dicts 或 CompiledSubAgent dicts
         subagents = []
         for child in tree_node.children:
-            child_spec = self._build_subagent_spec(child, web_search)
+            child_spec = await self._build_subagent_spec(child, web_search)
             if child_spec is not None:
                 subagents.append(child_spec)
 
@@ -343,7 +342,7 @@ class DeepAgentChatService:
             logger.error(f"创建 deep agent 失败: {e}", exc_info=True)
             return None, None
 
-    def _build_subagent_spec(
+    async def _build_subagent_spec(
         self, tree_node: TreeNode, web_search: bool = False
     ) -> Optional[Dict[str, Any]]:
         """
@@ -392,7 +391,7 @@ class DeepAgentChatService:
             llm = self._build_llm(model_info, agent_info)
             if llm is None:
                 return None
-            tools = self._build_tools(agent_info, web_search)
+            tools = await self._build_tools(agent_info, web_search)
 
             spec: Dict[str, Any] = {
                 "name": _encode_agent_name(agent_name, agent_id),
@@ -408,7 +407,7 @@ class DeepAgentChatService:
             return spec
         else:
             # 非叶子节点：先递归编译为 deep agent，再包装为 CompiledSubAgent
-            child_agent, _ = self._build_agent_from_tree_node(tree_node, web_search)
+            child_agent, _ = await self._build_agent_from_tree_node(tree_node, web_search)
             if child_agent is None:
                 return None
 
@@ -483,13 +482,13 @@ class DeepAgentChatService:
             logger.error(f"构建 LLM 失败: {e}", exc_info=True)
             return None
 
-    def _build_tools(
+    async def _build_tools(
         self, agent_info: Dict[str, Any], web_search: bool = False
     ) -> List[Any]:
         """
         根据 agent 信息构建工具列表
 
-        仅处理 sandbox 类型的工具，过滤掉 builtin 类型。
+        处理 sandbox 类型的工具和 MCP 工具。
 
         Args:
             agent_info: Agent 配置信息
@@ -518,6 +517,10 @@ class DeepAgentChatService:
                     f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})"
                 )
 
+        # 处理 MCP 工具
+        mcp_tools = await self._build_mcp_tools(agent_info)
+        tools.extend(mcp_tools)
+
         # 如果启用联网搜索，添加搜索工具
         if web_search:
             search_tool = self._create_web_search_tool()
@@ -541,17 +544,62 @@ class DeepAgentChatService:
         tool_name = tool_info.get("toolName", "")
         description = tool_info.get("description", "")
         code = tool_info.get("code", "")
+        parameters_raw = tool_info.get("parameters", "")
+
+        param_schema: Dict[str, Any] = {}
+        if parameters_raw:
+            param_schema = json.loads(parameters_raw)
 
         if not code:
             logger.warning(f"sandbox 工具 {tool_name} 缺少代码")
             return None
+
+        def build_pydantic_model_from_json_schema(schema: Dict[str, Any]) -> Type:
+            """
+            简易转换: {"properties": {...}, "required": [...]} → Pydantic Model
+            只处理最常用场景
+            """
+            fields = {}
+            properties: Dict[str, Dict] = schema.get("properties", {})
+            required_list: list = schema.get("required", [])
+
+            type_mapping = {
+                "string": str,
+                "integer": int,
+                "number": float,
+                "boolean": bool,
+                "array": list,
+                "object": dict,
+            }
+
+            for param_name, prop in properties.items():
+                json_type = prop.get("type", "string")
+                py_type = type_mapping.get(json_type, str)
+                desc = prop.get("description", "")
+                is_required = param_name in required_list
+
+                if is_required:
+                    fields[param_name] = (py_type, Field(description=desc))
+                else:
+                    fields[param_name] = (
+                        Optional[py_type],
+                        Field(default=None, description=desc),
+                    )
+
+            return create_model(f"SandboxTool_{tool_name}_Args", **fields)
+
+        args_schema_cls = build_pydantic_model_from_json_schema(param_schema)
 
         # 动态创建工具函数，通过闭包捕获变量
         def _make_sandbox_tool(name: str, desc: str, src_code: str):
             # langchain 1.3.x 中 tool() 装饰器的签名：
             #   tool(name_or_callable, runnable=None, *args, description=None, ...)
             # name 仅支持作为第一个位置参数传入，不支持作为关键字参数。
-            @tool(name, description=desc or f"执行 {name} 工具")
+            @tool(
+                name,
+                description=desc or f"执行 {name} 工具",
+                args_schema=args_schema_cls,
+            )
             def sandbox_tool(**kwargs) -> str:
                 """执行沙箱代码"""
                 try:
@@ -571,6 +619,148 @@ class DeepAgentChatService:
             return sandbox_tool
 
         return _make_sandbox_tool(tool_name, description, code)
+
+    async def _build_mcp_tools(self, agent_info: Dict[str, Any]) -> List[Any]:
+        """
+        根据 agent 信息构建 MCP 工具列表
+
+        从 agentMcpTools 中提取 MCP 工具，按 MCP service (pid) 分组，
+        每个 service 只建立一次 MCP 连接，获取该 service 提供的所有工具后，
+        按名称匹配 agent 实际配置的 MCP 工具。
+
+        Args:
+            agent_info: Agent 配置信息
+
+        Returns:
+            langchain MCP 工具列表
+        """
+        mcp_tools = []
+
+        # 获取 agent 的 MCP 工具列表
+        agent_mcp_tools = agent_info.get("agentMcpTools", [])
+        if not agent_mcp_tools:
+            return mcp_tools
+
+        # 提取所有唯一的 MCP service ID (pid)
+        mcp_service_ids = list(
+            set(tool.get("pid") for tool in agent_mcp_tools if tool.get("pid"))
+        )
+        if not mcp_service_ids:
+            logger.warning("MCP 工具缺少 pid 信息")
+            return mcp_tools
+
+        # 通过 gRPC 获取 MCP service 详情
+        try:
+            mcp_services = self.grpc_client.get_mcp_service_by_ids(mcp_service_ids)
+        except Exception as e:
+            logger.error(f"获取 MCP service 信息失败: {e}", exc_info=True)
+            return mcp_tools
+
+        # 构建 MCP service ID 到 service 信息的映射
+        mcp_service_map = {service["id"]: service for service in mcp_services}
+
+        # 按 pid 分组：{pid: [agent 配置的该 service 下的 mcpToolName 集合]}
+        pid_to_tool_names: Dict[str, set] = {}
+        for mcp_tool_info in agent_mcp_tools:
+            pid = mcp_tool_info.get("pid")
+            tool_name = mcp_tool_info.get("mcpToolName", "")
+            if pid and tool_name:
+                pid_to_tool_names.setdefault(pid, set()).add(tool_name)
+
+        # 按 service 分组连接 MCP server，每个 service 只连接一次
+        for pid, needed_tool_names in pid_to_tool_names.items():
+            if pid not in mcp_service_map:
+                logger.warning(f"MCP service pid={pid} 无效，跳过")
+                continue
+
+            mcp_service = mcp_service_map[pid]
+            tools_from_service = await self._fetch_mcp_service_tools(mcp_service)
+
+            if not tools_from_service:
+                logger.warning(
+                    f"MCP service {mcp_service.get('mcpServiceName', pid)} 未返回任何工具"
+                )
+                continue
+
+            # 按名称匹配 agent 实际需要的 MCP 工具
+            # tools_from_service 是 dict: {tool_name: langchain_tool}
+            for tool_name in needed_tool_names:
+                if tool_name in tools_from_service:
+                    mcp_tools.append(tools_from_service[tool_name])
+                    logger.info(f"成功匹配 MCP 工具: {tool_name}")
+                else:
+                    available = list(tools_from_service.keys())
+                    logger.warning(
+                        f"MCP 工具 {tool_name} 在 service 中未找到，"
+                        f"可用工具: {available}"
+                    )
+
+        return mcp_tools
+
+    async def _fetch_mcp_service_tools(
+        self, mcp_service: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        连接一个 MCP service，获取该 service 提供的所有工具。
+
+        每个 MCP service 只建立一次连接，返回工具名到 langchain 工具的映射。
+
+        Args:
+            mcp_service: MCP service 信息（包含 mcpUrl、mcpTransport、authToken 等）
+
+        Returns:
+            dict: {tool_name: langchain_tool}，连接失败返回空 dict
+        """
+        mcp_url = mcp_service.get("mcpUrl", "")
+        mcp_transport = mcp_service.get("mcpTransport", "sse")
+        auth_token = mcp_service.get("authToken", "")
+        mcp_service_name = mcp_service.get("mcpServiceName", "mcp_server")
+
+        if not mcp_url:
+            logger.warning(f"MCP service {mcp_service_name} 缺少 mcpUrl")
+            return {}
+
+        try:
+            from langchain_mcp_adapters.client import MultiServerMCPClient
+
+            # 构建 MCP 服务器配置
+            server_config = {
+                "transport": mcp_transport,
+                "url": mcp_url,
+            }
+
+            # 如果有认证令牌，添加到 headers
+            if auth_token:
+                server_config["headers"] = {
+                    "Authorization": f"Bearer {auth_token}"
+                }
+
+            # 创建 MCP 客户端，每个 service 只连接一次
+            client = MultiServerMCPClient(
+                {
+                    mcp_service_name: server_config
+                }
+            )
+
+            # 异步获取该 service 提供的所有工具
+            all_tools = await client.get_tools()
+
+            # 构建工具名到工具实例的映射
+            tools_map = {}
+            for t in all_tools:
+                tools_map[t.name] = t
+
+            logger.info(
+                f"MCP service {mcp_service_name} 提供了 {len(all_tools)} 个工具: "
+                f"{list(tools_map.keys())}"
+            )
+            return tools_map
+
+        except Exception as e:
+            logger.error(
+                f"连接 MCP service {mcp_service_name} 失败: {e}", exc_info=True
+            )
+            return {}
 
     def _create_web_search_tool(self) -> Optional[Any]:
         """创建联网搜索工具"""

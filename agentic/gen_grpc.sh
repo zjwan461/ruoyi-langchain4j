@@ -63,6 +63,17 @@ echo "[成功] 已生成 grpc_generated/ai_agent_service_pb2.py"
 echo "[成功] 已生成 grpc_generated/ai_agent_service_pb2_grpc.py"
 
 echo
+echo "正在生成 McpService 服务代码..."
+python -m grpc_tools.protoc \
+    -I proto \
+    --python_out=grpc_generated \
+    --grpc_python_out=grpc_generated \
+    proto/mcp_service.proto
+
+echo "[成功] 已生成 grpc_generated/mcp_service_pb2.py"
+echo "[成功] 已生成 grpc_generated/mcp_service_pb2_grpc.py"
+
+echo
 echo "========================================"
 echo "  所有 gRPC 代码生成完成！"
 echo "========================================"

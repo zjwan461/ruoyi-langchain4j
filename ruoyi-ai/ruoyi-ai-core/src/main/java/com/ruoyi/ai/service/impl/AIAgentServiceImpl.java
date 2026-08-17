@@ -10,6 +10,8 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,6 +78,10 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param aiAgent AI智能体
      * @return 结果
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "agent", allEntries = true),
+            @CacheEvict(cacheNames = "agentWithData", allEntries = true)
+    })
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int insertAiAgent(AIAgent aiAgent) {
@@ -94,6 +100,10 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param aiAgent AI智能体
      * @return 结果
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "agent", key = "#aiAgent.id"),
+            @CacheEvict(cacheNames = "agentWithData", key = "#aiAgent.id")
+    })
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int updateAiAgent(AIAgent aiAgent) {
@@ -163,6 +173,10 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param ids 需要删除的AI智能体主键
      * @return 结果
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "agent", allEntries = true),
+            @CacheEvict(cacheNames = "agentWithData", allEntries = true)
+    })
     @Transactional(rollbackFor = Exception.class)
     @Override
     public int deleteAiAgentByIds(Long[] ids) {
@@ -179,6 +193,10 @@ public class AIAgentServiceImpl implements IAIAgentService {
      * @param id AI智能体主键
      * @return 结果
      */
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "agent", key = "#id"),
+            @CacheEvict(cacheNames = "agentWithData", key = "#id")
+    })
     @Override
     public int deleteAiAgentById(Long id) {
         return aiAgentMapper.deleteAiAgentById(id);

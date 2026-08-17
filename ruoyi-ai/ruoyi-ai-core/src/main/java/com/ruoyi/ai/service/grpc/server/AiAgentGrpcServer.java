@@ -1,5 +1,6 @@
 package com.ruoyi.ai.service.grpc.server;
 
+import com.ruoyi.ai.domain.AgentMcpTool;
 import com.ruoyi.ai.domain.AgentSkill;
 import com.ruoyi.ai.domain.AgentTool;
 import com.ruoyi.ai.domain.AIAgent;
@@ -127,6 +128,22 @@ public class AiAgentGrpcServer extends AiAgentGrpcServiceImplBase {
                         .setSkillType(skill.getSkillType() != null ? skill.getSkillType() : "")
                         .build();
                 builder.addAgentSkills(grpcSkill);
+            }
+        }
+
+        // Convert AgentMcpTool list
+        List<AgentMcpTool> agentMcpTools = agent.getAgentMcpTools();
+        if (agentMcpTools != null && !agentMcpTools.isEmpty()) {
+            for (AgentMcpTool mcpTool : agentMcpTools) {
+                com.ruoyi.ai.service.grpc.impl.AgentMcpTool grpcMcpTool = com.ruoyi.ai.service.grpc.impl.AgentMcpTool.newBuilder()
+                        .setId(mcpTool.getId() != null ? mcpTool.getId() : 0)
+                        .setMcpToolName(mcpTool.getMcpToolName() != null ? mcpTool.getMcpToolName() : "")
+                        .setMcpToolDescription(mcpTool.getMcpToolDescription() != null ? mcpTool.getMcpToolDescription() : "")
+                        .setMcpToolParameters(mcpTool.getMcpToolParameters() != null ? mcpTool.getMcpToolParameters() : "")
+                        .setMcpToolMetadata(mcpTool.getMcpToolMetadata() != null ? mcpTool.getMcpToolMetadata() : "")
+                        .setPid(mcpTool.getPid() != null ? mcpTool.getPid() : 0)
+                        .build();
+                builder.addAgentMcpTools(grpcMcpTool);
             }
         }
 

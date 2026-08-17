@@ -35,6 +35,21 @@ message AgentSkill {
   string skillType = 5;
 }
 
+// AgentMcpTool实体
+message AgentMcpTool {
+  int64 id = 1;
+  // mcp工具名称
+  string mcpToolName = 2;
+  // mcp工具描述
+  string mcpToolDescription = 3;
+  // mcp工具参数
+  string mcpToolParameters = 4;
+  // mcp工具元数据
+  string mcpToolMetadata = 5;
+  // 所属mcp service id
+  int64 pid = 6;
+}
+
 // AIAgent实体，对应Java AIAgent实体
 message AiAgent {
   int64 id = 1;
@@ -104,6 +119,8 @@ message AiAgent {
   bool webSearch = 33;
   // 联网搜索次数
   int32 webSearchCount = 34;
+  // MCP工具列表
+  repeated AgentMcpTool agentMcpTools = 35;
 }
 
 // 根据ID查询AIAgent请求

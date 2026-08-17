@@ -5,6 +5,7 @@ import com.ruoyi.ai.mapper.AgentFlowMapper;
 import com.ruoyi.ai.service.IAgentFlowService;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -67,6 +68,7 @@ public class AgentFlowServiceImpl implements IAgentFlowService
      * @param agentFlow agent_flow
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentFlow", key = "#agentFlow.id")
     @Override
     public int updateAgentFlow(AgentFlow agentFlow)
     {
@@ -76,10 +78,11 @@ public class AgentFlowServiceImpl implements IAgentFlowService
 
     /**
      * 批量删除agent_flow
-     * 
+     *
      * @param ids 需要删除的agent_flow主键
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentFlow", allEntries = true)
     @Override
     public int deleteAgentFlowByIds(Long[] ids)
     {
@@ -88,10 +91,11 @@ public class AgentFlowServiceImpl implements IAgentFlowService
 
     /**
      * 删除agent_flow信息
-     * 
+     *
      * @param id agent_flow主键
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentFlow", key = "#id")
     @Override
     public int deleteAgentFlowById(Long id)
     {

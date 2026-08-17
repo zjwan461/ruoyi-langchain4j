@@ -8,6 +8,8 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,10 +55,11 @@ public class AgentMcpServiceImpl implements IAgentMcpService
 
     /**
      * 新增mcp
-     * 
+     *
      * @param agentMcpService mcp
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentMcpService", allEntries = true)
     @Transactional
     @Override
     public int insertAgentMcpService(AgentMcpService agentMcpService)
@@ -70,10 +73,11 @@ public class AgentMcpServiceImpl implements IAgentMcpService
 
     /**
      * 修改mcp
-     * 
+     *
      * @param agentMcpService mcp
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentMcpService", allEntries = true)
     @Transactional
     @Override
     public int updateAgentMcpService(AgentMcpService agentMcpService)
@@ -87,10 +91,11 @@ public class AgentMcpServiceImpl implements IAgentMcpService
 
     /**
      * 批量删除mcp
-     * 
+     *
      * @param ids 需要删除的mcp主键
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentMcpService", allEntries = true)
     @Transactional
     @Override
     public int deleteAgentMcpServiceByIds(Long[] ids)
@@ -101,10 +106,11 @@ public class AgentMcpServiceImpl implements IAgentMcpService
 
     /**
      * 删除mcp信息
-     * 
+     *
      * @param id mcp主键
      * @return 结果
      */
+    @CacheEvict(cacheNames = "agentMcpService", allEntries = true)
     @Transactional
     @Override
     public int deleteAgentMcpServiceById(Long id)
@@ -149,6 +155,7 @@ public class AgentMcpServiceImpl implements IAgentMcpService
         return agentMcpMapper.selectAgentMcpServiceByAgentId(agentId);
     }
 
+    @Cacheable(cacheNames = "agentMcpService", key = "#ids")
     @Override
     public List<AgentMcpService> selectAgentMcpServiceByIds(Long[] ids) {
         return agentMcpMapper.selectAgentMcpServiceByIds(ids);

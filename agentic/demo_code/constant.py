@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-    api_key="sk-0xxx",
+    api_key="sk-0543377485b74778b3728e250df4e7d1",
     model="qwen3.7-plus",
     extra_body={"chat_template_kwargs": {"enable_thinking": False}},
 )

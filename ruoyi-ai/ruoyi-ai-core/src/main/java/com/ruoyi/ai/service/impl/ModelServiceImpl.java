@@ -10,6 +10,7 @@ import com.ruoyi.ai.service.LangChain4jService;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -64,6 +65,7 @@ public class ModelServiceImpl implements IModelService {
      * @param model 模型管理
      * @return 结果
      */
+    @CacheEvict(cacheNames = "model", allEntries = true)
     @Override
     public int insertModel(Model model) {
         checkModelConfig(model);
@@ -91,6 +93,7 @@ public class ModelServiceImpl implements IModelService {
      * @param model 模型管理
      * @return 结果
      */
+    @CacheEvict(cacheNames = "model", key = "#model.id")
     @Override
     public int updateModel(Model model) {
         checkModelConfig(model);
@@ -104,6 +107,7 @@ public class ModelServiceImpl implements IModelService {
      * @param ids 需要删除的模型管理主键
      * @return 结果
      */
+    @CacheEvict(cacheNames = "model", allEntries = true)
     @Override
     public int deleteModelByIds(Long[] ids) {
         return modelMapper.deleteModelByIds(ids);
@@ -115,6 +119,7 @@ public class ModelServiceImpl implements IModelService {
      * @param id 模型管理主键
      * @return 结果
      */
+    @CacheEvict(cacheNames = "model", key = "#id")
     @Override
     public int deleteModelById(Long id) {
         return modelMapper.deleteModelById(id);

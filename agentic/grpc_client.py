@@ -19,6 +19,8 @@ import model_service_pb2
 import model_service_pb2_grpc
 import ai_agent_service_pb2
 import ai_agent_service_pb2_grpc
+import mcp_service_pb2
+import mcp_service_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,7 @@ class GrpcClient:
         # 多个 Stub 共享同一个 Channel
         self.model_stub: Optional[model_service_pb2_grpc.ModelGrpcServiceStub] = None
         self.ai_agent_stub: Optional[ai_agent_service_pb2_grpc.AiAgentGrpcServiceStub] = None
+        self.mcp_stub: Optional[mcp_service_pb2_grpc.AgentMcpGrpcServiceStub] = None
         
     def connect(self) -> None:
         """建立 gRPC 连接，所有 Stub 共享同一个 Channel"""
@@ -54,6 +57,7 @@ class GrpcClient:
             self.channel = grpc.insecure_channel(target)
             self.model_stub = model_service_pb2_grpc.ModelGrpcServiceStub(self.channel)
             self.ai_agent_stub = ai_agent_service_pb2_grpc.AiAgentGrpcServiceStub(self.channel)
+            self.mcp_stub = mcp_service_pb2_grpc.AgentMcpGrpcServiceStub(self.channel)
             logger.info(f"已连接到 gRPC 服务器: {target}")
     
     def close(self) -> None:
@@ -63,6 +67,7 @@ class GrpcClient:
             self.channel = None
             self.model_stub = None
             self.ai_agent_stub = None
+            self.mcp_stub = None
             logger.info("已关闭 gRPC 连接")
     
     def __enter__(self):
@@ -240,7 +245,78 @@ class GrpcClient:
         else:
             result["agentSkills"] = []
         
+        # 转换MCP工具列表
+        if agent.agentMcpTools:
+            result["agentMcpTools"] = [self._convert_agent_mcp_tool_to_dict(tool) for tool in agent.agentMcpTools]
+        else:
+            result["agentMcpTools"] = []
+        
         return result
+    
+    def _convert_agent_mcp_tool_to_dict(self, tool) -> Dict[str, Any]:
+        """将 AgentMcpTool protobuf 对象转换为 Python 字典"""
+        return {
+            "id": tool.id,
+            "mcpToolName": tool.mcpToolName,
+            "mcpToolDescription": tool.mcpToolDescription,
+            "mcpToolParameters": tool.mcpToolParameters,
+            "mcpToolMetadata": tool.mcpToolMetadata,
+            "pid": tool.pid,
+        }
+    
+    def _convert_agent_mcp_service_to_dict(self, service) -> Dict[str, Any]:
+        """将 AgentMcpService protobuf 对象转换为 Python 字典"""
+        result = {
+            "id": service.id,
+            "mcpServiceName": service.mcpServiceName,
+            "mcpUrl": service.mcpUrl,
+            "mcpTransport": service.mcpTransport,
+            "authToken": service.authToken,
+        }
+        
+        # 转换MCP工具列表
+        if service.agentMcpToolList:
+            result["agentMcpToolList"] = [self._convert_agent_mcp_tool_to_dict(tool) for tool in service.agentMcpToolList]
+        else:
+            result["agentMcpToolList"] = []
+        
+        return result
+    
+    def get_mcp_service_by_ids(self, ids: List[int], timeout: float = 10.0) -> List[Dict[str, Any]]:
+        """
+        根据ID列表查询McpService
+        
+        Args:
+            ids: MCP服务ID列表
+            timeout: 请求超时时间（秒），默认 10 秒
+            
+        Returns:
+            MCP服务列表，每个服务是一个字典
+            
+        Raises:
+            grpc.RpcError: gRPC 调用失败时抛出
+            RuntimeError: 客户端未连接时抛出
+        """
+        if self.mcp_stub is None:
+            raise RuntimeError("gRPC 客户端未连接，请先调用 connect() 方法")
+        
+        try:
+            request = mcp_service_pb2.GetMcpServiceByIdsRequest(ids=ids)
+            response = self.mcp_stub.GetMcpServiceByIds(request, timeout=timeout)
+            
+            services = []
+            for service in response.services:
+                services.append(self._convert_agent_mcp_service_to_dict(service))
+            
+            logger.info(f"成功获取 {len(services)} 个MCP服务")
+            return services
+            
+        except grpc.RpcError as e:
+            logger.error(f"gRPC 调用失败: {e.code()} - {e.details()}")
+            raise
+        except Exception as e:
+            logger.error(f"查询MCP服务时发生错误: {e}")
+            raise
     
     def get_ai_agent_by_id(self, agent_id: int, timeout: float = 10.0) -> Optional[Dict[str, Any]]:
         """
