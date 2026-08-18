@@ -43,6 +43,8 @@ public class AgentToolInvoke extends BaseEntity {
     @Excel(name = "消息id")
     private Long messageId;
 
+    private Long messageFlowId;
+
     /**
      * 工具名称
      */
@@ -118,6 +120,14 @@ public class AgentToolInvoke extends BaseEntity {
         this.messageId = messageId;
     }
 
+    public Long getMessageFlowId() {
+        return messageFlowId;
+    }
+
+    public void setMessageFlowId(Long messageFlowId) {
+        this.messageFlowId = messageFlowId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -126,6 +136,7 @@ public class AgentToolInvoke extends BaseEntity {
                 .append("clientId", getClientId())
                 .append("sessionId", getSessionId())
                 .append("messageId", getMessageId())
+                .append("messageFlowId", getMessageFlowId())
                 .append("toolName", getToolName())
                 .append("toolInvokeResult", getToolInvokeResult())
                 .append("createTime", getCreateTime())

@@ -55,19 +55,19 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
     private LangChain4jService langChain4jService;
 
     public AIChatServiceImpl(IChatMessageService chatMessageService,
-                             InMemoryChatMemoryStore inMemoryChatMemoryStore,
-                             RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
-                             AiConfig aiConfig,
-                             ObjectMapper objectMapper,
-                             RedisTemplate<Object, Object> redisTemplate,
-                             RedisScript<Long> limitScript,
-                             ISysConfigService sysConfigService,
-                             IKnowledgeBaseService knowledgeBaseService,
-                             IModelService modelService,
-                             ModelBuilder modelBuilder,
-                             IAIAgentService aiAgentService,
-                             PgVectorEmbeddingStore pgVectorEmbeddingStore,
-                             IAttachmentService attachmentService) {
+            InMemoryChatMemoryStore inMemoryChatMemoryStore,
+            RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
+            AiConfig aiConfig,
+            ObjectMapper objectMapper,
+            RedisTemplate<Object, Object> redisTemplate,
+            RedisScript<Long> limitScript,
+            ISysConfigService sysConfigService,
+            IKnowledgeBaseService knowledgeBaseService,
+            IModelService modelService,
+            ModelBuilder modelBuilder,
+            IAIAgentService aiAgentService,
+            PgVectorEmbeddingStore pgVectorEmbeddingStore,
+            IAttachmentService attachmentService) {
         super(chatMessageService,
                 inMemoryChatMemoryStore,
                 redisMemoryChatMemoryStore,
@@ -84,9 +84,9 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 attachmentService);
     }
 
-
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds,boolean enableWebSearch) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId,
+            List<Long> attachmentIds, boolean enableWebSearch) {
         String traceId = IdUtils.fastSimpleUUID();
         Model model = modelService.selectModelById(aiAgent.getModelId());
 
@@ -109,7 +109,8 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 embeddingModel = getEmbeddingModel();
 
                 List<EmbeddingMatch<TextSegment>> searchRes = langChain4jService.search(embeddingModel, prompt,
-                        aiAgent.getMaxResult() == null ? 3 : aiAgent.getMaxResult(), aiAgent.getMinScore() == null ? 0.7 : aiAgent.getMinScore(),
+                        aiAgent.getMaxResult() == null ? 3 : aiAgent.getMaxResult(),
+                        aiAgent.getMinScore() == null ? 0.7 : aiAgent.getMinScore(),
                         new IsIn("kb_id", ids));
                 StringBuilder embBuilder = new StringBuilder();
                 searchRes.stream().map(EmbeddingMatch::embedded).forEach(embedded -> {
@@ -127,10 +128,10 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                 });
                 promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, embBuilder.toString());
             }
-        } else if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE) && StringUtils.isBlank(aiAgent.getKbIds())) {
+        } else if (promptTemplate.contains(Constants.KNOWLEDGE_BASE_TEMPLATE)
+                && StringUtils.isBlank(aiAgent.getKbIds())) {
             promptTemplate = promptTemplate.replace(Constants.KNOWLEDGE_BASE_TEMPLATE, "");
         }
-
 
         if (aiAgent.getWebSearch() && aiConfig.getTavilyWebSearch().getEnabled() && enableWebSearch) {
             TavilyWebSearchEngine searchEngine = this.getTavilyWebSearchEngine();
@@ -151,12 +152,14 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
             }
         }
 
-        ChatMessage uMsg = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER, attachmentIds, traceId);
+        ChatMessage uMsg = saveChatMessage(prompt, clientId, sessionId, aiAgent.getId(), ChatMessageType.USER,
+                attachmentIds, traceId);
 
         ChatMemory chatMemory = null;
         if (aiAgent.getMemoryCount() != null && aiAgent.getMemoryCount() > 0) {
-            ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
-                    redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
+            ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS
+                    ? redisMemoryChatMemoryStore
+                    : inMemoryChatMemoryStore;
             chatMemory = MessageWindowChatMemory.builder()
                     .chatMemoryStore(memoryStore)
                     .maxMessages(aiAgent.getMemoryCount() * 2)
@@ -175,10 +178,12 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         if (CollUtil.isNotEmpty(uMsg.getAttachments())) {
             for (Attachment attachment : uMsg.getAttachments()) {
                 if (FileUtils.isImageBySuffix(attachment.getFileName())) {
-                    Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil.parse(attachment.getFileContent());
+                    Base64DataUriUtil.Base64ParseResult parseResult = Base64DataUriUtil
+                            .parse(attachment.getFileContent());
                     messages.add(ImageContent.from(parseResult.getPureBase64(), parseResult.getMimeType()));
                 } else {
-                    TextContent attachContent = TextContent.from(String.format(Constants.DEFAULT_ATTACHMENT_FILE_PROMPT, attachment.getFileName(), attachment.getFileContent()));
+                    TextContent attachContent = TextContent.from(String.format(Constants.DEFAULT_ATTACHMENT_FILE_PROMPT,
+                            attachment.getFileName(), attachment.getFileContent()));
                     messages.add(attachContent);
                 }
             }
@@ -197,7 +202,9 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         final ChatRequest chatRequest = ChatRequest.builder()
                 .parameters(parameters)
                 .messages(
-                        chatMemory != null ? chatMemory.messages() : systemMessage != null ? Arrays.asList(systemMessage, userMessage) : Collections.singletonList(userMessage))
+                        chatMemory != null ? chatMemory.messages()
+                                : systemMessage != null ? Arrays.asList(systemMessage, userMessage)
+                                        : Collections.singletonList(userMessage))
                 .build();
 
         return Flux.create(fluxSink -> {
@@ -241,12 +248,14 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
                     }
                     String aiText = completeResponse.aiMessage().text();
                     content.append(aiText);
-                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId, aiAgent.getId(), ChatMessageType.AI, null, traceId);
+                    ChatMessage assistantMessage = saveChatMessage(content.toString(), clientId, sessionId,
+                            aiAgent.getId(), ChatMessageType.AI, null, traceId);
                     for (Map<String, Object> item : retrievedContents) {
                         root.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
                                 String.valueOf(item.get("fileName") == null ? "" : item.get("fileName")),
                                 String.valueOf(item.get("text") == null ? "" : item.get("text")),
-                                String.valueOf(item.get("url") == null ? "" : item.get("url")));
+                                String.valueOf(item.get("url") == null ? "" : item.get("url")),
+                                Constants.SIMPLE_MESSAGE_TYPE);
                     }
                 }
 
@@ -260,6 +269,5 @@ public class AIChatServiceImpl extends AIBaseChatServiceImpl {
         });
 
     }
-
 
 }

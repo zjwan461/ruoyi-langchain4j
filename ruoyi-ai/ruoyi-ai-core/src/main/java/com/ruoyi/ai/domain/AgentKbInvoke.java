@@ -43,6 +43,8 @@ public class AgentKbInvoke extends BaseEntity {
     @Excel(name = "消息id")
     private Long messageId;
 
+    private Long messageFlowId;
+
     /**
      * 文件名
      */
@@ -138,6 +140,16 @@ public class AgentKbInvoke extends BaseEntity {
         this.url = url;
     }
 
+    
+
+    public Long getMessageFlowId() {
+        return messageFlowId;
+    }
+
+    public void setMessageFlowId(Long messageFlowId) {
+        this.messageFlowId = messageFlowId;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
@@ -146,6 +158,7 @@ public class AgentKbInvoke extends BaseEntity {
                 .append("clientId", getClientId())
                 .append("sessionId", getSessionId())
                 .append("messageId", getMessageId())
+                .append("messageFlowId", getMessageFlowId())
                 .append("fileName", getFileName())
                 .append("text", getText())
                 .append("createTime", getCreateTime())

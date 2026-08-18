@@ -176,7 +176,7 @@ public class AgenticServiceImpl implements AgenticService {
             List<AgentToolInvoke> toolCalledList = flowMessage.getToolCalledList();
             if (CollUtil.isNotEmpty(toolCalledList)) {
                 for (AgentToolInvoke invoke : toolCalledList) {
-                    invoke.setMessageId(flowMessage.getId());
+                    invoke.setMessageFlowId(flowMessage.getId());
                     invoke.setCreateTime(new Date());
                     aiAgentService.insertAgentToolInvoked(invoke);
                 }

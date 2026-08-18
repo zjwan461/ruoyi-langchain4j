@@ -156,7 +156,7 @@
                file_name fileName,
                create_time createTime
         from agent_kb_invoke
-        where message_id = #{msgId}
+        where message_flow_id = #{msgId}
           AND #{msgRole} = 'assistant'
     </select>
 
@@ -171,7 +171,7 @@
                tool_invoke_result toolInvokeResult,
                create_time createTIME
         from agent_tool_invoke
-        where message_id = #{msgId}
+        where message_flow_id = #{msgId}
           AND #{msgRole} = 'assistant'
     </select>
 

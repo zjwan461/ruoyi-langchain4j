@@ -10,6 +10,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="clientId"    column="client_id"    />
         <result property="sessionId"    column="session_id"    />
         <result property="messageId"    column="message_id"    />
+        <result property="messageFlowId"    column="message_flow_id"    />
         <result property="toolName"    column="tool_name"    />
         <result property="toolInvokeResult"    column="tool_invoke_result"    />
         <result property="createTime"    column="create_time"    />
@@ -26,6 +27,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null  and clientId != ''"> and client_id = #{clientId}</if>
             <if test="sessionId != null  and sessionId != ''"> and session_id = #{sessionId}</if>
             <if test="messageId != null  and messageId != ''"> and message_id = #{messageId}</if>
+            <if test="messageFlowId != null  and messageFlowId != ''"> and message_flow_id = #{messageFlowId}</if>
             <if test="toolName != null  and toolName != ''"> and tool_name like concat('%', #{toolName}, '%')</if>
         </where>
     </select>
@@ -43,6 +45,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null and clientId != ''">client_id,</if>
             <if test="sessionId != null and sessionId != ''">session_id,</if>
             <if test="messageId != null and messageId != ''">message_id,</if>
+            <if test="messageFlowId != null and messageFlowId != ''">message_flow_id,</if>
             <if test="toolName != null and toolName != ''">tool_name,</if>
             <if test="toolInvokeResult != null">tool_invoke_result,</if>
             <if test="createTime != null">create_time,</if>
@@ -53,6 +56,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null and clientId != ''">#{clientId},</if>
             <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
             <if test="messageId != null and messageId != ''">#{messageId},</if>
+            <if test="messageFlowId != null and messageFlowId != ''">#{messageFlowId},</if>
             <if test="toolName != null and toolName != ''">#{toolName},</if>
             <if test="toolInvokeResult != null">#{toolInvokeResult},</if>
             <if test="createTime != null">#{createTime},</if>
@@ -66,6 +70,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
             <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
             <if test="messageId != null and messageId != ''">message_id = #{messageId},</if>
+            <if test="messageFlowId != null and messageFlowId != ''">message_flow_id = #{messageFlowId},</if>
             <if test="toolName != null and toolName != ''">tool_name = #{toolName},</if>
             <if test="toolInvokeResult != null">tool_invoke_result = #{toolInvokeResult},</if>
             <if test="createTime != null">create_time = #{createTime},</if>

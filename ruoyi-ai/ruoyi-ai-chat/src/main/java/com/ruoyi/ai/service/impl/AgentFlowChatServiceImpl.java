@@ -221,13 +221,13 @@ public class AgentFlowChatServiceImpl extends AIBaseChatServiceImpl implements A
                                 this.saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
                                         String.valueOf(item.get("fileName") == null ? "" : item.get("fileName")),
                                         String.valueOf(item.get("text") == null ? "" : item.get("text")),
-                                        String.valueOf(item.get("url") == null ? "" : item.get("url")));
+                                        String.valueOf(item.get("url") == null ? "" : item.get("url")), Constants.FLOW_MESSAGE_TYPE);
                             }
                         }
                         if (CollUtil.isNotEmpty(toolCallList.get())) {
                             for (Map<String, Object> item : toolCallList.get()) {
                                 this.saveToolCallRecord(aiAgent, sessionId, clientId, assistantMessage.getId(),
-                                        String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")));
+                                        String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")), Constants.FLOW_MESSAGE_TYPE);
                             }
                         }
                     }

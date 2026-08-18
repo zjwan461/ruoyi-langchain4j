@@ -110,4 +110,9 @@ public interface Constants {
 
 
     String AGENTIC_TOKEN = "admin_token";
+
+
+    String SIMPLE_MESSAGE_TYPE = "SIMPLE";
+
+    String FLOW_MESSAGE_TYPE = "FLOW";
 }

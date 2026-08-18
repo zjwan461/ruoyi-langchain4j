@@ -10,6 +10,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="clientId"    column="client_id"    />
         <result property="sessionId"    column="session_id"    />
         <result property="messageId"    column="message_id"    />
+        <result property="messageFlowId"    column="message_flow_id"    />
         <result property="fileName"    column="file_name"    />
         <result property="text"    column="text"    />
         <result property="url"    column="url"    />
@@ -27,6 +28,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null  and clientId != ''"> and client_id = #{clientId}</if>
             <if test="sessionId != null  and sessionId != ''"> and session_id = #{sessionId}</if>
             <if test="messageId != null  and messageId != ''"> and message_id = #{messageId}</if>
+            <if test="messageFlowId != null  and messageFlowId != ''"> and message_flow_id = #{messageFlowId}</if>
             <if test="fileName != null  and fileName != ''"> and file_name like concat('%', #{fileName}, '%')</if>
         </where>
     </select>
@@ -44,6 +46,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null and clientId != ''">client_id,</if>
             <if test="sessionId != null and sessionId != ''">session_id,</if>
             <if test="messageId != null and messageId != ''">message_id,</if>
+            <if test="messageFlowId != null and messageFlowId != ''">message_flow_id,</if>
             <if test="fileName != null and fileName != ''">file_name,</if>
             <if test="text != null and text != ''">text,</if>
             <if test="url != null and url != ''">url,</if>
@@ -55,6 +58,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null and clientId != ''">#{clientId},</if>
             <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
             <if test="messageId != null and messageId != ''">#{messageId},</if>
+            <if test="messageFlowId != null and messageFlowId != ''">#{messageFlowId},</if>
             <if test="fileName != null and fileName != ''">#{fileName},</if>
             <if test="text != null and text != ''">#{text},</if>
             <if test="url != null and url != ''">#{url},</if>
@@ -69,6 +73,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="clientId != null and clientId != ''">client_id = #{clientId},</if>
             <if test="sessionId != null and sessionId != ''">session_id = #{sessionId},</if>
             <if test="messageId != null and messageId != ''">message_id = #{messageId},</if>
+            <if test="messageFlowId != null and messageFlowId != ''">message_flow_id = #{messageFlowId},</if>
             <if test="fileName != null and fileName != ''">file_name = #{fileName},</if>
             <if test="text != null and text != ''">text = #{text},</if>
             <if test="url != null and url != ''">url = #{url},</if>

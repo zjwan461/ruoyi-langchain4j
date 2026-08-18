@@ -83,19 +83,19 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
     public AIBaseChatServiceImpl(IChatMessageService chatMessageService,
-                                 InMemoryChatMemoryStore inMemoryChatMemoryStore,
-                                 RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
-                                 AiConfig aiConfig,
-                                 ObjectMapper objectMapper,
-                                 RedisTemplate<Object, Object> redisTemplate,
-                                 RedisScript<Long> limitScript,
-                                 ISysConfigService sysConfigService,
-                                 IKnowledgeBaseService knowledgeBaseService,
-                                 IModelService modelService,
-                                 ModelBuilder modelBuilder,
-                                 IAIAgentService aiAgentService,
-                                 PgVectorEmbeddingStore pgVectorEmbeddingStore,
-                                 IAttachmentService attachmentService) {
+            InMemoryChatMemoryStore inMemoryChatMemoryStore,
+            RedisMemoryChatMemoryStore redisMemoryChatMemoryStore,
+            AiConfig aiConfig,
+            ObjectMapper objectMapper,
+            RedisTemplate<Object, Object> redisTemplate,
+            RedisScript<Long> limitScript,
+            ISysConfigService sysConfigService,
+            IKnowledgeBaseService knowledgeBaseService,
+            IModelService modelService,
+            ModelBuilder modelBuilder,
+            IAIAgentService aiAgentService,
+            PgVectorEmbeddingStore pgVectorEmbeddingStore,
+            IAttachmentService attachmentService) {
         this.chatMessageService = chatMessageService;
         this.inMemoryChatMemoryStore = inMemoryChatMemoryStore;
         this.redisMemoryChatMemoryStore = redisMemoryChatMemoryStore;
@@ -113,18 +113,20 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     @Override
-    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch) {
+    public Flux<String> chat(AIAgent aiAgent, String prompt, String clientId, String sessionId,
+            List<Long> attachmentIds, boolean enableWebSearch) {
         throw new ServiceException("not implemented");
     }
 
     @Override
-    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId, List<Long> attachmentIds, boolean enableWebSearch) {
+    public Flux<String> chat(AgentFlow agentFlow, String prompt, String clientId, String sessionId,
+            List<Long> attachmentIds, boolean enableWebSearch) {
         throw new ServiceException("not implemented");
     }
 
     @Override
     public ChatMessage saveChatMessage(String content, String clientId, String sessionId, Long agentId,
-                                       ChatMessageType chatMessageType, List<Long> attachmentIds, String traceId) {
+            ChatMessageType chatMessageType, List<Long> attachmentIds, String traceId) {
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setAgentId(agentId);
         chatMessage.setContent(content);
@@ -207,7 +209,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     @Override
     public void deleteSession(String sessionId) {
         if (chatMessageService.deleteBySessionId(sessionId) > 0) {
-//            chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
+            // chatMemories.remove(Constants.MEMORY_CACHE_KEY_PREFIX + sessionId);
             log.debug("remove session id:{}", sessionId);
         }
     }
@@ -247,14 +249,20 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     protected void saveToolCallRecord(AIAgent aiAgent, String sessionId, String clientId, Long messageId,
-                                      String toolName, String toolInvokeResult) {
+            String toolName, String toolInvokeResult, String messageType) {
         try {
             AgentToolInvoke invoke = new AgentToolInvoke();
             invoke.setAgentId(aiAgent.getId());
             invoke.setToolName(toolName);
             invoke.setClientId(clientId);
             invoke.setSessionId(sessionId);
-            invoke.setMessageId(messageId);
+            if (Constants.SIMPLE_MESSAGE_TYPE.equals(messageType)) {
+                invoke.setMessageId(messageId);
+            } else if (Constants.FLOW_MESSAGE_TYPE.equals(messageType)) {
+                invoke.setMessageFlowId(messageId);
+            } else {
+                throw new ServiceException("unsupported message type: " + messageType);
+            }
             invoke.setToolInvokeResult(toolInvokeResult);
             invoke.setCreateTime(new Date());
             aiAgentService.insertAgentToolInvoked(invoke);
@@ -264,13 +272,19 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     protected void saveKBRetrieved(AIAgent aiAgent, String sessionId, String clientId, Long messageId,
-                                   String fileName, String text, String url) {
+            String fileName, String text, String url, String messageType) {
         try {
             AgentKbInvoke invoke = new AgentKbInvoke();
             invoke.setAgentId(aiAgent.getId());
             invoke.setClientId(clientId);
             invoke.setSessionId(sessionId);
-            invoke.setMessageId(messageId);
+            if (Constants.SIMPLE_MESSAGE_TYPE.equals(messageType)) {
+                invoke.setMessageId(messageId);
+            } else if (Constants.FLOW_MESSAGE_TYPE.equals(messageType)) {
+                invoke.setMessageFlowId(messageId);
+            } else {
+                throw new ServiceException("unsupported message type: " + messageType);
+            }
             invoke.setFileName(fileName);
             invoke.setText(text);
             invoke.setUrl(url);
@@ -282,12 +296,13 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
     }
 
     protected AIAssistant buildAIAssistant(AIAgent currentAgent, String sessionId, boolean enableFlowTool,
-                                           boolean shareSessionMemory, boolean userEnableWebSearch) {
+            boolean shareSessionMemory, boolean userEnableWebSearch) {
         Long modelId = currentAgent.getModelId();
         Model model = modelService.selectModelById(modelId);
         StreamingChatModel llm = modelBuilder.getStreamingLLM(model);
-        ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS ?
-                redisMemoryChatMemoryStore : inMemoryChatMemoryStore;
+        ChatMemoryStore memoryStore = aiConfig.getAgent().getMemoryStrategy() == AiConfig.Agent.MemoryStrategy.REDIS
+                ? redisMemoryChatMemoryStore
+                : inMemoryChatMemoryStore;
         AiServices<AIAssistant> builder = AiServices.builder(AIAssistant.class);
         List<ContentRetriever> contentRetrievers = new ArrayList<>();
         EmbeddingStoreContentRetriever contentRetriever = null;
@@ -331,7 +346,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         return builder.streamingChatModel(llm)
                 .systemMessageProvider(x -> {
                     if (CollUtil.isNotEmpty(currentAgent.getAgentSkills())) {
-                        return currentAgent.getSystemMessage() + String.format(Constants.SKILL_APPEND_SYSTEM_MESSAGE, formatAvailableSkills(currentAgent.getAgentSkills()));
+                        return currentAgent.getSystemMessage() + String.format(Constants.SKILL_APPEND_SYSTEM_MESSAGE,
+                                formatAvailableSkills(currentAgent.getAgentSkills()));
                     } else {
                         return currentAgent.getSystemMessage();
                     }
@@ -399,7 +415,8 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         return content.toString();
     }
 
-    protected void handleRetrieveRecord(AtomicReference<List<Map<String, Object>>> retrieveList, List<Content> contents) {
+    protected void handleRetrieveRecord(AtomicReference<List<Map<String, Object>>> retrieveList,
+            List<Content> contents) {
         retrieveList.set(contents.stream().map(content -> {
             String text = content.textSegment().text();
             Long kbId = content.textSegment().metadata().getLong("kb_id");
@@ -414,8 +431,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
         }).toList());
     }
 
-
-// ===================== 【新增：SSE串行发送工具封装，提供给子类调用】 =====================
+    // ===================== 【新增：SSE串行发送工具封装，提供给子类调用】 =====================
 
     /**
      * SSE发送上下文载体，一次对话生命周期内复用
@@ -486,7 +502,7 @@ public abstract class AIBaseChatServiceImpl implements IAIChatService {
      * 通用发送事件封装（兼容子类原有调用方式）
      */
     protected void emitFluxEvent(String event, Object value, Long agentId, String agentName,
-                                 BiConsumer<String, String> safeEmitter) {
+            BiConsumer<String, String> safeEmitter) {
         Map<String, Object> msg = MapUtil.<String, Object>builder()
                 .put(event, value)
                 .put("agentId", agentId)

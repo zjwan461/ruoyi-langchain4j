@@ -134,13 +134,13 @@ public class AIAssistantExecutor extends AIBaseChatServiceImpl {
                                 saveKBRetrieved(aiAgent, sessionId, clientId, assistantMessage.getId(),
                                         String.valueOf(item.get("fileName") == null ? "" : item.get("fileName")),
                                         String.valueOf(item.get("text") == null ? "" : item.get("text")),
-                                        String.valueOf(item.get("url") == null ? "" : item.get("url")));
+                                        String.valueOf(item.get("url") == null ? "" : item.get("url")), Constants.SIMPLE_MESSAGE_TYPE);
                             }
                         }
                         if (CollUtil.isNotEmpty(toolCallList.get())) {
                             for (Map<String, Object> item : toolCallList.get()) {
                                 saveToolCallRecord(aiAgent, sessionId, clientId, assistantMessage.getId(),
-                                        String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")));
+                                        String.valueOf(item.get("toolName")), String.valueOf(item.get("toolInvokeResult")), Constants.SIMPLE_MESSAGE_TYPE);
                             }
                         }
                         // 所有业务保存完成后，发起Flux正常结束
