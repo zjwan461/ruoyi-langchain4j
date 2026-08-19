@@ -19,6 +19,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Literal, Ty
 from langchain.agents.middleware import AgentMiddleware
 from langchain.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph.state import CompiledStateGraph
 from deepagents import create_deep_agent
 from deepagents.graph import DeepAgentState
@@ -28,12 +29,40 @@ from util.flow_tree_parser import TreeNode
 from sandbox.sandbox_tool import run_python_code, check_sandbox_health
 from logger_config import logger
 from pydantic import create_model, Field
+import os
 
-# 全局记忆存储（进程级别共享），始终启用
-_memory_store = InMemorySaver()
+# 全局记忆存储（进程级别共享）
+_memory_store: Any = None
+DB_URI = os.getenv("DB_URI")
+
+# 保存 PostgresSaver 上下文管理器对象，用于关闭时释放连接
+_postgres_cm: Any = None
 
 
-def get_memory_store() -> InMemorySaver:
+async def connect_db():
+    """启动时连接数据库，创建表结构并初始化记忆存储"""
+    global _memory_store, _postgres_cm
+    if DB_URI:
+        _postgres_cm = AsyncPostgresSaver.from_conn_string(DB_URI)
+        _memory_store = await _postgres_cm.__aenter__()
+        await _memory_store.setup()
+        logger.info("PostgreSQL 记忆存储已连接")
+    else:
+        _memory_store = InMemorySaver()
+        logger.info("使用 InMemorySaver 作为记忆存储")
+
+
+async def disconnect_db():
+    """关闭时断开数据库连接"""
+    global _memory_store, _postgres_cm
+    if _postgres_cm is not None:
+        await _postgres_cm.__aexit__(None, None, None)
+        _postgres_cm = None
+        _memory_store = None
+        logger.info("PostgreSQL 记忆存储已断开")
+
+
+def get_memory_store() -> Any:
     """获取全局记忆存储实例"""
     return _memory_store
 
@@ -137,7 +166,9 @@ class DeepAgentChatService:
         """
         try:
             # 构建根 agent（含子 agents）
-            root_agent, _ = await self._build_agent_from_tree_node(tree_node, web_search)
+            root_agent, _ = await self._build_agent_from_tree_node(
+                tree_node, web_search
+            )
 
             if root_agent is None:
                 yield self._format_sse_error("无法构建根 Agent")
@@ -407,7 +438,9 @@ class DeepAgentChatService:
             return spec
         else:
             # 非叶子节点：先递归编译为 deep agent，再包装为 CompiledSubAgent
-            child_agent, _ = await self._build_agent_from_tree_node(tree_node, web_search)
+            child_agent, _ = await self._build_agent_from_tree_node(
+                tree_node, web_search
+            )
             if child_agent is None:
                 return None
 
@@ -770,16 +803,10 @@ class DeepAgentChatService:
 
             # 如果有认证令牌，添加到 headers
             if auth_token:
-                server_config["headers"] = {
-                    "Authorization": f"Bearer {auth_token}"
-                }
+                server_config["headers"] = {"Authorization": f"Bearer {auth_token}"}
 
             # 创建 MCP 客户端，每个 service 只连接一次
-            client = MultiServerMCPClient(
-                {
-                    mcp_service_name: server_config
-                }
-            )
+            client = MultiServerMCPClient({mcp_service_name: server_config})
 
             # 异步获取该 service 提供的所有工具
             all_tools = await client.get_tools()

@@ -208,6 +208,7 @@ services:
       - SANDBOX_BASE_URL=http://sandbox:8194
       - SANDBOX_API_KEY=dify-sandbox
       - SANDBOX_TIMEOUT=30
+      - DB_URI=postgresql://root:root@postgres:5432/embedding?sslmode=disable
     depends_on:
       ruoyi-admin:
         condition: service_started

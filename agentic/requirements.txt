@@ -2,6 +2,8 @@ langchain==1.3.14
 langchain-openai==1.4.2
 langgraph==1.2.10
 langchain_mcp_adapters==0.3.2
+langgraph-checkpoint-postgres==3.1.2
+psycopg[binary]
 deepagents==0.7.5
 tavily-python==0.7.27
 fastapi==0.115.11

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from grpc_client import init_grpc_client, close_grpc_client, get_grpc_client
 from service.auth import verify_token
-from service.deepagent_chat_service import get_deep_agent_chat_service
+from service.deepagent_chat_service import get_deep_agent_chat_service, connect_db, disconnect_db
 import random
 import asyncio
 import json
@@ -22,10 +22,12 @@ GRPC_PORT = int(os.environ.get("GRPC_PORT", "9090"))
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动时初始化 gRPC 客户端
+    # 启动时初始化 gRPC 客户端和数据库连接
     init_grpc_client(host=GRPC_HOST, port=GRPC_PORT)
+    await connect_db()
     yield
-    # 关闭时清理 gRPC 客户端
+    # 关闭时清理 gRPC 客户端和数据库连接
+    disconnect_db()
     close_grpc_client()
 
 

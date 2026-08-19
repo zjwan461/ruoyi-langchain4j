@@ -31,17 +31,42 @@ class State:
     See: https://langchain-ai.github.io/langgraph/concepts/low_level/#state
     """
 
-    changeme: str = "example"
+    style: str = "幽默"
+    prompt: str = ""
+    response: str = ""
+
+
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(
+    base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    api_key="sk-0543377485b74778b3728e250df4e7d1",
+    model="qwen3.7-plus",
+    extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+)
 
 
 async def call_model(state: State, runtime: Runtime[Context]) -> Dict[str, Any]:
-    """Process input and returns output.
+    """调用 LLM 模型，根据 prompt 和 style 生成回复。
 
     Can use runtime context to alter behavior.
     """
+    prompt = state.prompt
+    style = state.style
+
+    # 构建带风格要求的提示词
+    system_message = f"请用{style}的风格回答用户的问题。"
+    messages = [
+        ("system", system_message),
+        ("human", prompt),
+    ]
+
+    # 调用模型获取响应
+    result = await llm.ainvoke(messages)
+    response_text = result.content
+
     return {
-        "changeme": "output from call_model. "
-        f"Configured with {(runtime.context or {}).get('my_configurable_param')}"
+        "response": response_text,
     }
 
 
