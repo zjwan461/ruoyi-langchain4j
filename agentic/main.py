@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     await connect_db()
     yield
     # 关闭时清理 gRPC 客户端和数据库连接
-    disconnect_db()
+    await disconnect_db()
     close_grpc_client()
 
 

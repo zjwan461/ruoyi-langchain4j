@@ -14,6 +14,7 @@ DeepAgent Chat Service - 基于 TreeNode 构建嵌套 Deep Agents 的对话服�
 """
 
 import json
+from collections import OrderedDict
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Literal, Type
 
 from langchain.agents.middleware import AgentMiddleware
@@ -142,6 +143,9 @@ class DeepAgentChatService:
 
     def __init__(self):
         self.grpc_client = get_grpc_client()
+        # 使用 OrderedDict 实现 LRU 缓存，最大容量 128
+        self.session_agent_mapping: OrderedDict[str, Any] = OrderedDict()
+        self._max_cache_size = 128
 
     async def chat_stream(
         self,
@@ -165,10 +169,21 @@ class DeepAgentChatService:
             SSE 格式的数据流，每个 chunk 包含 agentId 和 agentName
         """
         try:
-            # 构建根 agent（含子 agents）
-            root_agent, _ = await self._build_agent_from_tree_node(
-                tree_node, web_search
-            )
+            root_agent = self.session_agent_mapping.get(session_id)
+            if root_agent:
+                # 访问时移动到末尾（最近使用）
+                self.session_agent_mapping.move_to_end(session_id)
+            else:
+                # 构建根 agent（含子 agents）
+                root_agent, _ = await self._build_agent_from_tree_node(
+                    tree_node, web_search
+                )
+                # 添加新条目到末尾
+                self.session_agent_mapping[session_id] = root_agent
+                # 如果超过容量，移除最久未使用的条目（头部）
+                if len(self.session_agent_mapping) > self._max_cache_size:
+                    evicted_key, _ = self.session_agent_mapping.popitem(last=False)
+                    logger.info(f"LRU 缓存已满，驱逐 session: {evicted_key}")
 
             if root_agent is None:
                 yield self._format_sse_error("无法构建根 Agent")
@@ -188,7 +203,7 @@ class DeepAgentChatService:
             messages = self._build_messages(prompt, images)
 
             # 配置记忆
-            config = {"configurable": {"thread_id": session_id}, "recursion_limit": 10}
+            config = {"configurable": {"thread_id": session_id}, "recursion_limit": 20}
 
             # 流式调用 agent
             # 初始 state 同时注入 agent_id（与 JAgentState.state_schema 对齐），
@@ -532,10 +547,6 @@ class DeepAgentChatService:
         """
         tools = []
 
-        # 添加内置沙箱工具
-        tools.append(run_python_code)
-        tools.append(check_sandbox_health)
-
         # 处理 agent 配置的工具（仅 sandbox 类型）
         agent_tools = agent_info.get("agentTools", [])
         for tool_info in agent_tools:
@@ -545,6 +556,13 @@ class DeepAgentChatService:
                 langchain_tool = self._convert_sandbox_tool_to_langchain(tool_info)
                 if langchain_tool:
                     tools.append(langchain_tool)
+            elif (
+                tool_type == "builtin"
+                and tool_info.get("toolName") == "run_python_code"
+            ):
+                # 内置沙箱工具
+                tools.append(run_python_code)
+                tools.append(check_sandbox_health)
             else:
                 logger.debug(
                     f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})"
