@@ -5,6 +5,7 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.config.AiConfig;
 import com.ruoyi.common.exception.ServiceException;
@@ -12,6 +13,11 @@ import com.ruoyi.common.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -63,6 +69,16 @@ public class SandboxSdk {
      * 健康检查路径（不含域名）。
      */
     private static final String PATH_HEALTH = "/health";
+
+    /**
+     * 依赖查询路径（不含域名）。
+     */
+    private static final String PATH_DEP = "/v1/sandbox/dependencies";
+
+    /**
+     * 依赖更新路径（不含域名）。
+     */
+    private static final String PATH_UPDATE_DEP = "/v1/sandbox/dependencies/update";
 
     /**
      * dify-sandbox 鉴权头名称。
@@ -200,6 +216,170 @@ public class SandboxSdk {
                 throw new ServiceException("format sandbox response to json fail...");
             }
         }
+    }
+
+    /**
+     * 查询沙箱支持的依赖信息。
+     *
+     * <p>API 返回结构：
+     * <pre>{@code
+     * {
+     *   "code": 0,
+     *   "message": "success",
+     *   "data": {
+     *     "dependencies": [
+     *       {"name": "requests", "version": ""},
+     *       {"name": "jinja2", "version": ""}
+     *     ]
+     *   }
+     * }
+     * }</pre>
+     * </p>
+     *
+     * @param language 编程语言，默认 "python3"
+     * @return 依赖列表，每个元素为包含 name 和 version 的 Map
+     * @throws ServiceException 当 HTTP 非 2xx 或业务码非 0 时抛出
+     */
+    public List<Map<String, String>> getDependencies(String language) {
+        if (StringUtils.isBlank(language)) {
+            language = "python3";
+        }
+
+        String url = buildUrl(PATH_DEP);
+
+        log.debug("dify-sandbox dependencies query, url={}, language={}", url, language);
+
+        try (HttpResponse response = HttpUtil.createRequest(Method.GET, url)
+                .timeout(getTimeoutMs())
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .header(HEADER_API_KEY, getApiKey())
+                .form("language", language)
+                .execute()) {
+            if (!response.isOk()) {
+                throw new ServiceException("request dify-sandbox dependencies return http status="
+                        + response.getStatus() + ", response=" + response.body());
+            }
+
+            String respBody = response.body();
+            try {
+                JsonNode root = objectMapper.readTree(respBody);
+                int code = root.path("code").asInt(-1);
+                if (code != 0) {
+                    throw new ServiceException("dify-sandbox dependencies query fail, code="
+                            + code + ", message=" + root.path("message").asText());
+                }
+                JsonNode depsNode = root.path("data").path("dependencies");
+                List<Map<String, String>> deps = new ArrayList<>();
+                if (depsNode.isArray()) {
+                    for (JsonNode dep : depsNode) {
+                        Map<String, String> item = new LinkedHashMap<>();
+                        item.put("name", dep.path("name").asText(""));
+                        item.put("version", dep.path("version").asText(""));
+                        deps.add(item);
+                    }
+                }
+                return deps;
+            } catch (ServiceException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("format dependencies response to json fail, body={}", respBody, e);
+                throw new ServiceException("format dependencies response to json fail...");
+            }
+        }
+    }
+
+    /**
+     * 查询沙箱支持的依赖信息（默认 python3）。
+     *
+     * @return 依赖列表
+     * @throws ServiceException 当 HTTP 非 2xx 或业务码非 0 时抛出
+     */
+    public List<Map<String, String>> getDependencies() {
+        return getDependencies("python3");
+    }
+
+    /**
+     * 更新沙箱依赖。
+     *
+     * <p>请求体结构：
+     * <pre>{@code
+     * {
+     *   "dependencies": ["requests==2.31.0", "pillow"],
+     *   "language": "python3"
+     * }
+     * }</pre>
+     *
+     * <p>响应结构：
+     * <pre>{@code
+     * {
+     *   "code": 0,
+     *   "message": "success",
+     *   "data": {}
+     * }
+     * }</pre>
+     * </p>
+     *
+     * @param dependencies 依赖列表，格式为 "包名==版本" 或 "包名"
+     * @param language     编程语言，默认 "python3"
+     * @return true-更新成功；false-更新失败
+     * @throws ServiceException 当参数为空或 HTTP 非 2xx 时抛出
+     */
+    public boolean updateDependencies(List<String> dependencies, String language) {
+        if (dependencies == null || dependencies.isEmpty()) {
+            throw new ServiceException("dependencies is empty");
+        }
+        if (StringUtils.isBlank(language)) {
+            language = "python3";
+        }
+
+        String url = buildUrl(PATH_UPDATE_DEP);
+
+        log.debug("dify-sandbox update dependencies, url={}, language={}, deps={}", url, language, dependencies);
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("dependencies", dependencies);
+        payload.put("language", language);
+
+        String body;
+        try {
+            body = objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            log.error("format update dependencies request to json fail...", e);
+            throw new ServiceException("format update dependencies request to json fail...");
+        }
+
+        try (HttpResponse response = HttpUtil.createRequest(Method.POST, url)
+                .timeout(getTimeoutMs())
+                .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                .header("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .header(HEADER_API_KEY, getApiKey())
+                .body(body)
+                .execute()) {
+            if (!response.isOk()) {
+                throw new ServiceException("request dify-sandbox update dependencies return http status="
+                        + response.getStatus() + ", response=" + response.body());
+            }
+
+            String respBody = response.body();
+            try {
+                JsonNode root = objectMapper.readTree(respBody);
+                return root.path("code").asInt(-1) == 0;
+            } catch (Exception e) {
+                log.error("format update dependencies response to json fail, body={}", respBody, e);
+                throw new ServiceException("format update dependencies response to json fail...");
+            }
+        }
+    }
+
+    /**
+     * 更新沙箱依赖（默认 python3）。
+     *
+     * @param dependencies 依赖列表
+     * @return true-更新成功；false-更新失败
+     * @throws ServiceException 当参数为空或 HTTP 非 2xx 时抛出
+     */
+    public boolean updateDependencies(List<String> dependencies) {
+        return updateDependencies(dependencies, "python3");
     }
 
     // ------------------------------------------------------------------

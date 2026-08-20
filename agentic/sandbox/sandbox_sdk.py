@@ -46,6 +46,12 @@ class SandboxSdk:
     
     # 健康检查路径（不含域名）
     PATH_HEALTH = "/health"
+
+    # 依赖查询
+    PATH_DEP = "/v1/sandbox/dependencies"
+
+    # 更新依赖
+    PATH_UPDATE_DEP = "/v1/sandbox/dependencies/update"
     
     # dify-sandbox 鉴权头名称
     HEADER_API_KEY = "X-Api-Key"
@@ -196,6 +202,141 @@ class SandboxSdk:
         except Exception as e:
             logger.error(f"format sandbox response to json fail, body={response.text}")
             raise ValueError(f"format sandbox response to json fail: {e}")
+        
+
+    def get_dependencies(self, language: str = "python3") -> list:
+        """
+        查询沙箱支持的依赖信息。
+        
+        API 返回结构：
+        {
+          "code": 0,
+          "message": "success",
+          "data": {
+            "dependencies": [
+              {"name": "requests", "version": ""},
+              {"name": "jinja2", "version": ""},
+              ...
+            ]
+          }
+        }
+        
+        Args:
+            language: 编程语言，默认 "python3"
+            
+        Returns:
+            依赖列表，每个元素为 {"name": str, "version": str} 字典
+            
+        Raises:
+            requests.RequestException: 当 HTTP 非 2xx 时抛出
+            ValueError: 当业务码非 0 或响应解析失败时抛出
+        """
+        url = self._build_url(self.PATH_DEP)
+        
+        logger.debug(f"dify-sandbox dependencies query, url={url}, language={language}")
+        
+        headers = {
+            "Accept": "application/json",
+            self.HEADER_API_KEY: self.api_key
+        }
+        
+        params = {
+            "language": language
+        }
+        
+        response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            timeout=self.timeout
+        )
+        
+        if response.status_code != 200:
+            raise requests.RequestException(
+                f"request dify-sandbox dependencies return http status={response.status_code}, response={response.text}"
+            )
+        
+        try:
+            response_data = response.json()
+            # 检查业务码
+            if response_data.get("code") != 0:
+                raise ValueError(
+                    f"dify-sandbox dependencies query fail, code={response_data.get('code')}, "
+                    f"message={response_data.get('message')}"
+                )
+            # 提取 dependencies 列表
+            data = response_data.get("data", {})
+            return data.get("dependencies", [])
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(f"format dependencies response to json fail, body={response.text}")
+            raise ValueError(f"format dependencies response to json fail: {e}")
+    
+    def update_dependencies(self, dependencies: list, language: str = "python3") -> bool:
+        """
+        更新沙箱依赖。
+        
+        请求体结构：
+        {
+          "dependencies": ["requests==2.31.0", "pillow"],
+          "language": "python3"
+        }
+        
+        响应结构：
+        {
+          "code": 0,
+          "message": "success",
+          "data": {}
+        }
+        
+        Args:
+            dependencies: 依赖列表，格式为 "包名==版本" 或 "包名"
+            language: 编程语言，默认 "python3"
+            
+        Returns:
+            True-更新成功；False-更新失败
+            
+        Raises:
+            ValueError: 当参数为空时抛出
+            requests.RequestException: 当 HTTP 非 2xx 时抛出
+        """
+        if not dependencies:
+            raise ValueError("dependencies is empty")
+        
+        url = self._build_url(self.PATH_UPDATE_DEP)
+        
+        logger.debug(f"dify-sandbox update dependencies, url={url}, language={language}, deps={dependencies}")
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            self.HEADER_API_KEY: self.api_key
+        }
+        
+        payload = {
+            "dependencies": dependencies,
+            "language": language
+        }
+        
+        response = requests.post(
+            url,
+            json=payload,
+            headers=headers,
+            timeout=self.timeout
+        )
+        
+        if response.status_code != 200:
+            raise requests.RequestException(
+                f"request dify-sandbox update dependencies return http status={response.status_code}, response={response.text}"
+            )
+        
+        try:
+            response_data = response.json()
+            return response_data.get("code") == 0
+        except Exception as e:
+            logger.error(f"format update dependencies response to json fail, body={response.text}")
+            raise ValueError(f"format update dependencies response to json fail: {e}")
     
     def _build_url(self, path: str) -> str:
         """拼接 URL，自动处理末尾斜杠"""

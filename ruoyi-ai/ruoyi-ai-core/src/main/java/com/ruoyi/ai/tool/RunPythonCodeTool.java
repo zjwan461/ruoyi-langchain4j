@@ -1,5 +1,8 @@
 package com.ruoyi.ai.tool;
 
+import java.util.List;
+import java.util.Map;
+
 import com.ruoyi.ai.sandbox.SandboxSdk;
 import com.ruoyi.common.utils.spring.SpringUtils;
 
@@ -20,5 +23,18 @@ public class RunPythonCodeTool {
     public boolean checkSandboxHealth() {
         SandboxSdk sdk = SpringUtils.getBean(SandboxSdk.class);
         return sdk.health();
+    }
+
+    @Tool("查看python依赖")
+    public List<Map<String, String>> getPythonDependencies() {
+        SandboxSdk sdk = SpringUtils.getBean(SandboxSdk.class);
+        return sdk.getDependencies();
+    }
+
+    @Tool("安装python依赖")
+    public boolean updatePythonDependencies(
+            @P("依赖列表。格式支持 '包名==版本' 或 '包名'，例如 'requests==2.31.0,pillow'。多个用','拼接") List<String> dependencies) {
+        SandboxSdk sdk = SpringUtils.getBean(SandboxSdk.class);
+        return sdk.updateDependencies(dependencies);
     }
 }

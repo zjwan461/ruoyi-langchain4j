@@ -13,6 +13,7 @@ Sandbox SDK 的 LangChain Tool 封装。
         system_prompt="你是一个乐于助人的AI助手，在适当时候可以调用沙箱执行Python代码",
     )
 """
+
 import logging
 from langchain.tools import tool
 
@@ -46,3 +47,44 @@ def check_sandbox_health() -> str:
         return "沙箱服务正常运行" if ok else "沙箱服务不可用"
     except Exception as e:
         return f"沙箱健康检查失败: {e}"
+
+
+@tool(description="查询python沙箱当前已安装的依赖列表")
+def get_sandbox_dependencies() -> str:
+    """查询沙箱环境中已安装的依赖包列表。
+    返回每个依赖的名称和版本信息。
+    输入参数为编程语言，默认 python3。"""
+    try:
+        sdk = get_sandbox_sdk()
+        deps = sdk.get_dependencies()
+        if not deps:
+            return "当前沙箱环境无已安装的依赖"
+        lines = [
+            f"- {d.get('name', 'unknown')}: {d.get('version', '') or '未指定版本'}"
+            for d in deps
+        ]
+        return f"沙箱依赖列表（共 {len(deps)} 个）:\n" + "\n".join(lines)
+    except Exception as e:
+        logger.error(f"sandbox get dependencies error: {e}")
+        return f"查询沙箱依赖失败: {e}"
+
+
+@tool(description="更新python沙箱环境中的依赖包")
+def update_sandbox_dependencies(dependencies: str) -> str:
+    """更新沙箱环境中的依赖包。
+    输入参数为依赖列表字符串，多个依赖用逗号分隔，
+    格式支持 '包名==版本' 或 '包名'，例如 'requests==2.31.0,pillow'。
+    language 参数指定编程语言，默认 python3。"""
+    try:
+        dep_list = [d.strip() for d in dependencies.split(",") if d.strip()]
+        if not dep_list:
+            return "依赖列表为空，请提供至少一个依赖"
+        sdk = get_sandbox_sdk()
+        success = sdk.update_dependencies(dep_list)
+        if success:
+            return f"依赖更新成功: {', '.join(dep_list)}"
+        else:
+            return f"依赖更新失败: {', '.join(dep_list)}"
+    except Exception as e:
+        logger.error(f"sandbox update dependencies error: {e}")
+        return f"更新沙箱依赖失败: {e}"

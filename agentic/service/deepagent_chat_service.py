@@ -23,15 +23,19 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph.state import CompiledStateGraph
 from deepagents import create_deep_agent
+from deepagents.backends import FilesystemBackend
 from deepagents.graph import DeepAgentState
 
 from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
-from sandbox.sandbox_tool import run_python_code, check_sandbox_health
+from sandbox.sandbox_tool import run_python_code, check_sandbox_health, get_sandbox_dependencies, update_sandbox_dependencies
 from logger_config import logger
 from pydantic import create_model, Field
 import os
+from pathlib import Path
 
+BACKEND_DIR = os.getenv("BACKEND_DIR", str(Path.home() / ".workspaces"))
+RECURSION_LIMIT = int(os.getenv("RECURSION_LIMIT", "50"))
 # 全局记忆存储（进程级别共享）
 _memory_store: Any = None
 DB_URI = os.getenv("DB_URI")
@@ -203,7 +207,10 @@ class DeepAgentChatService:
             messages = self._build_messages(prompt, images)
 
             # 配置记忆
-            config = {"configurable": {"thread_id": session_id}, "recursion_limit": 20}
+            config = {
+                "configurable": {"thread_id": session_id},
+                "recursion_limit": RECURSION_LIMIT,
+            }
 
             # 流式调用 agent
             # 初始 state 同时注入 agent_id（与 JAgentState.state_schema 对齐），
@@ -349,7 +356,7 @@ class DeepAgentChatService:
         tools = await self._build_tools(agent_info, web_search)
 
         # 构建 system prompt
-        system_prompt = tree_node.node.description
+        system_prompt = agent_info.get("systemMessage", tree_node.node.description)
         if not system_prompt:
             system_prompt = f"你是一个名为 {tree_node.node.agent_name} 的智能助手。"
 
@@ -375,6 +382,7 @@ class DeepAgentChatService:
                 checkpointer=_memory_store,
                 name=_encode_agent_name(tree_node.node.agent_name, agent_id),
                 state_schema=JAgentState,
+                backend=FilesystemBackend(root_dir=BACKEND_DIR),
             )
             # show_reasoning 从 TreeNode 的 AgentNodeData 获取，而非 gRPC agent 信息
             node_show_reasoning = tree_node.node.show_reasoning
@@ -442,7 +450,7 @@ class DeepAgentChatService:
             spec: Dict[str, Any] = {
                 "name": _encode_agent_name(agent_name, agent_id),
                 "description": agent_description,
-                "system_prompt": agent_info.get("systemMessage", "")
+                "system_prompt": agent_info.get("systemMessage", agent_description)
                 or f"你是一个名为 {agent_name} 的智能助手。",
                 "tools": tools,
                 "model": llm,
@@ -563,6 +571,8 @@ class DeepAgentChatService:
                 # 内置沙箱工具
                 tools.append(run_python_code)
                 tools.append(check_sandbox_health)
+                tools.append(get_sandbox_dependencies)
+                tools.append(update_sandbox_dependencies)
             else:
                 logger.debug(
                     f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})"
