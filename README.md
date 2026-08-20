@@ -12,7 +12,7 @@
 [![Vue](https://img.shields.io/badge/Vue-2.x-success)](https://vuejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-orange)](./LICENSE)
 
-> 前端 Vue / Element UI · 后端 Spring Boot / Spring Security / Redis & Jwt / WebSocket / LangChain4j / PgVector / Dify Sandbox / **MCP** / **Skills**
+> 前端 Vue / Element UI · 后端 Spring Boot / Spring Security / Redis & Jwt / WebSocket / LangChain4j / PgVector / Dify Sandbox / **MCP** / **Skills** · Python 微服务（**doc-parser 文档解析** / **agentic 智能体网关**）
 
 [快速开始](#-快速开始) · [在线体验](#-在线体验) · [演示图](#-演示图) · [支持项目](#-支持项目)
 
@@ -27,6 +27,7 @@ RuoYi-Langchain4j 是在经典后台管理框架 **[RuoYi-Vue](https://github.co
 
 v1.1 起，平台内置 **Dify 类型智能体**、**原生智能体调用本地 Java Tool**、**调用 Dify Sandbox 执行 Python Tool** 三种智能体形态。
 v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系**：智能体既可挂载任意 MCP Server 暴露的工具（`sse` / `stdio` / `streamable-http`），也可绑定 Skills 技能目录，由 LLM 在匹配场景下自动 `activate_skill` 后再继续作答。
+v1.4 起，新增两个独立 Python 微服务：**doc-parser**（基于 Docling + VLM 的文档解析服务，支持 PDF / Office / 代码等 60+ 格式转 Markdown）与 **agentic**（基于 LangChain / DeepAgents 的智能体网关，通过 gRPC 与 Java 后端通信，支持多智能体编排 Flow 的流式对话）。
 
 ### 🧩 技术栈
 
@@ -36,6 +37,7 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 | 后端 | Spring Boot、Spring Security、MyBatis-Plus、Redis、Jwt、WebSocket |
 | AI 框架 | [LangChain4j](https://docs.langchain4j.info/) + [langchain4j-mcp](https://docs.langchain4j.info/)（兼容 Ollama / OpenAI 协议） |
 | Dify 生态 | [Dify](https://dify.ai/) 应用接入 + [dify-sandbox](https://github.com/langgenius/dify-sandbox) 代码执行沙箱 |
+| **Python 微服务** | **doc-parser**（[FastAPI](https://fastapi.tiangolo.com/) + [Docling](https://github.com/DS4SD/docling) + VLM 文档解析）/ **agentic**（[FastAPI](https://fastapi.tiangolo.com/) + [LangChain](https://www.langchain.com/) + [DeepAgents](https://github.com/langchain-ai/deepagents) 智能体网关，gRPC 通信） |
 | **MCP** | **[Model Context Protocol](https://modelcontextprotocol.io/) 工具协议（`sse` / `stdio` / `streamable-http`）** |
 | **Skills** | **基于 `agent_skill` 的技能目录管理，支持 `create` / `import` 两种类型，自动追加到 System Prompt** |
 | **多智能体编排** | **[AntV X6](https://x6.antv.antgroup.com/) 可视化画布 + Flow 节点驱动，多个智能体串联协作** |
@@ -57,6 +59,8 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 - 🔌 **MCP 工具市场（v1.2 新增）**：原生智能体支持挂载来自 [Model Context Protocol](https://modelcontextprotocol.io/) Server 的工具。在【AI 工具箱 → MCP】维护 `agent_mcp_service`（`url` + `transport` + `authToken`）与子级 `agent_mcp_tool`（`name` / `description` / `parameters` / `metadata`），支持 `sse` / `stdio` / `streamable-http` 三种传输方式；`JToolProvider` 通过 langchain4j-mcp 加载后注册到智能体，LLM 可直接调用远端 MCP 工具。智能体侧通过 `agent_mcp_tool_mapping` 多对多绑定 MCP 工具，已自带 OkHttp 请求日志拦截器（`McpRequestLoggingInterceptor`）便于排障。
 - 📜 **Skills 技能体系（v1.2 新增）**：在【AI 工具箱 → Skill】维护 `agent_skill` 技能（`skill_name` / `skill_description` / `skill_content` / `skill_type`），支持 `create`（系统创建）和 `import`（从仓库 `skills/` 目录导入）两种类型；智能体通过 `agent_skill_mapping` 多对多挂载技能，平台会把技能信息按 `Constants.SKILL_APPEND_SYSTEM_MESSAGE` 模板追加到 System Prompt，提示模型通过 `activate_skill` 工具在匹配场景下先激活技能再继续作答。
 - 🕸 **多智能体编排 / Agent Flow（v1.3 新增）**：在【AI 工具箱 → 多智能体】通过 **[AntV X6](https://x6.antv.antgroup.com/)** 可视化画布拖拽多个智能体节点，拼接为多智能体协作链/树状 Flow（`agent_flow`）；后端 `FlowTreeParser` 把 X6 `flowJson` 解析为节点树，按节点切换执行智能体并通过 `AgentFlowChatServiceImpl` 产出流式响应，节点间可独立设置 `promptTemplate` / `flowMemory` / `showReasoning`。每个 Flow 生成独立 `visit_url`，支持单客户端每日访问限流（`day_lmt_per_client`）。
+- 📄 **文档解析服务 doc-parser（v1.4 新增）**：独立 Python 微服务（`doc-parser/`），基于 [Docling](https://github.com/DS4SD/docling) + 视觉语言模型（VLM），支持 PDF / DOCX / XLSX / PPTX / HTML / CSV / Markdown 等 60+ 种文件格式统一转为 Markdown，内置 OCR、表格识别、图片描述生成能力，通过 `PUT /process` 接口对外提供服务，支持 API Key 鉴权。
+- 🤖 **智能体网关 agentic（v1.4 新增）**：独立 Python 微服务（`agentic/`），基于 [LangChain](https://www.langchain.com/) + [DeepAgents](https://github.com/langchain-ai/deepagents) + [LangGraph](https://github.com/langchain-ai/langgraph)，通过 gRPC 与 Java 后端（`ruoyi-admin:9090`）通信获取模型配置，接收前端 Agent Flow 的 `flow_json` 并解析为 `TreeNode`，构建嵌套 Deep Agent 执行多智能体协作流式对话，支持联网搜索（Tavily）、图片上传、Sandbox 代码执行、PostgreSQL checkpoint 持久化。
 - 📊 **工具调用与召回可观测**：自动记录 `agent_tool_invoke`（工具调用结果）与 `agent_kb_invoke`（知识库召回分段），与消息 ID 关联，方便排障与审计；前端可通过 `TOOL_CALL` / `TOOL_CALLED` / `RETRIEVED` 三类 SSE 事件实时观察调用过程。
 
 ---
@@ -70,8 +74,10 @@ v1.2 起，进一步引入 **MCP 协议工具市场** 与 **Skills 技能体系*
 > 5. **Python 工具（Sandbox 类型）**依赖外部 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 服务，部署完成后请在 `application.yml` 中配置 `ai.sandbox.*` 相关地址与 API Key；本仓库 `sandbox/conf/config.yaml` 已附 dify-sandbox 启动配置模板。
 > 6. **MCP 工具**需要在【AI 工具箱 → MCP】维护外部 MCP Server（`url` + `transport`），`sse` / `streamable-http` 需保证后端能访问到 MCP 服务的 HTTP 地址，`stdio` 需确保 MCP 进程在宿主环境可被拉起。
 > 7. **Skills 技能**支持两种录入方式：在【AI 工具箱 → Skill】直接 `create` 新增，或者在仓库 `skills/` 目录下维护 `SKILL.md` 后选择 `import` 同步入库；所有已挂载到智能体的技能都会通过 `SKILL_APPEND_SYSTEM_MESSAGE` 自动注入到系统提示词。
-> 8. **数据库迁移（Flyway 自动执行）**：本项目已集成 **[Flyway](https://flywaydb.org/)**，`ruoyi-admin` 启动时会按版本号顺序自动执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql`），涵盖业务库初始化、AI 工具表（`agent_tool` / `agent_tool_mapping` / `agent_tool_invoke` / `agent_kb_invoke`）、Skill / MCP 表与字典、Agent Flow（`agent_flow` / `chat_flow_message`）、附件表（`attachment`）、聊天日志 trace_id 字段与网页搜索相关字段，无需手动执行 SQL。
+> 8. **数据库迁移（Flyway 自动执行）**：本项目已集成 **[Flyway](https://flywaydb.org/)**，`ruoyi-admin` 启动时会按版本号顺序自动执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql` → `V9__add_impl_type_to_agent_flow_table.sql` → `V10__update_agent_flow_message_table.sql` → `V11__add_run_python_code_builtin_tool.sql`），涵盖业务库初始化、AI 工具表（`agent_tool` / `agent_tool_mapping` / `agent_tool_invoke` / `agent_kb_invoke`）、Skill / MCP 表与字典、Agent Flow（`agent_flow` / `chat_flow_message`）、附件表（`attachment`）、聊天日志 trace_id 字段与网页搜索相关字段、Agent Flow `impl_type` 字段、`run_python_code` 内置工具，无需手动执行 SQL。
 > 9. **多智能体编排（Agent Flow）**：v1.3 起新增 `agent_flow`、`chat_flow_message` 两张表，同时 `ai_agent` 表新增 `description` 列、AI 工具箱子菜单同步重命名为「工具管理 / 多智能体 / Skill管理 / MCP管理」，全部纳入 `V5__create_agent_flow_table.sql` 由 Flyway 自动迁移。
+> 10. **doc-parser 文档解析服务**：独立 Python 微服务（`doc-parser/`），Docker 部署时通过 `Dockerfile-doc-parser` 构建，端口 `8143`；需在 `.env` 或 `docker-compose.yml` 中配置 `OPENAI_API_KEY` / `OPENAI_BASE_URL`（VLM 模型地址）与 `SERVER_API_KEY`（接口鉴权密钥）；后端 `application.yml` 中配置 `ai.doc-parser.url` 指向该服务。
+> 11. **agentic 智能体网关**：独立 Python 微服务（`agentic/`），Docker 部署时通过 `Dockerfile-agentic` 构建，端口 `8142`；通过 gRPC 连接 `ruoyi-admin:9090` 获取模型配置，需配置 `GRPC_HOST` / `GRPC_PORT`、`TAVILY_API_KEY`（联网搜索）、`DB_URI`（PostgreSQL checkpoint 地址）、`SANDBOX_BASE_URL` / `SANDBOX_API_KEY`（代码沙箱）等环境变量。
 
 ---
 
@@ -234,6 +240,136 @@ def calc_circle_area(radius):
 
 ---
 
+## 🐍 Python 微服务详解：doc-parser & agentic
+
+v1.4 引入两个独立的 Python 微服务，通过 Docker Compose 统一编排部署，与 Java 后端协同工作。
+
+### 1. doc-parser 文档解析服务
+
+**目录结构**：`doc-parser/`
+
+**核心能力**：
+- 基于 [Docling](https://github.com/DS4SD/docling) + 视觉语言模型（VLM）的文档解析引擎
+- 支持 **60+ 种文件格式**统一转为 Markdown：
+  - **Office 文档**：PDF / DOCX / XLSX / PPTX / DOC / XLS
+  - **网页 / 标记语言**：HTML / XHTML / Markdown / CSV
+  - **代码文件**：Python / Java / JavaScript / TypeScript / Go / Rust / C++ / SQL 等 50+ 种编程语言
+  - **纯文本**：TXT / JSON / LOG / INI / CONF 等
+- 内置 **OCR 能力**（基于 RapidOCR）与**表格识别**
+- 支持**图片描述生成**（通过 VLM 模型）
+- 提供 `PUT /process` REST API，支持 API Key 鉴权
+
+**技术栈**：
+- FastAPI + Uvicorn
+- Docling（文档解析核心引擎）
+- RapidOCR（OCR 识别）
+- OpenAI 兼容 API（VLM 模型调用）
+- PyMuPDF / Pillow / unstructured / msoffcrypto-tool
+
+**部署配置**：
+```bash
+# doc-parser/.env.example
+OPENAI_API_KEY=sk-xxxxxx              # VLM 模型 API Key
+OPENAI_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+OCR_MODEL=qwen3.7-plus                # VLM 模型名称
+OCR_MAX_CONCURRENT=10                 # OCR 最大并发数
+SERVER_API_KEY=ocr-xxxxx              # 接口鉴权密钥
+DESCRIBE_DOC_IMG=false                # 是否启用图片描述生成
+```
+
+**Docker 部署**：
+- 使用 `Dockerfile-doc-parser` 构建（端口 `8143`）
+- 内置 LibreOffice 用于 Office 文档转换
+- 构建时自动下载 PDF 解析模型（支持代理配置）
+
+**后端集成**：
+- Java 后端通过 `DocumentParseClient` 调用 doc-parser 服务
+- 用于聊天附件的文档预览与解析（`IAttachmentService`）
+
+---
+
+### 2. agentic 智能体网关
+
+**目录结构**：`agentic/`
+
+**核心能力**：
+- 基于 [LangChain](https://www.langchain.com/) + [DeepAgents](https://github.com/langchain-ai/deepagents) + [LangGraph](https://github.com/langchain-ai/langgraph) 的智能体执行引擎
+- 通过 **gRPC** 与 Java 后端（`ruoyi-admin:9090`）通信，获取模型配置与工具定义
+- 接收前端 Agent Flow 的 `flow_json`，解析为 `TreeNode` 结构，构建**嵌套 Deep Agent** 执行多智能体协作
+- 支持**流式对话**（SSE）与**联网搜索**（Tavily）
+- 支持**图片上传**（多模态输入）与**代码沙箱执行**（Dify Sandbox）
+- 使用 **PostgreSQL checkpoint** 持久化对话状态（`langgraph-checkpoint-postgres`）
+
+**技术栈**：
+- FastAPI + Uvicorn
+- LangChain + LangGraph + DeepAgents
+- gRPC（与 Java 后端通信）
+- Tavily（联网搜索）
+- PostgreSQL（checkpoint 持久化）
+- Dify Sandbox（代码执行）
+
+**部署配置**：
+```bash
+# agentic/.env.example
+GRPC_HOST=ruoyi-admin                 # Java 后端 gRPC 地址
+GRPC_PORT=9090                        # Java 后端 gRPC 端口
+TAVILY_API_KEY=tvly-xxxxx             # Tavily 联网搜索 API Key
+TOKEN_WHITELIST=admin_token,dev_token # 接口鉴权 Token 白名单
+SANDBOX_BASE_URL=http://sandbox:8194  # Dify Sandbox 地址
+SANDBOX_API_KEY=dify-sandbox          # Dify Sandbox API Key
+DB_URI=postgresql://root:root@postgres:5432/embedding?sslmode=disable
+```
+
+**Docker 部署**：
+- 使用 `Dockerfile-agentic` 构建（端口 `8142`）
+- 构建时自动执行 `gen_grpc.sh` 生成 gRPC 客户端代码
+
+**后端集成**：
+- Java 后端通过 `AgenticServiceImpl` 调用 agentic 服务
+- 用于 Agent Flow（多智能体编排）的流式对话执行
+
+---
+
+### 3. 微服务架构图
+
+```
+┌─────────────┐
+│   前端 UI   │
+│  (Vue 2.x)  │
+└──────┬──────┘
+       │ HTTP/SSE
+       ▼
+┌─────────────────────────────────────────────┐
+│           Java 后端 (ruoyi-admin)           │
+│  ┌──────────────────────────────────────┐  │
+│  │  Spring Boot + LangChain4j + gRPC    │  │
+│  │  - AI 模型管理 / 知识库 / 智能体     │  │
+│  │  - Agent Flow 编排 / MCP / Skills    │  │
+│  └──────────────┬───────────────────────┘  │
+│                 │ gRPC (9090)              │
+└─────────────────┼───────────────────────────┘
+                  │
+       ┌──────────┴──────────┐
+       ▼                     ▼
+┌──────────────┐      ┌──────────────┐
+│  doc-parser  │      │   agentic    │
+│  (Python)    │      │  (Python)    │
+│  Port: 8143  │      │  Port: 8142  │
+│              │      │              │
+│ - 文档解析   │      │ - 智能体执行 │
+│ - OCR 识别   │      │ - 多 Agent   │
+│ - VLM 描述   │      │ - 联网搜索   │
+└──────────────┘      └──────────────┘
+       │                     │
+       ▼                     ▼
+┌──────────────┐      ┌──────────────┐
+│  VLM 模型    │      │  PostgreSQL  │
+│  (OpenAI API)│      │  (checkpoint)│
+└──────────────┘      └──────────────┘
+```
+
+---
+
 ## 🚀 快速开始
 
 ### 一、基础环境
@@ -249,6 +385,7 @@ def calc_circle_area(radius):
 | Dify（可选） | 0.6+ | 仅在使用 Dify 类型智能体时需要 |
 | dify-sandbox（可选） | latest | 仅在使用 `sandbox` 类型 Python 工具时需要 |
 | MCP Server（可选） | — | 仅在使用 MCP 类型工具时需要，支持 `sse` / `stdio` / `streamable-http` |
+| Python（可选） | 3.11+ | 仅在使用 doc-parser / agentic 微服务时需要（Docker 部署已内置） |
 
 > 基础环境的安装与配置请参考 RuoYi 官方文档：<https://doc.ruoyi.vip/ruoyi-vue/>
 
@@ -261,12 +398,15 @@ docker compose -f docker-compose.yml up -d --build
 ```
 
 > - 无需手动执行 `build.sh` 或 `bin/` 下的脚本；`--build` 会让 Compose 按 Dockerfile 自动构建前后端镜像。
-> - 后端容器启动后，**Flyway 会自动执行** `ruoyi-admin/src/main/resources/db/migration/` 下全部 `V1` ~ `V8` 脚本完成建表与字典初始化。
+> - 后端容器启动后，**Flyway 会自动执行** `ruoyi-admin/src/main/resources/db/migration/` 下全部 `V1` ~ `V11` 脚本完成建表与字典初始化。
+> - `doc-parser` 与 `agentic` 两个 Python 微服务也会随 `docker compose` 一并构建并拉起（分别使用 `Dockerfile-doc-parser` 与 `Dockerfile-agentic`）。
 > - Windows PowerShell / CMD 用户可直接使用 `docker compose -f docker-compose.yml up -d --build`。
 
 ### 三、本地开发模式
 
-项目已集成 **[Flyway](https://flywaydb.org/)**，启动后端时 `ruoyi-admin` 会自动扫描并按版本号顺序执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有迁移脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql`），**无需手动执行任何 SQL**。首次启动前只需在 MySQL 中手动创建一个空库（库名与 `application-druid.yml` / `application.yml` 中的 `url` 保持一致），Flyway 会自动建表与初始化业务数据。
+项目已集成 **[Flyway](https://flywaydb.org/)**，启动后端时 `ruoyi-admin` 会自动扫描并按版本号顺序执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有迁移脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql` → `V9__add_impl_type_to_agent_flow_table.sql` → `V10__update_agent_flow_message_table.sql` → `V11__add_run_python_code_builtin_tool.sql`），**无需手动执行任何 SQL**。首次启动前只需在 MySQL 中手动创建一个空库（库名与 `application-druid.yml` / `application.yml` 中的 `url` 保持一致），Flyway 会自动建表与初始化业务数据。
+
+> 如需本地开发 doc-parser / agentic 微服务，可参考各目录下 `.env.example` 配置环境变量后通过 `uvicorn main:app --reload` 启动。
 
 ```bash
 # （可选）首次启动前在 MySQL 中手动创建空库
@@ -316,6 +456,8 @@ AI 工具箱菜单下包含：
 - **Dify API 管理**：统一维护外部 Dify 服务接入（URL 前缀 + API Key）。
 - **AI 聊天**：流式对话、深度思考 UI 渲染、历史会话管理。
 - **Flow 对话**：v1.3 起为每个 Agent Flow 生成的独立对话页面，记录 `chat_flow_message`，可用于交付独立的多智能体应用链接。
+- **doc-parser 文档解析**（v1.4 新增）：独立 Python 微服务，基于 Docling + VLM 将 PDF / Office / 代码等 60+ 格式文件转为 Markdown，支持 OCR、表格识别、图片描述生成，后端通过 HTTP 调用该服务实现聊天附件的文档预览与解析。
+- **agentic 智能体网关**（v1.4 新增）：独立 Python 微服务，基于 LangChain + DeepAgents + LangGraph，通过 gRPC 与 Java 后端通信，接收 Agent Flow 的 `flow_json` 构建嵌套 Deep Agent 执行多智能体协作流式对话，支持联网搜索（Tavily）、图片上传、Sandbox 代码执行、PostgreSQL checkpoint 持久化。
 
 ---
 
