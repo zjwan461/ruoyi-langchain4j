@@ -122,73 +122,73 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8194/health" ]
     networks:
       - middleware-net
-  doc-parser:
-    build:
-      context: .
-      # 使用你之前写好的Dockerfile
-      dockerfile: Dockerfile-doc-parser
-      args:
-        HTTP_PROXY: ${HTTP_PROXY:-}
-        HTTPS_PROXY: ${HTTPS_PROXY:-}
-    image: ghcr.io/zjwan461/doc-parser:latest
-    container_name: doc-parser
-    restart: unless-stopped
-    ports:
-      - "38143:8143"
-    environment:
-      - TZ=Asia/Shanghai
-      - LANG=C.UTF-8
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      # replace with your qwen apikey
-      - OPENAI_API_KEY=sk-xxxxxx
-      - OPENAI_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
-      - OCR_MODEL=qwen3.7-plus
-      - OCR_MAX_CONCURRENT=10
-      - OCR_PROMPT=Perform OCR on the uploaded document. Extract all text content accurately, and if the document contains tables, maintain their structure in markdown format. If the document contains images, describe the image in three sentences. Be concise and accurate. Do not add any explanations, summaries, or additional content—only output the extracted text and tables
-      - IMG_DESC_CONCURRENT=5
-      - IMG_DESC_PROMPT=Describe the image in clear and no more than three sentences, focusing on the main subject, key elements, and overall context. If the image contains text, then summarize its overall meaning.Keep it brief, accurate, and relevant to the core content of the image.
-      - SERVER_API_KEY=ocr-eacc3af9-b7a9-41c4-990f-ab988bd99a1e
-      - DESCRIBE_DOC_IMG=false
-    networks:
-      - middleware-net
-  # agentic 服务：本地中间件模式下，ruoyi-admin 在宿主机 IDE 中启动
-  # 通过 host.docker.internal 访问宿主机上的 gRPC 服务（端口 9090）
-  agentic:
-    build:
-      context: .
-      dockerfile: Dockerfile-agentic
-    image: ghcr.io/zjwan461/agentic:latest
-    container_name: agentic
-    restart: unless-stopped
-    ports:
-      - "38142:8142"
-    environment:
-      - TZ=Asia/Shanghai
-      - LANG=C.UTF-8
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      # 本地中间件编排不含 ruoyi-admin，需要通过 host.docker.internal 访问宿主机进程
-      - GRPC_HOST=host.docker.internal
-      - GRPC_PORT=9090
-      # put your search apikey here
-      - TAVILY_API_KEY=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
-      - TOKEN_WHITELIST=admin_token,dev_token
-      - SANDBOX_BASE_URL=http://sandbox:8194
-      - SANDBOX_API_KEY=dify-sandbox
-      - SANDBOX_TIMEOUT=30
-      - DB_URI=postgresql://root:root@postgres:5432/embedding?sslmode=disable
-    # 兼容 Linux 平台（Windows/macOS Docker Desktop 已内置 host.docker.internal）
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8142/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - middleware-net
+  # doc-parser:
+  #   build:
+  #     context: .
+  #     # 使用你之前写好的Dockerfile
+  #     dockerfile: Dockerfile-doc-parser
+  #     args:
+  #       HTTP_PROXY: ${HTTP_PROXY:-}
+  #       HTTPS_PROXY: ${HTTPS_PROXY:-}
+  #   image: ghcr.io/zjwan461/doc-parser:latest
+  #   container_name: doc-parser
+  #   restart: unless-stopped
+  #   ports:
+  #     - "38143:8143"
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  #     - LANG=C.UTF-8
+  #     - PYTHONUNBUFFERED=1
+  #     - PYTHONDONTWRITEBYTECODE=1
+  #     # replace with your qwen apikey
+  #     - OPENAI_API_KEY=sk-xxxxxx
+  #     - OPENAI_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+  #     - OCR_MODEL=qwen3.7-plus
+  #     - OCR_MAX_CONCURRENT=10
+  #     - OCR_PROMPT=Perform OCR on the uploaded document. Extract all text content accurately, and if the document contains tables, maintain their structure in markdown format. If the document contains images, describe the image in three sentences. Be concise and accurate. Do not add any explanations, summaries, or additional content—only output the extracted text and tables
+  #     - IMG_DESC_CONCURRENT=5
+  #     - IMG_DESC_PROMPT=Describe the image in clear and no more than three sentences, focusing on the main subject, key elements, and overall context. If the image contains text, then summarize its overall meaning.Keep it brief, accurate, and relevant to the core content of the image.
+  #     - SERVER_API_KEY=ocr-eacc3af9-b7a9-41c4-990f-ab988bd99a1e
+  #     - DESCRIBE_DOC_IMG=false
+  #   networks:
+  #     - middleware-net
+  # # agentic 服务：本地中间件模式下，ruoyi-admin 在宿主机 IDE 中启动
+  # # 通过 host.docker.internal 访问宿主机上的 gRPC 服务（端口 9090）
+  # agentic:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-agentic
+  #   image: ghcr.io/zjwan461/agentic:latest
+  #   container_name: agentic
+  #   restart: unless-stopped
+  #   ports:
+  #     - "38142:8142"
+  #   environment:
+  #     - TZ=Asia/Shanghai
+  #     - LANG=C.UTF-8
+  #     - PYTHONUNBUFFERED=1
+  #     - PYTHONDONTWRITEBYTECODE=1
+  #     # 本地中间件编排不含 ruoyi-admin，需要通过 host.docker.internal 访问宿主机进程
+  #     - GRPC_HOST=host.docker.internal
+  #     - GRPC_PORT=9090
+  #     # put your search apikey here
+  #     - TAVILY_API_KEY=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
+  #     - TOKEN_WHITELIST=admin_token,dev_token
+  #     - SANDBOX_BASE_URL=http://sandbox:8194
+  #     - SANDBOX_API_KEY=dify-sandbox
+  #     - SANDBOX_TIMEOUT=30
+  #     - DB_URI=postgresql://root:root@postgres:5432/embedding?sslmode=disable
+  #   # 兼容 Linux 平台（Windows/macOS Docker Desktop 已内置 host.docker.internal）
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8142/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   networks:
+  #     - middleware-net
 
 volumes:
   mysql-data:
