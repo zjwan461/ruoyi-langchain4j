@@ -22,7 +22,7 @@ from .sandbox_sdk import get_sandbox_sdk
 logger = logging.getLogger(__name__)
 
 
-@tool(description="执行python代码")
+@tool(description="在沙箱中执行python代码。沙箱中并不会保存任何代码、文件，只能将代码当成参数传入执行。")
 def run_python_code(python_code: str) -> str:
     """在安全沙箱中执行 Python 代码并返回结果。
     适用于需要进行数学计算、数据处理、代码验证等场景。
