@@ -99,7 +99,8 @@ services:
     networks:
       - middleware-net
   sandbox:
-    image: langgenius/dify-sandbox:0.2.15
+    # image: langgenius/dify-sandbox:0.2.15
+    image: ghcr.io/zjwan461/dify-sandbox:v1.0.0
     container_name: sandbox
     restart: always
     environment:
