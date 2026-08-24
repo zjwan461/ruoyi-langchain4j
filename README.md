@@ -36,7 +36,7 @@ v1.4 起，新增两个独立 Python 微服务：**doc-parser**（基于 Docling
 | 前端 | Vue、Element UI、Axios、Vue Router、Vuex、Monaco 代码编辑器 |
 | 后端 | Spring Boot、Spring Security、MyBatis-Plus、Redis、Jwt、WebSocket |
 | AI 框架 | [LangChain4j](https://docs.langchain4j.info/) + [langchain4j-mcp](https://docs.langchain4j.info/)（兼容 Ollama / OpenAI 协议） |
-| Dify 生态 | [Dify](https://dify.ai/) 应用接入 + [dify-sandbox](https://github.com/langgenius/dify-sandbox) 代码执行沙箱 |
+| Dify 生态 | [Dify](https://dify.ai/) 应用接入 + [dify-sandbox](https://github.com/langgenius/dify-sandbox) 代码执行沙箱（本仓库使用自定义构建镜像 `ghcr.io/zjwan461/dify-sandbox:v1.0.0`，源码见 [jdify-sandbox](https://github.com/zjwan461/jdify-sandbox)） |
 | **Python 微服务** | **doc-parser**（[FastAPI](https://fastapi.tiangolo.com/) + [Docling](https://github.com/DS4SD/docling) + VLM 文档解析）/ **agentic**（[FastAPI](https://fastapi.tiangolo.com/) + [LangChain](https://www.langchain.com/) + [DeepAgents](https://github.com/langchain-ai/deepagents) 智能体网关，gRPC 通信） |
 | **MCP** | **[Model Context Protocol](https://modelcontextprotocol.io/) 工具协议（`sse` / `stdio` / `streamable-http`）** |
 | **Skills** | **基于 `agent_skill` 的技能目录管理，支持 `create` / `import` 两种类型，自动追加到 System Prompt** |
@@ -71,7 +71,7 @@ v1.4 起，新增两个独立 Python 微服务：**doc-parser**（基于 Docling
 > 2. **RAG 功能依赖 PgVector**，本地推荐使用 Docker 部署（项目已附带 `docker-compose-middleware.yml`）。
 > 3. **AI 对话需提前在【AI 工具箱 → 模型管理】中配置可用的大语言模型与向量模型。**
 > 4. **Dify 类型智能体**需提前在【AI 工具箱 → Dify API 管理】中配置外部 Dify 服务的 URL 前缀与 API Key；本地推荐使用 Docker Compose 部署 [Dify](https://github.com/langgenius/dify)。
-> 5. **Python 工具（Sandbox 类型）**依赖外部 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 服务，部署完成后请在 `application.yml` 中配置 `ai.sandbox.*` 相关地址与 API Key；本仓库 `sandbox/conf/config.yaml` 已附 dify-sandbox 启动配置模板。
+> 5. **Python 工具（Sandbox 类型）**依赖外部 [dify-sandbox](https://github.com/langgenius/dify-sandbox) 服务，部署完成后请在 `application.yml` 中配置 `ai.sandbox.*` 相关地址与 API Key；本仓库 `sandbox/conf/config.yaml` 已附 dify-sandbox 启动配置模板。`docker-compose.yml` 中 sandbox 服务使用的是自定义构建镜像 `ghcr.io/zjwan461/dify-sandbox:v1.0.0`（源码见 [jdify-sandbox](https://github.com/zjwan461/jdify-sandbox)）。
 > 6. **MCP 工具**需要在【AI 工具箱 → MCP】维护外部 MCP Server（`url` + `transport`），`sse` / `streamable-http` 需保证后端能访问到 MCP 服务的 HTTP 地址，`stdio` 需确保 MCP 进程在宿主环境可被拉起。
 > 7. **Skills 技能**支持两种录入方式：在【AI 工具箱 → Skill】直接 `create` 新增，或者在仓库 `skills/` 目录下维护 `SKILL.md` 后选择 `import` 同步入库；所有已挂载到智能体的技能都会通过 `SKILL_APPEND_SYSTEM_MESSAGE` 自动注入到系统提示词。
 > 8. **数据库迁移（Flyway 自动执行）**：本项目已集成 **[Flyway](https://flywaydb.org/)**，`ruoyi-admin` 启动时会按版本号顺序自动执行 `ruoyi-admin/src/main/resources/db/migration/` 下所有脚本（`V1__init_database.sql` → `V2__create_tool_table.sql` → `V3__create_skill_table.sql` → `V4__create_mcp_table.sql` → `V5__create_agent_flow_table.sql` → `V6__create_attachment_table.sql` → `V7__add_trace_id_to_chat_tables.sql` → `V8__add_web_search_to_ai_agent_tables.sql` → `V9__add_impl_type_to_agent_flow_table.sql` → `V10__update_agent_flow_message_table.sql` → `V11__add_run_python_code_builtin_tool.sql`），涵盖业务库初始化、AI 工具表（`agent_tool` / `agent_tool_mapping` / `agent_tool_invoke` / `agent_kb_invoke`）、Skill / MCP 表与字典、Agent Flow（`agent_flow` / `chat_flow_message`）、附件表（`attachment`）、聊天日志 trace_id 字段与网页搜索相关字段、Agent Flow `impl_type` 字段、`run_python_code` 内置工具，无需手动执行 SQL。

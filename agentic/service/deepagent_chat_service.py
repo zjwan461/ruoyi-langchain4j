@@ -28,7 +28,7 @@ from deepagents.graph import DeepAgentState
 
 from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
-from sandbox.sandbox_tool import run_python_code, check_sandbox_health, get_sandbox_dependencies, update_sandbox_dependencies
+from sandbox.sandbox_tool import run_python_code, check_sandbox_health, get_sandbox_dependencies, run_sandbox_command
 from logger_config import logger
 from pydantic import create_model, Field
 import os
@@ -572,7 +572,7 @@ class DeepAgentChatService:
                 tools.append(run_python_code)
                 tools.append(check_sandbox_health)
                 tools.append(get_sandbox_dependencies)
-                tools.append(update_sandbox_dependencies)
+                tools.append(run_sandbox_command)
             else:
                 logger.debug(
                     f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})"

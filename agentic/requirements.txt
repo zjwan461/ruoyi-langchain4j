@@ -12,3 +12,4 @@ grpcio>=1.68.1
 grpcio-tools>=1.68.1
 protobuf>=7.35.1
 requests>=2.31.0
+dify-sandbox==1.1.2
