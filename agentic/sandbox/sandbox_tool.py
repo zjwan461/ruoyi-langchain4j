@@ -95,16 +95,16 @@ def get_sandbox_dependencies(language: str = "python3") -> str:
 
 
 @tool(description="在沙箱中执行shell命令。")
-def run_sandbox_command(command: str, args: str = "") -> str:
+def run_sandbox_command(command: str, command_args: str = "") -> str:
     """在沙箱环境中执行 shell 命令并返回结果。
     命令在沙箱的上传目录中执行，危险命令（如 rm、shutdown）会被拦截。
     输入参数 command 为要执行的命令名称（如 "ls"、"python3"），
-    args 为空格分隔的参数列表（如 "-l" 或 "script.py"），可为空。
+    command_args 为空格分隔的参数列表（如 "-l" 或 "script.py"），可为空。
     返回命令的标准输出结果，如果执行失败则返回错误信息。"""
     try:
         client = get_sandbox_sdk_client()
         # 将空格分隔的参数字符串转为列表
-        arg_list = args.split() if args.strip() else []
+        arg_list = command_args.split() if command_args.strip() else []
         result = client.run_command(command=command, args=arg_list)
         # RunCommandResponse 包含 stdout, stderr, exit_code
         if result.is_success:
