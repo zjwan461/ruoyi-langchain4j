@@ -101,3 +101,5 @@ for chunk, _ in agent.stream(
                 print(f"正在调用工具：{tool_name}")
             # else:
             #     print(item)
+
+sandbox_backend.sandbox_client.delete_session(sandbox_backend.id)
