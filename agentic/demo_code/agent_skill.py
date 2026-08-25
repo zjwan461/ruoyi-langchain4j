@@ -5,7 +5,7 @@ from deepagents.backends import FilesystemBackend, CompositeBackend
 from .constant import llm
 from datetime import datetime
 
-from sandbox.j_sandbox_backend import get_or_create_sandbox
+from agentic.sandbox.python_sandbox_backend import get_or_create_sandbox
 import os
 
 work_dir = os.path.join(os.path.dirname(__file__), "../..")

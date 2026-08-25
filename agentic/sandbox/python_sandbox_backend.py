@@ -16,10 +16,10 @@ from deepagents.backends.protocol import (
 from deepagents.backends.sandbox import BaseSandbox
 from python_sandbox_sdk import SandboxClient, CommandResult
 
-_backends: dict[str, JSandboxBackend] = {}
+_backends: dict[str, PythonSandboxBackend] = {}
 
 
-class JSandboxBackend(BaseSandbox):
+class PythonSandboxBackend(BaseSandbox):
     """Dify Sandbox backend using the Dify Sandbox SDK.
 
     Implements sync variants (execute/write/download_files/upload_files) using
@@ -105,7 +105,7 @@ class JSandboxBackend(BaseSandbox):
         raise NotImplementedError("Use upload_files()")
 
 
-def get_or_create_sandbox(session_id: str) -> JSandboxBackend:
+def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
     global _backends
     _backend = _backends.get(session_id)
     if _backend:
@@ -115,6 +115,6 @@ def get_or_create_sandbox(session_id: str) -> JSandboxBackend:
             base_url=os.getenv("SANDBOX_BASE_URL", "http://agentic-sandbox:8080/"),
             api_key=os.getenv("SANDBOX_API_KEY", "sandbox-secret-key"),
         )
-        _backend = JSandboxBackend(sandbox_client=client)
+        _backend = PythonSandboxBackend(sandbox_client=client)
         _backends[session_id] = _backend
         return _backend
