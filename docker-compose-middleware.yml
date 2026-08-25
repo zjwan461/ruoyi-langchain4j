@@ -122,7 +122,37 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:8194/health" ]
     networks:
       - middleware-net
-
+  agentic-sandbox:
+    image: ghcr.io/zjwan461/python-sandbox:v1.0.0
+    container_name: agentic-sandbox
+    ports:
+      - "38081:8080"
+    environment:
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-sandbox-secret-key}
+      - SANDBOX_IMAGE=${SANDBOX_IMAGE:-python:3.12-trixie}
+      - SANDBOX_CONTAINER_NAME_PREFIX=${SANDBOX_CONTAINER_NAME_PREFIX:-python-sandbox-}
+      - SANDBOX_SESSION_TIMEOUT_MILLIS=${SANDBOX_SESSION_TIMEOUT_MILLIS:-86400000}
+      - SANDBOX_SESSION_CLEANUP_INTERVAL_MILLIS=${SANDBOX_SESSION_CLEANUP_INTERVAL_MILLIS:-3600000}
+      - SANDBOX_MAX_CONTAINERS=${SANDBOX_MAX_CONTAINERS:-10}
+      - SANDBOX_MAX_CONTAINERS_BEHAVIOR=${SANDBOX_MAX_CONTAINERS_BEHAVIOR:-reject}
+      - SANDBOX_PULL_IMAGE_ON_STARTUP=${SANDBOX_PULL_IMAGE_ON_STARTUP:-false}
+      # 单个容器的内存限制（字节），默认 512MB
+      - SANDBOX_CONTAINER_MEMORY_LIMIT=${SANDBOX_CONTAINER_MEMORY_LIMIT:-536870912}
+      # 本地 Docker 默认 unix socket；远程 Docker 时可在 .env 中覆盖为 tcp://host:2375
+      - DOCKER_HOST=${DOCKER_HOST:-unix:///var/run/docker.sock}
+    volumes:
+      # 默认挂载本地 Docker socket；使用远程 Docker（DOCKER_HOST=tcp://...）时请注释/删除本行
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - middleware-net
+      
 volumes:
   mysql-data:
   redis-data:

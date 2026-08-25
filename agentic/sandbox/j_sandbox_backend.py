@@ -112,7 +112,7 @@ def get_or_create_sandbox(session_id: str) -> JSandboxBackend:
         return _backend
     else:
         client = SandboxClient(
-            base_url=os.getenv("SANDBOX_BASE_URL", "http://sandbox-api:8080/"),
+            base_url=os.getenv("SANDBOX_BASE_URL", "http://agentic-sandbox:8080/"),
             api_key=os.getenv("SANDBOX_API_KEY", "sandbox-secret-key"),
         )
         _backend = JSandboxBackend(sandbox_client=client)
