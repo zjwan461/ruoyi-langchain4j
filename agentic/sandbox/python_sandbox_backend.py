@@ -15,6 +15,7 @@ from deepagents.backends.protocol import (
 )
 from deepagents.backends.sandbox import BaseSandbox
 from python_sandbox_sdk import SandboxClient, CommandResult
+from logger_config import logger
 
 _backends: dict[str, PythonSandboxBackend] = {}
 
@@ -118,3 +119,33 @@ def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
         _backend = PythonSandboxBackend(sandbox_client=client)
         _backends[session_id] = _backend
         return _backend
+
+
+def upload_skills_to_sandbox(
+    session_id: str, local_skill_dir: str, skill_white_list: list[str]
+):
+    skills_dir = f"/skills"
+    sandbox_backend = get_or_create_sandbox(session_id=session_id)
+    client = sandbox_backend.sandbox_client
+    # 创建 sandbox 会话
+    session_id = sandbox_backend.id
+    try:
+        # 递归遍历 local_skill_dir 下的所有文件
+        for root, dirs, files in os.walk(local_skill_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # 计算相对于 local_skill_dir 的相对路径
+                rel_path = os.path.relpath(file_path, local_skill_dir)
+                # 构建 sandbox 中的目标路径（保持 /skills 前缀）
+                container_path = f"{skills_dir}/{rel_path}".replace("\\", "/")
+                # 提取目标目录路径
+                container_dir = os.path.dirname(container_path).replace("\\", "/")
+                # 在 sandbox 中创建目录（如果不存在）
+                client.exec_shell(session_id, f"mkdir -p {container_dir}")
+                # 读取文件内容并上传
+                with open(file_path, "rb") as f:
+                    data = f.read()
+                client.upload_file(session_id, container_path, data)
+                logger.info(f"已上传: {file_path} -> {container_path}")
+    finally:
+        client.close()

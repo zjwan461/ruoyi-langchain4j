@@ -22,6 +22,7 @@ Sandbox SDK 的 LangChain Tool 封装。
 
 import logging
 from langchain.tools import tool
+import shlex
 
 from dify_sandbox import DifySandboxClient
 import os
@@ -42,7 +43,7 @@ def get_sandbox_sdk_client():
     return client
 
 
-@tool(description="在沙箱中执行python代码。")
+@tool(description="在沙箱中执行python代码。此工具不能创建文件。")
 def run_python_code(python_code: str) -> str:
     """在安全沙箱中执行 Python 代码并返回结果。
     适用于需要进行数学计算、数据处理、代码验证等场景。
@@ -94,8 +95,8 @@ def get_sandbox_dependencies(language: str = "python3") -> str:
         return f"查询沙箱依赖失败: {e}"
 
 
-@tool(description="在沙箱中执行shell命令。")
-def run_sandbox_command(command: str, command_args: str = "") -> str:
+@tool(description="在沙箱中执行shell命令。工作目录只能在/data/uploads下")
+def run_sandbox_command(command: str) -> str:
     """在沙箱环境中执行 shell 命令并返回结果。
     命令在沙箱的上传目录中执行，危险命令（如 rm、shutdown）会被拦截。
     输入参数 command 为要执行的命令名称（如 "ls"、"python3"），
@@ -103,9 +104,38 @@ def run_sandbox_command(command: str, command_args: str = "") -> str:
     返回命令的标准输出结果，如果执行失败则返回错误信息。"""
     try:
         client = get_sandbox_sdk_client()
-        # 将空格分隔的参数字符串转为列表
-        arg_list = command_args.split() if command_args.strip() else []
-        result = client.run_command(command=command, args=arg_list)
+        try:
+            parts = shlex.split(command)
+        except ValueError:
+            # Fallback to simple split if shlex fails (e.g. unmatched quotes)
+            parts = command.split()
+        if not parts:
+            return "", []
+
+        # Filter out shell-specific syntax (redirections, pipes, etc.)
+        # that are not supported by run_command's args parameter
+        filtered_args = []
+        skip_next = False
+        for i, part in enumerate(parts[1:], start=1):
+            # if skip_next:
+            #     skip_next = False
+            #     continue
+
+            # # Skip redirections: >, >>, <, 2>, 2>>, &>, &>>
+            # if part in (">", ">>", "<", "2>", "2>>", "&>", "&>>"):
+            #     skip_next = True  # Skip the next argument (filename)
+            #     continue
+
+            # # Skip arguments containing redirection syntax (e.g., "2>/dev/null")
+            # if ">" in part or "<" in part:
+            #     continue
+
+            # # Skip pipes and logical operators
+            # if part in ("|", "||", "&&", ";"):
+            #     continue
+
+            filtered_args.append(part)
+        result = client.run_command(command=command, args=filtered_args)
         # RunCommandResponse 包含 stdout, stderr, exit_code
         if result.is_success:
             return result.stdout if result.stdout else "(命令执行无输出)"
