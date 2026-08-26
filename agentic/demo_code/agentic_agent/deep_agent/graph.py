@@ -50,6 +50,19 @@ def utc_now() -> str:
     return datetime.now(tz=timezone.utc).isoformat()
 
 
+@tool
+async def save_file_to_local(file_path: str, local_dave_path: str) -> str:
+    """从sandbox中下载文件保存到本地"""
+    backend = await get_or_create_sandbox("default")
+    file_bytes = await backend.sandbox_client.download_file(
+        backend.id, file_path
+    )
+    with open(local_dave_path, "wb") as f:
+        f.write(file_bytes)
+        f.flush
+    return local_dave_path
+
+
 SUBAGENTS = [
     {
         "name": "researcher",
@@ -75,7 +88,7 @@ SUBAGENTS = [
 def _build_agent(backend=None):
     return create_deep_agent(
         model=llm,
-        tools=[utc_now],
+        tools=[utc_now, save_file_to_local],
         backend=backend,
         system_prompt=SYSTEM_PROMPT,
         subagents=SUBAGENTS,
