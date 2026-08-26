@@ -1,6 +1,6 @@
-"""LangSmith sandbox backend.
+"""Dify Sandbox backend.
 
-Adapted from open-swe (agent/integrations/langsmith.py).
+Provides a sandbox backend using the Dify Sandbox SDK.
 """
 
 from __future__ import annotations
@@ -14,29 +14,29 @@ from deepagents.backends.protocol import (
     WriteResult,
 )
 from deepagents.backends.sandbox import BaseSandbox
-from langsmith.sandbox import AsyncSandbox, AsyncSandboxClient, ResourceNotFoundError
+from python_sandbox_sdk import SandboxClient, CommandResult
+import logging
 
-DEFAULT_TEMPLATE_NAME = "deep-agent"
-DEFAULT_TEMPLATE_IMAGE = "python:3"
+logger = logging.getLogger(__file__)
 
-_backends: dict[str, "LangSmithBackend"] = {}
+_backends: dict[str, PythonSandboxBackend] = {}
 
 
-class LangSmithBackend(BaseSandbox):
-    """LangSmith sandbox backend using the async SDK.
+class PythonSandboxBackend(BaseSandbox):
+    """Dify Sandbox backend using the Dify Sandbox SDK.
 
-    Overrides aexecute/awrite/adownload_files/aupload_files to use the async
-    SDK natively. The sync variants raise NotImplementedError since the
-    framework always calls the async versions.
+    Implements sync variants (execute/write/download_files/upload_files) using
+    the SDK. The async variants raise NotImplementedError since the framework
+    always calls the sync versions.
     """
 
-    def __init__(self, sandbox: AsyncSandbox) -> None:
-        self._sandbox = sandbox
-        self._default_timeout: int = 300
+    def __init__(self, sandbox_client: SandboxClient) -> None:
+        self.sandbox_client = sandbox_client
+        self._id = self.sandbox_client.create_session()
 
     @property
     def id(self) -> str:
-        return self._sandbox.name
+        return self._id
 
     def execute(self, command: str, *, timeout: int | None = None) -> ExecuteResponse:
         raise NotImplementedError("Use aexecute()")
@@ -44,38 +44,51 @@ class LangSmithBackend(BaseSandbox):
     async def aexecute(
         self, command: str, *, timeout: int | None = None
     ) -> ExecuteResponse:
-        effective_timeout = timeout if timeout is not None else self._default_timeout
-        result = await self._sandbox.run(command, timeout=effective_timeout)
-        output = result.stdout or ""
-        if result.stderr:
-            output += "\n" + result.stderr if output else result.stderr
-        return ExecuteResponse(
-            output=output,
-            exit_code=result.exit_code,
-            truncated=False,
-        )
+        try:
+            cmd_result: CommandResult = self.sandbox_client.exec_shell(
+                command=command, session_id=self.id
+            )
+            if cmd_result.success:
+                return ExecuteResponse(
+                    output=cmd_result.stdout, exit_code=cmd_result.exit_code
+                )
+            else:
+                return ExecuteResponse(
+                    output=cmd_result.stderr, exit_code=cmd_result.exit_code
+                )
+        except Exception as e:
+            return ExecuteResponse(output=str(e), exit_code=1)
 
     def write(self, file_path: str, content: str) -> WriteResult:
         raise NotImplementedError("Use awrite()")
 
     async def awrite(self, file_path: str, content: str) -> WriteResult:
         try:
-            await self._sandbox.write(file_path, content.encode("utf-8"))
-            return WriteResult(path=file_path, files_update=None)
+            self.sandbox_client.write_file(
+                self.id, container_path=file_path, content=content
+            )
+            return WriteResult(path=file_path)
         except Exception as e:
-            return WriteResult(error=f"Failed to write file '{file_path}': {e}")
+            return WriteResult(path=file_path, error=str(e))
 
     def download_files(self, paths: list[str]) -> list[FileDownloadResponse]:
         raise NotImplementedError("Use adownload_files()")
 
     async def adownload_files(self, paths: list[str]) -> list[FileDownloadResponse]:
-        responses: list[FileDownloadResponse] = []
+        results = []
         for path in paths:
-            content = await self._sandbox.read(path)
-            responses.append(
-                FileDownloadResponse(path=path, content=content, error=None)
-            )
-        return responses
+            try:
+                data: bytes = self.sandbox_client.download_file(
+                    session_id=self.id, container_path=path
+                )
+                results.append(
+                    FileDownloadResponse(path=path, content=data, error=None)
+                )
+            except Exception as e:
+                results.append(
+                    FileDownloadResponse(path=path, content=None, error=str(e))
+                )
+        return results
 
     def upload_files(self, files: list[tuple[str, bytes]]) -> list[FileUploadResponse]:
         raise NotImplementedError("Use aupload_files()")
@@ -83,42 +96,64 @@ class LangSmithBackend(BaseSandbox):
     async def aupload_files(
         self, files: list[tuple[str, bytes]]
     ) -> list[FileUploadResponse]:
-        responses: list[FileUploadResponse] = []
-        for path, content in files:
-            await self._sandbox.write(path, content)
-            responses.append(FileUploadResponse(path=path, error=None))
-        return responses
+        results = []
+        for filename, content in files:
+            try:
+                self.sandbox_client.upload_file(
+                    session_id=self.id, container_path=filename, data=content
+                )
+                results.append(FileUploadResponse(path=filename, error=None))
+            except Exception as e:
+                results.append(FileUploadResponse(path=filename, error=str(e)))
+        return results
 
 
-async def get_or_create_sandbox(thread_id: str) -> LangSmithBackend:
-    """Get a cached sandbox for this thread, or create a new one."""
-    if backend := _backends.get(thread_id):
-        return backend
-
-    api_key = os.environ.get("LANGSMITH_API_KEY") or os.environ.get(
-        "LANGSMITH_API_KEY_PROD"
-    )
-    template_name = os.environ.get("SANDBOX_TEMPLATE_NAME", DEFAULT_TEMPLATE_NAME)
-    template_image = os.environ.get("SANDBOX_TEMPLATE_IMAGE", DEFAULT_TEMPLATE_IMAGE)
-
-    client = AsyncSandboxClient(api_key=api_key)
-    await _ensure_template(client, template_name, template_image)
-    sandbox = await client.create_sandbox(template_name=template_name, timeout=180)
-
-    backend = LangSmithBackend(sandbox)
-    _backends[thread_id] = backend
-    return backend
+skill_idr = os.path.realpath(
+    os.path.join(os.path.dirname(__file__), "../../../..", "skills")
+)
+print(f"skill_dir={skill_idr}")
 
 
-async def _ensure_template(
-    client: AsyncSandboxClient,
-    template_name: str,
-    template_image: str,
-) -> None:
-    """Ensure the sandbox template exists, creating it if needed."""
+async def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
+    global _backends
+    _backend = _backends.get(session_id)
+    if _backend:
+        return _backend
+    else:
+        client = SandboxClient(
+            base_url=os.getenv("SANDBOX_BASE_URL", "http://agentic-sandbox:8080/"),
+            api_key=os.getenv("SANDBOX_API_KEY", "sandbox-secret-key"),
+        )
+        _backend = PythonSandboxBackend(sandbox_client=client)
+        _backends[session_id] = _backend
+        await upload_skills_to_sandbox(client, _backend.id, skill_idr)
+        return _backend
+
+
+async def upload_skills_to_sandbox(
+    client: SandboxClient,
+    session_id: str,
+    local_skill_dir: str,
+    skill_white_list: list[str] = None,
+):
+    skills_dir = f"/skills"
     try:
-        await client.get_template(template_name)
-    except ResourceNotFoundError as e:
-        if e.resource_type != "template":
-            raise
-        await client.create_template(name=template_name, image=template_image)
+        # 递归遍历 local_skill_dir 下的所有文件
+        for root, dirs, files in os.walk(local_skill_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # 计算相对于 local_skill_dir 的相对路径
+                rel_path = os.path.relpath(file_path, local_skill_dir)
+                # 构建 sandbox 中的目标路径（保持 /skills 前缀）
+                container_path = f"{skills_dir}/{rel_path}".replace("\\", "/")
+                # 提取目标目录路径
+                container_dir = os.path.dirname(container_path).replace("\\", "/")
+                # 在 sandbox 中创建目录（如果不存在）
+                client.exec_shell(session_id, f"mkdir -p {container_dir}")
+                # 读取文件内容并上传
+                with open(file_path, "rb") as f:
+                    data = f.read()
+                client.upload_file(session_id, container_path, data)
+                logger.info(f"已上传: {file_path} -> {container_path}")
+    finally:
+        client.close()

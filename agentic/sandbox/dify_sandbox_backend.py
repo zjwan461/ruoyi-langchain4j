@@ -151,7 +151,7 @@ class DifySandboxBackend(BaseSandbox):
         raise NotImplementedError("Use upload_files()")
 
 
-def get_or_create_sandbox() -> DifySandboxBackend:
+async def get_or_create_sandbox() -> DifySandboxBackend:
     global _backend
     client = DifySandboxClient(
         base_url=os.getenv("SANDBOX_BASE_URL", "http://sandbox:8194"),

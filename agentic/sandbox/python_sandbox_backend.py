@@ -106,7 +106,7 @@ class PythonSandboxBackend(BaseSandbox):
         raise NotImplementedError("Use upload_files()")
 
 
-def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
+async def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
     global _backends
     _backend = _backends.get(session_id)
     if _backend:
@@ -121,8 +121,8 @@ def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
         return _backend
 
 
-def upload_skills_to_sandbox(
-    session_id: str, local_skill_dir: str, skill_white_list: list[str]
+async def upload_skills_to_sandbox(
+    session_id: str, local_skill_dir: str, skill_white_list: list[str] = None
 ):
     skills_dir = f"/skills"
     sandbox_backend = get_or_create_sandbox(session_id=session_id)
