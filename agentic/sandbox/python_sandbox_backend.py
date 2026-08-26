@@ -15,7 +15,7 @@ from deepagents.backends.protocol import (
 )
 from deepagents.backends.sandbox import BaseSandbox
 from python_sandbox_sdk import SandboxClient, CommandResult
-from logger_config import logger
+from agentic.logger_config import logger
 
 _backends: dict[str, PythonSandboxBackend] = {}
 

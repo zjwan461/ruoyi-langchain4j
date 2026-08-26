@@ -60,36 +60,80 @@ def get_date_time():
     return now.strftime("%Y-%m-%d %H:%M:%S")
 
 
-backend = CompositeBackend(
-    default=sandbox_backend,  # 原有业务后端不变
-    routes={
-        "/large_tool_results/": FilesystemBackend(
-            root_dir="/data/deepagents_large_results"
-        ),
-        # "/skills/": FilesystemBackend(root_dir=local_skill_dir),
-    },
-)
+from typing import Literal
+from tavily import TavilyClient
+
+tavily_client = TavilyClient(api_key="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")
+
+
+@tool
+def internet_search(
+    query: str,
+    max_results: int = 5,
+    topic: Literal["general", "news", "finance"] = "general",
+    include_raw_content: bool = False,
+):
+    """运行网络搜索"""
+    return tavily_client.search(
+        query,
+        max_results=max_results,
+        include_raw_content=include_raw_content,
+        topic=topic,
+    )
+
+
+# 在需要多场景backend需要使用
+# backend = CompositeBackend(
+#     default=sandbox_backend,  # 原有业务后端不变
+#     routes={
+#         "/large_tool_results/": FilesystemBackend(
+#             root_dir="/data/deepagents_large_results"
+#         ),
+#         # "/skills/": FilesystemBackend(root_dir=local_skill_dir),
+#     },
+# )
+
+from langgraph.checkpoint.memory import MemorySaver
 
 agent = create_deep_agent(
+    name="Jarvis",
     model=llm,
-    skills=["/skills"],
-    tools=[get_date_time],
-    # backend=FilesystemBackend(root_dir=work_dir),
+    # skills=["/skills"],
+    # tools=[get_date_time],
+    subagents=[
+        {
+            "name": "websearch_agent",
+            "description": "进行网络搜索，总结归纳",
+            "system_prompt": "你是一个网络搜索专家，你负责调用工具从互联网上搜索答案，汇总后结合问题进行回答。如需获取天气，请调用对应的skill来说实现",
+            "tools": [internet_search, get_date_time],
+            "skills": ["/skills"],
+        }
+    ],
     backend=sandbox_backend,
-    system_prompt="你是一个AI助手，你需要帮助用户解决实际问题。在有必要的时候调用skill完成工作。",
+    checkpointer=MemorySaver(),
+    system_prompt="你是一个主管Agent助手，你需要对任务进行拆解，分为多个子任务调用子Agent来处理。最终给我最终答案。",
 )
 
 
 # resp = agent.invoke({"messages": [{"role": "user", "content": "hi"}]})
 # print(resp)
 
+current_agent: str = ""
 user_prompt = "查询一下深圳明天的天气，并给出穿衣意见"
-for chunk, _ in agent.stream(
+for _, chunk in agent.stream(
     {"messages": [{"role": "user", "content": user_prompt}]},
     config={"configurable": {"thread_id": "1"}},
     stream_mode="messages",
+    subgraphs=True,
 ):
-    cb = chunk.content_blocks
+    msg_chunk = chunk[0]
+    metadata = chunk[1]
+    cb = msg_chunk.content_blocks
+    lc_agent_name = metadata.get("lc_agent_name", "")
+    if current_agent != lc_agent_name:
+        current_agent = lc_agent_name
+        print(f"\nAgent: {current_agent}开始发言：")
+
     if cb:
         item = cb[0]
         if item.get("type") == "text":
