@@ -5,6 +5,7 @@ Provides a sandbox backend using the Dify Sandbox SDK.
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 from deepagents.backends.protocol import (
@@ -14,7 +15,7 @@ from deepagents.backends.protocol import (
     WriteResult,
 )
 from deepagents.backends.sandbox import BaseSandbox
-from python_sandbox_sdk import SandboxClient, CommandResult
+from python_sandbox_sdk import AsyncSandboxClient, CommandResult
 import logging
 
 logger = logging.getLogger(__file__)
@@ -30,9 +31,13 @@ class PythonSandboxBackend(BaseSandbox):
     always calls the sync versions.
     """
 
-    def __init__(self, sandbox_client: SandboxClient) -> None:
+    def __init__(self, sandbox_client: AsyncSandboxClient) -> None:
         self.sandbox_client = sandbox_client
-        self._id = self.sandbox_client.create_session()
+        self._id: str | None = None
+
+    async def init_session(self) -> None:
+        """异步初始化 session，必须在首次使用前调用。"""
+        self._id = await self.sandbox_client.create_session()
 
     @property
     def id(self) -> str:
@@ -45,7 +50,7 @@ class PythonSandboxBackend(BaseSandbox):
         self, command: str, *, timeout: int | None = None
     ) -> ExecuteResponse:
         try:
-            cmd_result: CommandResult = self.sandbox_client.exec_shell(
+            cmd_result: CommandResult = await self.sandbox_client.exec_shell(
                 command=command, session_id=self.id
             )
             if cmd_result.success:
@@ -64,7 +69,7 @@ class PythonSandboxBackend(BaseSandbox):
 
     async def awrite(self, file_path: str, content: str) -> WriteResult:
         try:
-            self.sandbox_client.write_file(
+            await self.sandbox_client.write_file(
                 self.id, container_path=file_path, content=content
             )
             return WriteResult(path=file_path)
@@ -78,7 +83,7 @@ class PythonSandboxBackend(BaseSandbox):
         results = []
         for path in paths:
             try:
-                data: bytes = self.sandbox_client.download_file(
+                data: bytes = await self.sandbox_client.download_file(
                     session_id=self.id, container_path=path
                 )
                 results.append(
@@ -99,7 +104,7 @@ class PythonSandboxBackend(BaseSandbox):
         results = []
         for filename, content in files:
             try:
-                self.sandbox_client.upload_file(
+                await self.sandbox_client.upload_file(
                     session_id=self.id, container_path=filename, data=content
                 )
                 results.append(FileUploadResponse(path=filename, error=None))
@@ -120,40 +125,52 @@ async def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
     if _backend:
         return _backend
     else:
-        client = SandboxClient(
+        client = AsyncSandboxClient(
             base_url=os.getenv("SANDBOX_BASE_URL", "http://agentic-sandbox:8080/"),
             api_key=os.getenv("SANDBOX_API_KEY", "sandbox-secret-key"),
         )
         _backend = PythonSandboxBackend(sandbox_client=client)
+        await _backend.init_session()
         _backends[session_id] = _backend
         await upload_skills_to_sandbox(client, _backend.id, skill_idr)
         return _backend
 
 
+def _collect_files_to_upload(local_skill_dir: str) -> list[tuple[str, str, bytes]]:
+    """收集需要上传的文件列表（同步阻塞操作，需在线程中执行）"""
+    files_to_upload = []
+    for root, dirs, files in os.walk(local_skill_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            rel_path = os.path.relpath(file_path, local_skill_dir)
+            container_path = f"/skills/{rel_path}".replace("\\", "/")
+            with open(file_path, "rb") as f:
+                data = f.read()
+            files_to_upload.append((file_path, container_path, data))
+    return files_to_upload
+
+
 async def upload_skills_to_sandbox(
-    client: SandboxClient,
+    client: AsyncSandboxClient,
     session_id: str,
     local_skill_dir: str,
     skill_white_list: list[str] = None,
 ):
     skills_dir = f"/skills"
     try:
-        # 递归遍历 local_skill_dir 下的所有文件
-        for root, dirs, files in os.walk(local_skill_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                # 计算相对于 local_skill_dir 的相对路径
-                rel_path = os.path.relpath(file_path, local_skill_dir)
-                # 构建 sandbox 中的目标路径（保持 /skills 前缀）
-                container_path = f"{skills_dir}/{rel_path}".replace("\\", "/")
-                # 提取目标目录路径
-                container_dir = os.path.dirname(container_path).replace("\\", "/")
-                # 在 sandbox 中创建目录（如果不存在）
-                client.exec_shell(session_id, f"mkdir -p {container_dir}")
-                # 读取文件内容并上传
-                with open(file_path, "rb") as f:
-                    data = f.read()
-                client.upload_file(session_id, container_path, data)
-                logger.info(f"已上传: {file_path} -> {container_path}")
+        # 将阻塞的文件系统操作包装到线程中执行
+        files_to_upload = await asyncio.to_thread(
+            _collect_files_to_upload, local_skill_dir
+        )
+        
+        # 异步上传文件
+        for file_path, container_path, data in files_to_upload:
+            # 提取目标目录路径
+            container_dir = os.path.dirname(container_path).replace("\\", "/")
+            # 在 sandbox 中创建目录（如果不存在）
+            await client.exec_shell(session_id, f"mkdir -p {container_dir}")
+            # 上传文件
+            await client.upload_file(session_id, container_path, data)
+            logger.info(f"已上传: {file_path} -> {container_path}")
     finally:
-        client.close()
+        await client.close()

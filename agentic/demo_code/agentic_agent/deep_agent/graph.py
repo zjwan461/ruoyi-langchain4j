@@ -98,8 +98,7 @@ async def get_agent(config: RunnableConfig, runtime: ServerRuntime):
     if ert:
         thread_id = config.get("configurable", {}).get("thread_id", "default")
         print(f"thread_id={thread_id}")
-        session_id = "default"
-        backend = await get_or_create_sandbox(session_id)
+        backend = await get_or_create_sandbox("default")
         yield _build_agent(backend=backend)
     else:
         yield RO_AGENT
