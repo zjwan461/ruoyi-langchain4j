@@ -37,6 +37,9 @@ WORKDIR /app
 # 从构建阶段复制构建好的 jar
 COPY --from=builder /build/ruoyi-admin/target/ruoyi-admin.jar app.jar
 
+# 复制 skills 目录（AgentSkillServiceImpl.syncSkills2Db 启动时扫描该目录同步技能到数据库）
+COPY --from=builder /build/skills /app/skills
+
 RUN sh -c 'touch app.jar'
 
 EXPOSE 8080

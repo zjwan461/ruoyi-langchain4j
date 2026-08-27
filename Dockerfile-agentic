@@ -22,6 +22,8 @@ COPY agentic/requirements.txt .
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 COPY agentic/ .
+# 复制 skills 目录（python_sandbox_backend.py 启动时扫描该目录上传技能到 Sandbox）
+COPY skills/ /skills
 RUN sh gen_grpc.sh
 
 # ========== 最终运行镜像，完全继承文件，但不带构建工具 ==========
