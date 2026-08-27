@@ -6,8 +6,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.ai.domain.AgentTool;
-import com.ruoyi.ai.sandbox.SandboxSdk;
+import com.ruoyi.ai.sandbox.SandboxClient;
+import com.ruoyi.ai.sandbox.dto.SandboxResponse;
 import com.ruoyi.ai.util.SimplePythonFuncParser;
+import com.ruoyi.common.utils.ExceptionUtil;
 import com.ruoyi.common.utils.spring.SpringUtils;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.service.tool.ToolExecutor;
@@ -29,7 +31,7 @@ public class SandboxToolExecutor implements ToolExecutor {
 
     @Override
     public String execute(ToolExecutionRequest toolExecutionRequest, Object memoryId) {
-        SandboxSdk sandboxSdk = SpringUtils.getBean(SandboxSdk.class);
+        SandboxClient client = SpringUtils.getBean(SandboxClient.class);
         ObjectMapper objectMapper = SpringUtils.getBean(ObjectMapper.class);
         String toolName = agentTool.getToolName();
         String parameters = agentTool.getParameters();
@@ -41,8 +43,7 @@ public class SandboxToolExecutor implements ToolExecutor {
             paramList = objectMapper.readValue(
                     parameters,
                     new TypeReference<>() {
-                    }
-            );
+                    });
         } catch (JsonProcessingException ignored) {
         }
         Map<String, Object> invokedParams = null;
@@ -50,8 +51,7 @@ public class SandboxToolExecutor implements ToolExecutor {
             invokedParams = objectMapper.readValue(
                     arguments,
                     new TypeReference<>() {
-                    }
-            );
+                    });
         } catch (JsonProcessingException ignored) {
         }
 
@@ -71,6 +71,17 @@ public class SandboxToolExecutor implements ToolExecutor {
             code = code + "\nresult = " + toolName + "()";
         }
         code += "\nprint(result)";
-        return sandboxSdk.runPythonAndGetStdout(code);
+
+        try {
+            String sessionId = client.createDefaultSession();
+            SandboxResponse response = client.execPython(sessionId, code);
+            if (response.isSuccess()) {
+                return response.getStdout();
+            } else {
+                return response.getStderr();
+            }
+        } catch (Exception e) {
+            return ExceptionUtil.getExceptionMessage(e);
+        }
     }
 }

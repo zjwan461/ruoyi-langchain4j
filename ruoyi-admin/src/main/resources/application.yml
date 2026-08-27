@@ -171,10 +171,9 @@ ai:
   agent:
     memory-strategy: redis
     max-sequential-tools-invocations: 10
-  # dify-sandbox 代码执行沙箱配置（对应 docker-compose 中的 sandbox 服务）
   sandbox:
-    base-url: http://sandbox:8194 #容器内通过服务名访问；宿主机本地调试改为 http://localhost:8194
-    api-key: dify-sandbox #对应 docker-compose 中 sandbox 服务的 API_KEY 环境变量
+    base-url: http://agentic-sandbox:8080 #容器内通过服务名访问；宿主机本地调试改为 http://localhost:8194
+    api-key: sandbox-secret-key #对应 docker-compose 中 sandbox 服务的 API_KEY 环境变量
     timeout: 30 #请求超时时间（秒），覆盖 sandbox 服务自身的 worker_timeout
   skill:
     local-skill-path: skills
