@@ -23,8 +23,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph.state import CompiledStateGraph
 from deepagents import create_deep_agent
-from deepagents.backends import FilesystemBackend
 from deepagents.graph import DeepAgentState
+from agentic.sandbox.python_sandbox_backend import get_or_create_sandbox
 
 from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
@@ -382,7 +382,7 @@ class DeepAgentChatService:
                 checkpointer=_memory_store,
                 name=_encode_agent_name(tree_node.node.agent_name, agent_id),
                 state_schema=JAgentState,
-                backend=FilesystemBackend(root_dir=BACKEND_DIR),
+                backend=await get_or_create_sandbox(session_id="default")
             )
             # show_reasoning 从 TreeNode 的 AgentNodeData 获取，而非 gRPC agent 信息
             node_show_reasoning = tree_node.node.show_reasoning
