@@ -39,6 +39,9 @@ class PythonSandboxBackend(BaseSandbox):
         """异步初始化 session，必须在首次使用前调用。"""
         self._id = await self.sandbox_client.create_session()
 
+    async def init_default_session(self) -> None:
+        self._id = await self.sandbox_client.create_default_session()
+
     @property
     def id(self) -> str:
         return self._id
@@ -130,7 +133,10 @@ async def get_or_create_sandbox(session_id: str) -> PythonSandboxBackend:
             api_key=os.getenv("SANDBOX_API_KEY", "sandbox-secret-key"),
         )
         _backend = PythonSandboxBackend(sandbox_client=client)
-        await _backend.init_session()
+        if session_id == "default":
+            await _backend.init_default_session()
+        else:
+            await _backend.init_session()
         _backends[session_id] = _backend
         await upload_skills_to_sandbox(client, _backend.id, skill_idr)
         return _backend
