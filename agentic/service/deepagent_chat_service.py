@@ -24,11 +24,10 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph.state import CompiledStateGraph
 from deepagents import create_deep_agent
 from deepagents.graph import DeepAgentState
-from agentic.sandbox.python_sandbox_backend import get_or_create_sandbox
+from sandbox.python_sandbox_backend import get_or_create_sandbox
 
 from grpc_client import get_grpc_client
 from util.flow_tree_parser import TreeNode
-from sandbox.sandbox_tool import run_python_code, check_sandbox_health, get_sandbox_dependencies, run_sandbox_command
 from logger_config import logger
 from pydantic import create_model, Field
 import os
@@ -376,6 +375,7 @@ class DeepAgentChatService:
             agent = create_deep_agent(
                 model=llm,
                 tools=tools,
+                skills=["/skills"],
                 system_prompt=system_prompt,
                 subagents=subagents if subagents else None,
                 middleware=[AgentIdMiddleware(agent_id)],
@@ -564,15 +564,6 @@ class DeepAgentChatService:
                 langchain_tool = self._convert_sandbox_tool_to_langchain(tool_info)
                 if langchain_tool:
                     tools.append(langchain_tool)
-            elif (
-                tool_type == "builtin"
-                and tool_info.get("toolName") == "run_python_code"
-            ):
-                # 内置沙箱工具
-                tools.append(run_python_code)
-                tools.append(check_sandbox_health)
-                tools.append(get_sandbox_dependencies)
-                tools.append(run_sandbox_command)
             else:
                 logger.debug(
                     f"跳过非 sandbox 类型工具: {tool_info.get('toolName', 'unknown')} (type={tool_type})"

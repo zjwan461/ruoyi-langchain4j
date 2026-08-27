@@ -3,7 +3,6 @@ from langchain.messages import AIMessageChunk, ToolMessage
 from langchain.tools import tool
 
 from .constant import llm
-from sandbox.sandbox_tool import check_sandbox_health, run_python_code
 
 @tool
 def get_weather(city: str) -> str:
@@ -13,7 +12,7 @@ def get_weather(city: str) -> str:
 
 agent = create_agent(
     model=llm,
-    tools=[get_weather, check_sandbox_health, run_python_code],
+    tools=[get_weather],
     system_prompt="你是一个乐于助人的AI助手，在适当的时候调用工具",
 )
 
