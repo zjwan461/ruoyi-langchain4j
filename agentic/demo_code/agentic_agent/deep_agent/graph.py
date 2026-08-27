@@ -23,7 +23,7 @@ DEFAULT_MODEL = os.getenv("DEEP_AGENT_MODEL", "qwen3.7-plus")
 
 llm = ChatOpenAI(
     base_url="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-    api_key="sk-0543377485b74778b3728e250df4e7d1",
+    api_key="xxx",
     model=DEFAULT_MODEL,
     extra_body={"chat_template_kwargs": {"enable_thinking": False}},
 )
