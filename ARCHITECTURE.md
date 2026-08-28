@@ -48,10 +48,10 @@ graph TB
     
     ADMIN -->|impl_type=origin| ORIGIN
     ADMIN -->|impl_type=agentic<br/>HTTP SSE| AGENTIC
+    ADMIN -->|DocumentParseClient<br/>HTTP REST API| DOC_PARSER
     
     AGENTIC -->|gRPC| ADMIN
     AGENTIC -->|python-sandbox-sdk<br/>异步HTTP| SANDBOX
-    AGENTIC --> DOC_PARSER
     
     ORIGIN -->|SandboxClient<br/>HTTP REST API| SANDBOX
     ADMIN -->|SandboxClient<br/>HTTP REST API| SANDBOX
@@ -714,14 +714,15 @@ graph TB
     end
     
     A --> B
-    A --> C
     C -->|gRPC| B
-    C --> D
-    C --> E
+    B -->|DocumentParseClient| D
+    B -->|SandboxClient| E
+    C -->|python-sandbox-sdk| E
     B --> F
     B --> G
     B --> H
     C --> H
+    D --> H
 ```
 
 ### 6.3 开发环境配置
