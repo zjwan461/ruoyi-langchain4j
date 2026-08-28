@@ -19,6 +19,7 @@ graph TB
     subgraph "应用服务层"
         subgraph "Java后端服务"
             ADMIN[ruoyi-admin<br/>Spring Boot 2.x<br/>端口:8080<br/>gRPC:9090]
+            ORIGIN[AgentFlowChatServiceImpl<br/>origin模式<br/>LangChain4j原生执行]
         end
         
         subgraph "Python AI服务"
@@ -44,12 +45,15 @@ graph TB
 
     UI --> NGINX
     NGINX --> ADMIN
-    NGINX --> AGENTIC
+    
+    ADMIN -->|impl_type=origin| ORIGIN
+    ADMIN -->|impl_type=agentic<br/>HTTP SSE| AGENTIC
     
     AGENTIC -->|gRPC| ADMIN
     AGENTIC -->|python-sandbox-sdk<br/>异步HTTP| SANDBOX
     AGENTIC --> DOC_PARSER
     
+    ORIGIN -->|SandboxClient<br/>HTTP REST API| SANDBOX
     ADMIN -->|SandboxClient<br/>HTTP REST API| SANDBOX
     ADMIN --> MYSQL
     ADMIN --> REDIS
@@ -429,15 +433,20 @@ ruoyi-admin/src/main/resources/db/migration/
 
 ## 4. 调用链路详解
 
-### 4.1 Agent 对话主链路
+### 4.1 Agent Flow 对话主链路（双模式路由）
+
+Agent Flow 对话请求统一由前端发送到 `ruoyi-admin`，后端根据 `agent_flow.impl_type` 字段决定由哪条路径执行：
+
+- **origin 模式**：`ruoyi-admin` 自身使用 LangChain4j 原生执行 Flow
+- **agentic 模式**：`ruoyi-admin` 通过 `AgenticServiceImpl` → `AgenticRequestUtil` 将请求转发给 Python `agentic` 服务
 
 ```mermaid
 sequenceDiagram
     participant U as 用户
     participant UI as ruoyi-ui
+    participant ADMIN as ruoyi-admin<br/>(Java)
     participant AG as agentic<br/>(Python)
     participant GRPC as gRPC
-    participant ADMIN as ruoyi-admin<br/>(Java)
     participant DB as MySQL
     participant REDIS as Redis
     participant PG as PostgreSQL<br/>(pgvector)
@@ -445,42 +454,49 @@ sequenceDiagram
     participant SB as Sandbox
 
     U->>UI: 发送消息
-    UI->>AG: POST /chat-agentic
-    AG->>GRPC: 获取 Agent 配置
-    GRPC->>ADMIN: getAiAgentWithToolAndSkillById
-    ADMIN->>DB: 查询 Agent 配置
-    DB-->>ADMIN: 返回配置
-    ADMIN-->>GRPC: 返回 Agent 信息
-    GRPC-->>AG: Agent 配置
-    
-    AG->>GRPC: 获取模型配置
-    GRPC->>ADMIN: getModelById
-    ADMIN->>DB: 查询模型
-    DB-->>ADMIN: 返回模型
-    ADMIN-->>GRPC: 返回模型
-    GRPC-->>AG: 模型配置
-    
-    AG->>PG: 检索知识库向量
-    PG-->>AG: 返回相关文档
-    
-    AG->>REDIS: 加载对话历史
-    REDIS-->>AG: 对话记忆
-    
-    AG->>LLM: 调用大模型
-    LLM-->>AG: 流式响应
-    
-    alt 需要工具调用
-        AG->>ADMIN: 执行工具
-        ADMIN-->>AG: 工具结果
+    UI->>ADMIN: POST /api/ai/flow/chat
+
+    ADMIN->>DB: 查询 AgentFlow 配置
+    DB-->>ADMIN: 返回 agent_flow (含 impl_type)
+
+    alt impl_type = origin（LangChain4j 原生执行）
+        ADMIN->>ADMIN: AgentFlowChatServiceImpl<br/>FlowTreeParser 解析 Flow
+        ADMIN->>PG: 检索知识库向量
+        PG-->>ADMIN: 返回相关文档
+        ADMIN->>REDIS: 加载对话记忆
+        REDIS-->>ADMIN: 对话历史
+        ADMIN->>LLM: 调用大模型
+        LLM-->>ADMIN: 流式响应
+        alt 需要代码执行
+            ADMIN->>SB: SandboxClient.execPython()
+            SB-->>ADMIN: 执行结果
+        end
+        ADMIN->>REDIS: 保存对话记录
+        ADMIN-->>UI: SSE 流式响应
+    else impl_type = agentic（DeepAgents 执行）
+        ADMIN->>AG: AgenticRequestUtil<br/>POST /chat-agentic (HTTP SSE)
+        AG->>GRPC: 获取 Agent 配置
+        GRPC->>ADMIN: getAiAgentWithToolAndSkillById
+        ADMIN-->>GRPC: 返回 Agent 信息
+        GRPC-->>AG: Agent 配置
+        AG->>GRPC: 获取模型配置
+        GRPC->>ADMIN: getModelById
+        ADMIN-->>GRPC: 返回模型
+        GRPC-->>AG: 模型配置
+        AG->>PG: 检索知识库向量
+        PG-->>AG: 返回相关文档
+        AG->>LLM: 调用大模型
+        LLM-->>AG: 流式响应
+        alt 需要代码执行
+            AG->>SB: python-sandbox-sdk.exec_shell()
+            SB-->>AG: 执行结果
+        end
+        AG->>PG: 保存 checkpoint
+        AG-->>ADMIN: SSE 流式响应
+        ADMIN->>REDIS: 保存对话记录
+        ADMIN-->>UI: SSE 流式响应
     end
-    
-    alt 需要代码执行
-        AG->>SB: 提交代码
-        SB-->>AG: 执行结果
-    end
-    
-    AG->>REDIS: 保存对话记录
-    AG-->>UI: SSE 流式响应
+
     UI-->>U: 显示回复
 ```
 
@@ -530,30 +546,53 @@ service AgentMcpGrpcService {
 }
 ```
 
-### 4.3 Agent Flow 执行链路
+### 4.3 Agent Flow 执行链路（双模式对比）
 
 ```mermaid
 graph TD
-    A[接收 Flow JSON] --> B[flow_tree_parser<br/>解析 Flow 结构]
-    B --> C[构建执行树<br/>TreeNode]
-    C --> D{节点类型?}
+    A[前端请求] --> B[ruoyi-admin<br/>AIFlowChatController]
+    B --> C{agent_flow.impl_type?}
     
-    D -->|LLM节点| E[调用大模型]
-    D -->|工具节点| F[执行工具]
-    D -->|条件节点| G[条件判断]
-    D -->|代码节点| H[沙箱执行]
-    D -->|知识库节点| I[向量检索]
+    C -->|origin| D[AgentFlowChatServiceImpl<br/>LangChain4j 原生执行]
+    C -->|agentic| E[AgenticServiceImpl<br/>转发到 Python agentic 服务]
     
-    E --> J[流式输出]
-    F --> J
-    G --> K[选择分支]
-    H --> J
-    I --> J
+    D --> D1[FlowTreeParser<br/>解析 Flow 结构]
+    D1 --> D2[构建执行树 TreeNode]
+    D2 --> D3{节点类型?}
     
-    K --> D
-    J --> L{是否有下一节点?}
-    L -->|是| D
-    L -->|否| M[返回最终结果]
+    D3 -->|LLM节点| D4[LangChain4j<br/>调用大模型]
+    D3 -->|工具节点| D5[JToolProvider<br/>执行工具]
+    D3 -->|代码节点| D6[SandboxClient<br/>沙箱执行]
+    D3 -->|知识库节点| D7[PgVectorUtil<br/>向量检索]
+    
+    D4 --> D8[流式输出]
+    D5 --> D8
+    D6 --> D8
+    D7 --> D8
+    
+    D8 --> D9{是否有下一节点?}
+    D9 -->|是| D3
+    D9 -->|否| D10[返回最终结果]
+    
+    E --> E1[AgenticRequestUtil<br/>HTTP SSE 转发]
+    E1 --> E2[agentic 服务<br/>FastAPI /chat-agentic]
+    E2 --> E3[flow_tree_parser<br/>解析 Flow 结构]
+    E3 --> E4[构建 TreeNode<br/>嵌套 Deep Agent]
+    E4 --> E5{节点类型?}
+    
+    E5 -->|LLM节点| E6[LangChain<br/>调用大模型]
+    E5 -->|工具节点| E7[MCP / 工具调用]
+    E5 -->|代码节点| E8[python-sandbox-sdk<br/>沙箱执行]
+    E5 -->|知识库节点| E9[pgvector<br/>向量检索]
+    
+    E6 --> E10[流式输出]
+    E7 --> E10
+    E8 --> E10
+    E9 --> E10
+    
+    E10 --> E11{是否有下一节点?}
+    E11 -->|是| E5
+    E11 -->|否| E12[SSE 流式返回<br/>ruoyi-admin → 前端]
 ```
 
 ### 4.4 知识库检索链路
