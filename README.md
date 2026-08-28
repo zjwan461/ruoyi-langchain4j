@@ -14,7 +14,7 @@
 
 > 前端 Vue / Element UI · 后端 Spring Boot / Spring Security / Redis & Jwt / WebSocket / LangChain4j / PgVector / Python Sandbox / **MCP** / **Skills** · Python 微服务（**doc-parser 文档解析** / **agentic 智能体网关**）
 
-[快速开始](#-快速开始) · [在线体验](#-在线体验) · [演示图](#-演示图) · [支持项目](#-支持项目)
+[快速开始](#-快速开始) · [架构设计](./ARCHITECTURE.md) · [在线体验](#-在线体验) · [演示图](#-演示图) · [支持项目](#-支持项目)
 
 </div>
 
