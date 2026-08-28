@@ -1,0 +1,1553 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="基于 RuoYi-Vue 集成 LangChain4j 的企业级 AI 快速开发平台">
+      
+      
+        <meta name="author" content="zjwan461">
+      
+      
+        <link rel="canonical" href="https://zjwan461.github.io/ruoyi-langchain4j/architecture/">
+      
+      
+        <link rel="prev" href="../quick-start/">
+      
+      
+        <link rel="next" href="../ai-features/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>架构设计 - RuoYi-Langchain4j</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Sans SC";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href=".." title="RuoYi-Langchain4j" class="md-header__button md-logo" aria-label="RuoYi-Langchain4j" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RuoYi-Langchain4j
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              架构设计
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到深色模式"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切换到深色模式" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切换到浅色模式"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切换到浅色模式" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/zjwan461/ruoyi-langchain4j" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    zjwan461/ruoyi-langchain4j
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../quick-start/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  快速开始
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  架构设计
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ai-features/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  AI 功能
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  部署指南
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  更新日志
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="RuoYi-Langchain4j" class="md-nav__button md-logo" aria-label="RuoYi-Langchain4j" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RuoYi-Langchain4j
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/zjwan461/ruoyi-langchain4j" title="前往仓库" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    zjwan461/ruoyi-langchain4j
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick-start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    快速开始
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构设计
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    架构设计
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🏗️ 整体架构
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📦 服务组件
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📦 服务组件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ruoyi-admin-java" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ruoyi-admin (Java 后端服务)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agentic-python-ai-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        agentic (Python AI Agent 服务)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#doc-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        doc-parser (文档解析服务)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agentic-sandbox-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        agentic-sandbox (自研 Python 代码执行沙箱)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔗 调用链路
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔗 调用链路">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agent-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Flow 对话主链路（双模式路由）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC 调用链路
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-flow_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Flow 执行链路（双模式对比）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗄️ 中间件架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🗄️ 中间件架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mysql-80" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MySQL 8.0
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#postgresql-15-pgvector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PostgreSQL 15 + pgvector
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔐 安全机制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔐 安全机制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        认证授权
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        沙箱安全
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 性能优化
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📊 性能优化">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库优化
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        缓存策略
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        异步处理
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI 功能
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    部署指南
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    更新日志
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🏗️ 整体架构
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📦 服务组件
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📦 服务组件">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ruoyi-admin-java" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ruoyi-admin (Java 后端服务)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agentic-python-ai-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        agentic (Python AI Agent 服务)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#doc-parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        doc-parser (文档解析服务)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agentic-sandbox-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        agentic-sandbox (自研 Python 代码执行沙箱)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔗 调用链路
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔗 调用链路">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#agent-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Flow 对话主链路（双模式路由）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grpc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gRPC 调用链路
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#agent-flow_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Agent Flow 执行链路（双模式对比）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🗄️ 中间件架构
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🗄️ 中间件架构">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mysql-80" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MySQL 8.0
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#postgresql-15-pgvector" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PostgreSQL 15 + pgvector
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔐 安全机制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔐 安全机制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        认证授权
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        沙箱安全
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        📊 性能优化
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="📊 性能优化">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数据库优化
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        缓存策略
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        异步处理
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">架构设计<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>本文档详细介绍 RuoYi-Langchain4j 的系统架构、服务组件和调用链路。</p>
+<hr />
+<h2 id="_2">🏗️ 整体架构<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>graph TB
+    subgraph "前端层"
+        UI[ruoyi-ui&lt;br/&gt;Vue3 + Element Plus&lt;br/&gt;端口:80]
+    end
+
+    subgraph "API网关层"
+        NGINX[Nginx&lt;br/&gt;反向代理 + 静态资源]
+    end
+
+    subgraph "应用服务层"
+        subgraph "Java后端服务"
+            ADMIN[ruoyi-admin&lt;br/&gt;Spring Boot 2.x&lt;br/&gt;端口:8080&lt;br/&gt;gRPC:9090]
+            ORIGIN[AgentFlowChatServiceImpl&lt;br/&gt;origin模式&lt;br/&gt;LangChain4j原生执行]
+        end
+
+        subgraph "Python AI服务"
+            AGENTIC[agentic&lt;br/&gt;FastAPI + DeepAgents&lt;br/&gt;端口:8142]
+            DOC_PARSER[doc-parser&lt;br/&gt;文档解析服务&lt;br/&gt;端口:8143]
+        end
+
+        subgraph "沙箱服务"
+            SANDBOX[agentic-sandbox&lt;br/&gt;自研Python沙箱&lt;br/&gt;端口:8194&lt;br/&gt;Docker-in-Docker]
+        end
+    end
+
+    subgraph "数据存储层"
+        MYSQL[(MySQL 8.0&lt;br/&gt;业务数据&lt;br/&gt;端口:3306)]
+        REDIS[(Redis&lt;br/&gt;缓存 + 会话&lt;br/&gt;端口:6379)]
+        PGVECTOR[(PostgreSQL 15&lt;br/&gt;+ pgvector&lt;br/&gt;向量数据库&lt;br/&gt;端口:5432)]
+    end
+
+    subgraph "外部服务"
+        LLM[大模型 API&lt;br/&gt;OpenAI/通义千问等]
+        SEARCH[搜索 API&lt;br/&gt;Tavily等]
+    end
+
+    UI --&gt; NGINX
+    NGINX --&gt; ADMIN
+
+    ADMIN --&gt;|impl_type=origin| ORIGIN
+    ADMIN --&gt;|impl_type=agentic&lt;br/&gt;HTTP SSE| AGENTIC
+    ADMIN --&gt;|DocumentParseClient&lt;br/&gt;HTTP REST API| DOC_PARSER
+
+    AGENTIC --&gt;|gRPC| ADMIN
+    AGENTIC --&gt;|python-sandbox-sdk&lt;br/&gt;异步HTTP| SANDBOX
+
+    ORIGIN --&gt;|SandboxClient&lt;br/&gt;HTTP REST API| SANDBOX
+    ADMIN --&gt;|SandboxClient&lt;br/&gt;HTTP REST API| SANDBOX
+    ADMIN --&gt; MYSQL
+    ADMIN --&gt; REDIS
+    ADMIN --&gt; PGVECTOR
+
+    AGENTIC --&gt; PGVECTOR
+    AGENTIC --&gt; LLM
+    AGENTIC --&gt; SEARCH
+
+    DOC_PARSER --&gt; LLM
+
+    SANDBOX --&gt;|Docker API&lt;br/&gt;容器隔离执行| DOCKER[Docker Engine&lt;br/&gt;动态创建Python容器]</code></pre>
+<hr />
+<h2 id="_3">📦 服务组件<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<h3 id="ruoyi-admin-java">ruoyi-admin (Java 后端服务)<a class="headerlink" href="#ruoyi-admin-java" title="Permanent link">&para;</a></h3>
+<p><strong>技术栈</strong>：
+- Spring Boot 2.x
+- MyBatis + Druid 连接池
+- LangChain4j (AI 能力集成)
+- gRPC Server (端口 9090)</p>
+<p><strong>核心职责</strong>：
+- 用户认证与权限管理
+- AI Agent 配置管理
+- 模型管理
+- 知识库管理
+- 工具管理
+- MCP 服务管理
+- 对话记录存储
+- 提供 gRPC 服务供 Python 服务调用
+- 文档解析服务调用（通过 DocumentParseClient）</p>
+<p><strong>gRPC 服务接口</strong>：
+- <code>ModelGrpcServer</code>: 模型信息查询
+- <code>AiAgentGrpcServer</code>: AI Agent 信息查询
+- <code>AgentFlowGrpcServer</code>: Agent Flow 配置查询
+- <code>AgentMcpGrpcServer</code>: MCP 服务配置查询</p>
+<h3 id="agentic-python-ai-agent">agentic (Python AI Agent 服务)<a class="headerlink" href="#agentic-python-ai-agent" title="Permanent link">&para;</a></h3>
+<p><strong>技术栈</strong>：
+- FastAPI
+- LangChain / DeepAgents
+- gRPC Client
+- SQLAlchemy (异步)</p>
+<p><strong>核心职责</strong>：
+- Agent Flow 执行引擎（agentic 模式）
+- 多 Agent 协作编排
+- 工具调用管理
+- 联网搜索集成
+- 代码执行沙箱集成
+- 流式响应输出 (SSE)</p>
+<p><strong>核心 API</strong>：
+- <code>POST /chat-agentic</code>: Agent 对话接口 (流式响应)
+- <code>GET /health</code>: 健康检查</p>
+<h3 id="doc-parser">doc-parser (文档解析服务)<a class="headerlink" href="#doc-parser" title="Permanent link">&para;</a></h3>
+<p><strong>技术栈</strong>：
+- FastAPI
+- Docling (文档解析)
+- OCR 模型集成</p>
+<p><strong>核心职责</strong>：
+- PDF/Word/Excel 文档解析
+- 图片 OCR 识别
+- 文档内容结构化
+- 向量化预处理</p>
+<p><strong>调用方式</strong>：
+- 由 ruoyi-admin 通过 HTTP REST API 调用
+- 前端上传文件 → ruoyi-admin 调用 doc-parser → 返回解析内容 → 前端携带 attachmentId 发起对话</p>
+<h3 id="agentic-sandbox-python">agentic-sandbox (自研 Python 代码执行沙箱)<a class="headerlink" href="#agentic-sandbox-python" title="Permanent link">&para;</a></h3>
+<p><strong>技术栈</strong>：
+- Docker-in-Docker (DinD)
+- Python 3.12
+- 自研 HTTP REST API 服务</p>
+<p><strong>核心职责</strong>：
+- 安全执行用户提交的 Python 代码和 Shell 命令
+- 资源限制 (CPU/内存)
+- 会话管理 (Session)
+- 容器生命周期管理</p>
+<p><strong>双路径调用</strong>：
+- <strong>ruoyi-admin (Java)</strong>: 通过 <code>SandboxClient.java</code> 调用（origin 模式）
+- <strong>agentic (Python)</strong>: 通过 <code>python-sandbox-sdk</code> 调用（agentic 模式）</p>
+<hr />
+<h2 id="_4">🔗 调用链路<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<h3 id="agent-flow">Agent Flow 对话主链路（双模式路由）<a class="headerlink" href="#agent-flow" title="Permanent link">&para;</a></h3>
+<p>Agent Flow 对话请求统一由前端发送到 <code>ruoyi-admin</code>，后端根据 <code>agent_flow.impl_type</code> 字段决定执行路径：</p>
+<ul>
+<li><strong>origin 模式</strong>：<code>ruoyi-admin</code> 自身使用 LangChain4j 原生执行 Flow</li>
+<li><strong>agentic 模式</strong>：<code>ruoyi-admin</code> 通过 <code>AgenticServiceImpl</code> → <code>AgenticRequestUtil</code> 将请求转发给 Python <code>agentic</code> 服务</li>
+</ul>
+<pre class="mermaid"><code>sequenceDiagram
+    participant U as 用户
+    participant UI as ruoyi-ui
+    participant ADMIN as ruoyi-admin&lt;br/&gt;(Java)
+    participant AG as agentic&lt;br/&gt;(Python)
+    participant GRPC as gRPC
+    participant DB as MySQL
+    participant REDIS as Redis
+    participant PG as PostgreSQL&lt;br/&gt;(pgvector)
+    participant LLM as 大模型 API
+    participant SB as Sandbox
+
+    U-&gt;&gt;UI: 发送消息
+    UI-&gt;&gt;ADMIN: POST /api/ai/flow/chat
+
+    ADMIN-&gt;&gt;DB: 查询 AgentFlow 配置
+    DB--&gt;&gt;ADMIN: 返回 agent_flow (含 impl_type)
+
+    alt impl_type = origin（LangChain4j 原生执行）
+        ADMIN-&gt;&gt;ADMIN: AgentFlowChatServiceImpl&lt;br/&gt;FlowTreeParser 解析 Flow
+        ADMIN-&gt;&gt;PG: 检索知识库向量
+        PG--&gt;&gt;ADMIN: 返回相关文档
+        ADMIN-&gt;&gt;REDIS: 加载对话记忆
+        REDIS--&gt;&gt;ADMIN: 对话历史
+        ADMIN-&gt;&gt;LLM: 调用大模型
+        LLM--&gt;&gt;ADMIN: 流式响应
+        alt 需要代码执行
+            ADMIN-&gt;&gt;SB: SandboxClient.execPython()
+            SB--&gt;&gt;ADMIN: 执行结果
+        end
+        ADMIN-&gt;&gt;REDIS: 保存对话记录
+        ADMIN--&gt;&gt;UI: SSE 流式响应
+    else impl_type = agentic（DeepAgents 执行）
+        ADMIN-&gt;&gt;AG: AgenticRequestUtil&lt;br/&gt;POST /chat-agentic (HTTP SSE)
+        AG-&gt;&gt;GRPC: 获取 Agent 配置
+        GRPC-&gt;&gt;ADMIN: getAiAgentWithToolAndSkillById
+        ADMIN--&gt;&gt;GRPC: 返回 Agent 信息
+        GRPC--&gt;&gt;AG: Agent 配置
+        AG-&gt;&gt;GRPC: 获取模型配置
+        GRPC-&gt;&gt;ADMIN: getModelById
+        ADMIN--&gt;&gt;GRPC: 返回模型
+        GRPC--&gt;&gt;AG: 模型配置
+        AG-&gt;&gt;PG: 检索知识库向量
+        PG--&gt;&gt;AG: 返回相关文档
+        AG-&gt;&gt;LLM: 调用大模型
+        LLM--&gt;&gt;AG: 流式响应
+        alt 需要代码执行
+            AG-&gt;&gt;SB: python-sandbox-sdk.exec_shell()
+            SB--&gt;&gt;AG: 执行结果
+        end
+        AG-&gt;&gt;PG: 保存 checkpoint
+        AG--&gt;&gt;ADMIN: SSE 流式响应
+        ADMIN-&gt;&gt;REDIS: 保存对话记录
+        ADMIN--&gt;&gt;UI: SSE 流式响应
+    end
+
+    UI--&gt;&gt;U: 显示回复</code></pre>
+<h3 id="grpc">gRPC 调用链路<a class="headerlink" href="#grpc" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph LR
+    A[agentic&lt;br/&gt;Python Client] --&gt;|gRPC| B[ruoyi-admin&lt;br/&gt;gRPC Server :9090]
+
+    B --&gt; C[ModelGrpcServer]
+    B --&gt; D[AiAgentGrpcServer]
+    B --&gt; E[AgentFlowGrpcServer]
+    B --&gt; F[AgentMcpGrpcServer]
+
+    C --&gt; G[IModelService]
+    D --&gt; H[IAIAgentService]
+    E --&gt; I[IAgentFlowService]
+    F --&gt; J[IAgentMcpService]
+
+    G --&gt; K[MySQL]
+    H --&gt; K
+    I --&gt; K
+    J --&gt; K</code></pre>
+<h3 id="agent-flow_1">Agent Flow 执行链路（双模式对比）<a class="headerlink" href="#agent-flow_1" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>graph TD
+    A[前端请求] --&gt; B[ruoyi-admin&lt;br/&gt;AIFlowChatController]
+    B --&gt; C{agent_flow.impl_type?}
+
+    C --&gt;|origin| D[AgentFlowChatServiceImpl&lt;br/&gt;LangChain4j 原生执行]
+    C --&gt;|agentic| E[AgenticServiceImpl&lt;br/&gt;转发到 Python agentic 服务]
+
+    D --&gt; D1[FlowTreeParser&lt;br/&gt;解析 Flow 结构]
+    D1 --&gt; D2[构建执行树 TreeNode]
+    D2 --&gt; D3{节点类型?}
+
+    D3 --&gt;|LLM节点| D4[LangChain4j&lt;br/&gt;调用大模型]
+    D3 --&gt;|工具节点| D5[JToolProvider&lt;br/&gt;执行工具]
+    D3 --&gt;|代码节点| D6[SandboxClient&lt;br/&gt;沙箱执行]
+    D3 --&gt;|知识库节点| D7[PgVectorUtil&lt;br/&gt;向量检索]
+
+    D4 --&gt; D8[流式输出]
+    D5 --&gt; D8
+    D6 --&gt; D8
+    D7 --&gt; D8
+
+    D8 --&gt; D9{是否有下一节点?}
+    D9 --&gt;|是| D3
+    D9 --&gt;|否| D10[返回最终结果]
+
+    E --&gt; E1[AgenticRequestUtil&lt;br/&gt;HTTP SSE 转发]
+    E1 --&gt; E2[agentic 服务&lt;br/&gt;FastAPI /chat-agentic]
+    E2 --&gt; E3[flow_tree_parser&lt;br/&gt;解析 Flow 结构]
+    E3 --&gt; E4[构建 TreeNode&lt;br/&gt;嵌套 Deep Agent]
+    E4 --&gt; E5{节点类型?}
+
+    E5 --&gt;|LLM节点| E6[LangChain&lt;br/&gt;调用大模型]
+    E5 --&gt;|工具节点| E7[MCP / 工具调用]
+    E5 --&gt;|代码节点| E8[python-sandbox-sdk&lt;br/&gt;沙箱执行]
+    E5 --&gt;|知识库节点| E9[pgvector&lt;br/&gt;向量检索]
+
+    E6 --&gt; E10[流式输出]
+    E7 --&gt; E10
+    E8 --&gt; E10
+    E9 --&gt; E10
+
+    E10 --&gt; E11{是否有下一节点?}
+    E11 --&gt;|是| E5
+    E11 --&gt;|否| E12[SSE 流式返回&lt;br/&gt;ruoyi-admin → 前端]</code></pre>
+<hr />
+<h2 id="_5">🗄️ 中间件架构<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<h3 id="mysql-80">MySQL 8.0<a class="headerlink" href="#mysql-80" title="Permanent link">&para;</a></h3>
+<p><strong>用途</strong>：
+- 业务数据持久化存储
+- 用户、角色、权限数据
+- AI Agent 配置数据
+- 对话记录存储</p>
+<p><strong>关键表</strong>：
+- <code>sys_user</code>, <code>sys_role</code>, <code>sys_menu</code>: 系统权限
+- <code>ai_agent</code>: AI Agent 配置
+- <code>ai_model</code>: 模型配置
+- <code>ai_agent_flow</code>: Agent Flow 定义
+- <code>ai_tool</code>, <code>ai_mcp_service</code>: 工具与 MCP 服务
+- <code>chat_message</code>, <code>chat_flow_message</code>: 对话记录
+- <code>knowledge_base</code>: 知识库配置</p>
+<h3 id="redis">Redis<a class="headerlink" href="#redis" title="Permanent link">&para;</a></h3>
+<p><strong>用途</strong>：
+- 会话缓存
+- 验证码存储
+- 对话记忆 (Chat Memory)
+- 令牌管理
+- 在线用户管理</p>
+<h3 id="postgresql-15-pgvector">PostgreSQL 15 + pgvector<a class="headerlink" href="#postgresql-15-pgvector" title="Permanent link">&para;</a></h3>
+<p><strong>用途</strong>：
+- 向量数据库
+- 知识库 Embedding 存储
+- 语义检索</p>
+<p><strong>关键特性</strong>：
+- pgvector 扩展: 向量相似度计算
+- pgvectorscale: 高性能向量检索
+- 向量维度: 768 (text2vec-base-chinese)</p>
+<hr />
+<h2 id="_6">🔐 安全机制<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<h3 id="_7">认证授权<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>JWT Token</li>
+<li>验证码 (滑块/文字点选)</li>
+<li>XSS 防护</li>
+<li>SQL 注入防护 (Druid Wall)</li>
+</ul>
+<h3 id="_8">沙箱安全<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>容器隔离</li>
+<li>资源限制</li>
+<li>超时控制</li>
+<li>API Key 认证</li>
+</ul>
+<hr />
+<h2 id="_9">📊 性能优化<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h2>
+<h3 id="_10">数据库优化<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<ul>
+<li>连接池配置 (Druid)</li>
+<li>向量索引: pgvector HNSW</li>
+<li>业务索引优化</li>
+</ul>
+<h3 id="_11">缓存策略<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Caffeine 本地缓存 (热点数据)</li>
+<li>Redis 分布式缓存 (会话、对话记忆)</li>
+</ul>
+<h3 id="_12">异步处理<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<ul>
+<li>FastAPI 异步</li>
+<li>Spring @Async</li>
+<li>消息队列 (规划中)</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 RuoYi-Langchain4j
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
