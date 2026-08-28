@@ -53,3 +53,4 @@ __pycache__
 package-lock.json
 .vscode
 .env
+doc-site/site

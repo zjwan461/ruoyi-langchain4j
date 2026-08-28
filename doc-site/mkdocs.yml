@@ -1,0 +1,74 @@
+site_name: RuoYi-Langchain4j
+site_description: 基于 RuoYi-Vue 集成 LangChain4j 的企业级 AI 快速开发平台
+site_url: https://zjwan461.github.io/ruoyi-langchain4j/
+site_author: zjwan461
+docs_dir: docs
+
+repo_name: zjwan461/ruoyi-langchain4j
+repo_url: https://github.com/zjwan461/ruoyi-langchain4j
+
+copyright: Copyright &copy; 2025 RuoYi-Langchain4j
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+  font:
+    text: Noto Sans SC
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+nav:
+  - 首页: index.md
+  - 快速开始: quick-start.md
+  - 架构设计: architecture.md
+  - AI 功能: ai-features.md
+  - 部署指南: deployment.md
+  - 更新日志: changelog.md
